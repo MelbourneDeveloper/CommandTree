@@ -1,8 +1,10 @@
 .vscode/**
 .vscode-test/**
 src/**
+test-fixtures/**
 .gitignore
 tsconfig.json
 **/*.map
 **/*.ts
+**/*.bak
 node_modules/**

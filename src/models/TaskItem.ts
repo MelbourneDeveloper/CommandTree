@@ -85,7 +85,7 @@ export class TaskTreeItem extends vscode.TreeItem {
                 title: 'Run Task',
                 arguments: [this]
             };
-        } else if (categoryLabel) {
+        } else if (categoryLabel !== null && categoryLabel !== '') {
             this.contextValue = 'category';
             this.iconPath = this.getCategoryIcon(categoryLabel);
         }

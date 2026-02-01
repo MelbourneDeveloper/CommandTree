@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { TaskTreeProvider } from './TaskTreeProvider';
-import { TaskTreeItem } from './models/TaskItem';
+import type { TaskTreeItem } from './models/TaskItem';
 import { TaskRunner } from './runners/TaskRunner';
 
 let treeProvider: TaskTreeProvider;
@@ -12,7 +12,7 @@ export interface ExtensionExports {
 
 export async function activate(context: vscode.ExtensionContext): Promise<ExtensionExports | undefined> {
     const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
-    if (!workspaceRoot) {
+    if (workspaceRoot === undefined || workspaceRoot === '') {
         return;
     }
 
@@ -34,26 +34,26 @@ export async function activate(context: vscode.ExtensionContext): Promise<Extens
             vscode.window.showInformationMessage('TaskTree refreshed');
         }),
 
-        vscode.commands.registerCommand('tasktree.run', async (item: TaskTreeItem) => {
-            if (item?.task) {
+        vscode.commands.registerCommand('tasktree.run', async (item: TaskTreeItem | undefined) => {
+            if (item !== undefined && item.task !== null) {
                 await taskRunner.run(item.task, 'task');
             }
         }),
 
-        vscode.commands.registerCommand('tasktree.runInNewTerminal', async (item: TaskTreeItem) => {
-            if (item?.task) {
+        vscode.commands.registerCommand('tasktree.runInNewTerminal', async (item: TaskTreeItem | undefined) => {
+            if (item !== undefined && item.task !== null) {
                 await taskRunner.run(item.task, 'newTerminal');
             }
         }),
 
-        vscode.commands.registerCommand('tasktree.runInCurrentTerminal', async (item: TaskTreeItem) => {
-            if (item?.task) {
+        vscode.commands.registerCommand('tasktree.runInCurrentTerminal', async (item: TaskTreeItem | undefined) => {
+            if (item !== undefined && item.task !== null) {
                 await taskRunner.run(item.task, 'currentTerminal');
             }
         }),
 
-        vscode.commands.registerCommand('tasktree.debug', async (item: TaskTreeItem) => {
-            if (item?.task) {
+        vscode.commands.registerCommand('tasktree.debug', async (item: TaskTreeItem | undefined) => {
+            if (item !== undefined && item.task !== null) {
                 await taskRunner.run(item.task, 'debug');
             }
         }),
@@ -114,9 +114,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<Extens
         '**/{package.json,Makefile,makefile,tasks.json,launch.json,tasktree.json,*.sh}'
     );
 
-    watcher.onDidChange(() => treeProvider.refresh());
-    watcher.onDidCreate(() => treeProvider.refresh());
-    watcher.onDidDelete(() => treeProvider.refresh());
+    watcher.onDidChange(async () => { await treeProvider.refresh(); });
+    watcher.onDidCreate(async () => { await treeProvider.refresh(); });
+    watcher.onDidDelete(async () => { await treeProvider.refresh(); });
     context.subscriptions.push(watcher);
 
     // Initial load

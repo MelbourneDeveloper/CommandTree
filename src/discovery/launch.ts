@@ -15,9 +15,11 @@ interface LaunchJson {
  * Discovers VS Code launch configurations.
  */
 export async function discoverLaunchConfigs(
-    workspaceRoot: string
+    workspaceRoot: string,
+    excludePatterns: string[]
 ): Promise<TaskItem[]> {
-    const files = await vscode.workspace.findFiles('**/.vscode/launch.json', '**/test-fixtures/**');
+    const exclude = `{${excludePatterns.join(',')}}`;
+    const files = await vscode.workspace.findFiles('**/.vscode/launch.json', exclude);
     const tasks: TaskItem[] = [];
 
     for (const file of files) {

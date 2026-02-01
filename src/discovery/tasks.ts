@@ -25,9 +25,11 @@ interface TasksJsonConfig {
  * Discovers VS Code tasks from tasks.json.
  */
 export async function discoverVsCodeTasks(
-    workspaceRoot: string
+    workspaceRoot: string,
+    excludePatterns: string[]
 ): Promise<TaskItem[]> {
-    const files = await vscode.workspace.findFiles('**/.vscode/tasks.json', '**/test-fixtures/**');
+    const exclude = `{${excludePatterns.join(',')}}`;
+    const files = await vscode.workspace.findFiles('**/.vscode/tasks.json', exclude);
     const tasks: TaskItem[] = [];
 
     for (const file of files) {

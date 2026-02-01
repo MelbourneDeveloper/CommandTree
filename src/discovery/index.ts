@@ -26,8 +26,8 @@ export async function discoverAllTasks(
         discoverShellScripts(workspaceRoot, excludePatterns),
         discoverNpmScripts(workspaceRoot, excludePatterns),
         discoverMakeTargets(workspaceRoot, excludePatterns),
-        discoverLaunchConfigs(workspaceRoot),
-        discoverVsCodeTasks(workspaceRoot)
+        discoverLaunchConfigs(workspaceRoot, excludePatterns),
+        discoverVsCodeTasks(workspaceRoot, excludePatterns)
     ]);
 
     return {

@@ -388,7 +388,8 @@ export class TaskRunner {
      * Extracts script path from a node/ts-node command.
      */
     private extractScriptPath(command: string): string {
-        const match = command.match(/(?:node|ts-node)\s+["']?([^"'\s]+)/);
+        const regex = /(?:node|ts-node)\s+["']?([^"'\s]+)/;
+        const match = regex.exec(command);
         return match?.[1] ?? command;
     }
 
