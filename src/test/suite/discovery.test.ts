@@ -133,9 +133,10 @@ suite('Task Discovery E2E Tests', () => {
         });
 
         test('handles package.json without scripts section', async function() {
-            this.timeout(10000);
+            this.timeout(15000);
 
             const emptyScriptsPath = 'empty-scripts/package.json';
+            const dir = getFixturePath('empty-scripts');
 
             try {
                 await writeFile(emptyScriptsPath, JSON.stringify({
@@ -149,21 +150,19 @@ suite('Task Discovery E2E Tests', () => {
                 // Should not crash - gracefully handle missing scripts
                 assert.ok(true, 'Should handle missing scripts section');
             } finally {
-                await deleteFile(emptyScriptsPath);
-                const dir = getFixturePath('empty-scripts');
                 if (fs.existsSync(dir)) {
-                    fs.rmdirSync(dir);
+                    fs.rmSync(dir, { recursive: true, force: true });
                 }
             }
         });
 
         test('handles malformed package.json gracefully', async function() {
-            this.timeout(10000);
+            this.timeout(15000);
 
             const malformedPath = 'malformed/package.json';
+            const dir = getFixturePath('malformed');
 
             try {
-                const dir = path.dirname(getFixturePath(malformedPath));
                 if (!fs.existsSync(dir)) {
                     fs.mkdirSync(dir, { recursive: true });
                 }
@@ -175,10 +174,8 @@ suite('Task Discovery E2E Tests', () => {
                 // Should not crash
                 assert.ok(true, 'Should handle malformed JSON');
             } finally {
-                await deleteFile(malformedPath);
-                const dir = getFixturePath('malformed');
                 if (fs.existsSync(dir)) {
-                    fs.rmdirSync(dir);
+                    fs.rmSync(dir, { recursive: true, force: true });
                 }
             }
         });

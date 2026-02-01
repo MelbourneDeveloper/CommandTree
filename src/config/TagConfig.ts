@@ -98,6 +98,54 @@ export class TagConfig {
     }
 
     /**
+     * Adds a task to a specific tag by adding its label pattern.
+     */
+    async addTaskToTag(task: TaskItem, tagName: string): Promise<void> {
+        if (this.config.tags === undefined) {
+            this.config.tags = {};
+        }
+
+        const pattern = task.label;
+        const existingPatterns = this.config.tags[tagName] ?? [];
+
+        if (!existingPatterns.includes(pattern)) {
+            this.config.tags[tagName] = [...existingPatterns, pattern];
+            await this.save();
+        }
+    }
+
+    /**
+     * Removes a task from a specific tag.
+     */
+    async removeTaskFromTag(task: TaskItem, tagName: string): Promise<void> {
+        if (this.config.tags === undefined || this.config.tags[tagName] === undefined) {
+            return;
+        }
+
+        const pattern = task.label;
+        const patterns = this.config.tags[tagName];
+        const filtered = patterns.filter(p => p !== pattern);
+
+        if (filtered.length === 0) {
+            // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+            delete this.config.tags[tagName];
+        } else {
+            this.config.tags[tagName] = filtered;
+        }
+
+        await this.save();
+    }
+
+    /**
+     * Saves the current configuration to file.
+     */
+    private async save(): Promise<void> {
+        const uri = vscode.Uri.file(this.configPath);
+        const content = JSON.stringify(this.config, null, 2);
+        await vscode.workspace.fs.writeFile(uri, new TextEncoder().encode(content));
+    }
+
+    /**
      * Checks if a task matches a glob-like pattern.
      */
     private matchesPattern(task: TaskItem, pattern: string): boolean {

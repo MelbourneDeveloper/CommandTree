@@ -38,13 +38,13 @@ export async function activateExtension(): Promise<TestContext> {
     };
 }
 
-export async function getTreeView(): Promise<vscode.TreeView<unknown> | undefined> {
+export function getTreeView(): vscode.TreeView<unknown> | undefined {
     // The tree view is registered internally, we interact via commands
     return undefined;
 }
 
 export async function executeCommand<T>(command: string, ...args: unknown[]): Promise<T> {
-    return vscode.commands.executeCommand<T>(command, ...args);
+    return await vscode.commands.executeCommand<T>(command, ...args);
 }
 
 export async function refreshTasks(): Promise<void> {
@@ -60,7 +60,7 @@ export async function filterTasks(_filterText: string): Promise<void> {
 }
 
 export async function filterByTag(_tag: string): Promise<void> {
-    void _tag; // Used for API compatibility
+    _tag; // Used for API compatibility
     await executeCommand('tasktree.filterByTag');
 }
 
@@ -73,7 +73,7 @@ export async function runTask(taskItem: unknown): Promise<void> {
 }
 
 export async function sleep(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    await new Promise<void>(resolve => { setTimeout(resolve, ms); });
 }
 
 export function getFixturePath(relativePath: string): string {
@@ -96,7 +96,7 @@ export function getExtensionPath(relativePath: string): string {
     return path.join(extension.extensionPath, relativePath);
 }
 
-export async function writeFile(filePath: string, content: string): Promise<void> {
+export function writeFile(filePath: string, content: string): void {
     const fullPath = getFixturePath(filePath);
     const dir = path.dirname(fullPath);
     if (!fs.existsSync(dir)) {
@@ -105,27 +105,27 @@ export async function writeFile(filePath: string, content: string): Promise<void
     fs.writeFileSync(fullPath, content, 'utf8');
 }
 
-export async function deleteFile(filePath: string): Promise<void> {
+export function deleteFile(filePath: string): void {
     const fullPath = getFixturePath(filePath);
     if (fs.existsSync(fullPath)) {
         fs.unlinkSync(fullPath);
     }
 }
 
-export async function readFile(filePath: string): Promise<string> {
+export function readFile(filePath: string): string {
     const fullPath = getFixturePath(filePath);
     return fs.readFileSync(fullPath, 'utf8');
 }
 
-export async function fileExists(filePath: string): Promise<boolean> {
+export function fileExists(filePath: string): boolean {
     const fullPath = getFixturePath(filePath);
     return fs.existsSync(fullPath);
 }
 
 export async function waitForCondition(
     condition: () => Promise<boolean>,
-    timeout: number = 5000,
-    interval: number = 100
+    timeout = 5000,
+    interval = 100
 ): Promise<void> {
     const startTime = Date.now();
     while (Date.now() - startTime < timeout) {
@@ -137,13 +137,14 @@ export async function waitForCondition(
     throw new Error(`Condition not met within ${timeout}ms`);
 }
 
-export async function getTaskTreeProvider(): Promise<TaskTreeProvider> {
+export function getTaskTreeProvider(): TaskTreeProvider {
     // Access the tree data provider through the extension's exports
     const extension = vscode.extensions.getExtension(EXTENSION_ID);
-    if (!extension || !extension.isActive) {
+    if (!extension?.isActive) {
         throw new Error('Extension not active');
     }
-    const provider = extension.exports?.taskTreeProvider as TaskTreeProvider;
+    const exports = extension.exports as { taskTreeProvider?: TaskTreeProvider } | undefined;
+    const provider = exports?.taskTreeProvider;
     if (!provider) {
         throw new Error('TaskTreeProvider not exported from extension');
     }
@@ -151,12 +152,12 @@ export async function getTaskTreeProvider(): Promise<TaskTreeProvider> {
 }
 
 export async function getTreeChildren(provider: TaskTreeProvider, parent?: TaskTreeItem): Promise<TaskTreeItem[]> {
-    return provider.getChildren(parent);
+    return await provider.getChildren(parent);
 }
 
 export { TaskTreeProvider, TaskTreeItem };
 
-export async function captureTerminalOutput(terminalName: string, timeout: number = 5000): Promise<string> {
+export async function captureTerminalOutput(terminalName: string, timeout = 5000): Promise<string> {
     // Find the terminal by name
     const terminal = vscode.window.terminals.find(t => t.name === terminalName);
     if (!terminal) {

@@ -2,12 +2,15 @@ import * as vscode from 'vscode';
 import { TaskTreeProvider } from './TaskTreeProvider';
 import type { TaskTreeItem } from './models/TaskItem';
 import { TaskRunner } from './runners/TaskRunner';
+import { QuickTasksProvider } from './QuickTasksProvider';
 
 let treeProvider: TaskTreeProvider;
+let quickTasksProvider: QuickTasksProvider;
 let taskRunner: TaskRunner;
 
 export interface ExtensionExports {
     taskTreeProvider: TaskTreeProvider;
+    quickTasksProvider: QuickTasksProvider;
 }
 
 export async function activate(context: vscode.ExtensionContext): Promise<ExtensionExports | undefined> {
@@ -18,19 +21,28 @@ export async function activate(context: vscode.ExtensionContext): Promise<Extens
 
     // Initialize providers
     treeProvider = new TaskTreeProvider(workspaceRoot);
+    quickTasksProvider = new QuickTasksProvider(workspaceRoot);
     taskRunner = new TaskRunner();
 
-    // Register tree view
+    // Register main tree view
     const treeView = vscode.window.createTreeView('tasktree', {
         treeDataProvider: treeProvider,
         showCollapseAll: true
     });
     context.subscriptions.push(treeView);
 
+    // Register quick tasks tree view
+    const quickTreeView = vscode.window.createTreeView('tasktree-quick', {
+        treeDataProvider: quickTasksProvider,
+        showCollapseAll: true
+    });
+    context.subscriptions.push(quickTreeView);
+
     // Register commands
     context.subscriptions.push(
         vscode.commands.registerCommand('tasktree.refresh', async () => {
             await treeProvider.refresh();
+            await quickTasksProvider.updateTasks(treeProvider.getAllTasks());
             vscode.window.showInformationMessage('TaskTree refreshed');
         }),
 
@@ -106,6 +118,22 @@ export async function activate(context: vscode.ExtensionContext): Promise<Extens
 
         vscode.commands.registerCommand('tasktree.editTags', async () => {
             await treeProvider.editTags();
+        }),
+
+        vscode.commands.registerCommand('tasktree.addToQuick', async (item: TaskTreeItem | undefined) => {
+            if (item !== undefined && item.task !== null) {
+                await quickTasksProvider.addToQuick(item.task);
+            }
+        }),
+
+        vscode.commands.registerCommand('tasktree.removeFromQuick', async (item: TaskTreeItem | undefined) => {
+            if (item !== undefined && item.task !== null) {
+                await quickTasksProvider.removeFromQuick(item.task);
+            }
+        }),
+
+        vscode.commands.registerCommand('tasktree.refreshQuick', () => {
+            quickTasksProvider.refresh();
         })
     );
 
@@ -114,17 +142,23 @@ export async function activate(context: vscode.ExtensionContext): Promise<Extens
         '**/{package.json,Makefile,makefile,tasks.json,launch.json,tasktree.json,*.sh}'
     );
 
-    watcher.onDidChange(async () => { await treeProvider.refresh(); });
-    watcher.onDidCreate(async () => { await treeProvider.refresh(); });
-    watcher.onDidDelete(async () => { await treeProvider.refresh(); });
+    const syncQuickTasks = async (): Promise<void> => {
+        await treeProvider.refresh();
+        await quickTasksProvider.updateTasks(treeProvider.getAllTasks());
+    };
+
+    watcher.onDidChange(syncQuickTasks);
+    watcher.onDidCreate(syncQuickTasks);
+    watcher.onDidDelete(syncQuickTasks);
     context.subscriptions.push(watcher);
 
     // Initial load
-    await treeProvider.refresh();
+    await syncQuickTasks();
 
     // Export for testing
     return {
-        taskTreeProvider: treeProvider
+        taskTreeProvider: treeProvider,
+        quickTasksProvider: quickTasksProvider
     };
 }
 

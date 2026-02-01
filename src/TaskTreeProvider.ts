@@ -94,6 +94,13 @@ export class TaskTreeProvider implements vscode.TreeDataProvider<TaskTreeItem> {
         await this.tagConfig.openConfig();
     }
 
+    /**
+     * Gets all discovered tasks (without filters applied).
+     */
+    getAllTasks(): TaskItem[] {
+        return this.tasks;
+    }
+
     getTreeItem(element: TaskTreeItem): vscode.TreeItem {
         return element;
     }

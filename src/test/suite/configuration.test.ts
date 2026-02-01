@@ -11,6 +11,53 @@ import {
     deleteFile
 } from './helpers';
 
+interface ConfigurationProperty {
+    default: unknown;
+    enum?: string[];
+    enumDescriptions?: string[];
+}
+
+interface PackageJsonConfig {
+    contributes: {
+        configuration: {
+            title: string;
+            properties: {
+                'tasktree.excludePatterns': ConfigurationProperty;
+                'tasktree.showEmptyCategories': ConfigurationProperty;
+                'tasktree.sortOrder': ConfigurationProperty;
+            };
+        };
+    };
+}
+
+interface TasksJson {
+    tasks: Array<{
+        label?: string;
+        type: string;
+        command?: string;
+    }>;
+}
+
+interface LaunchJson {
+    configurations: Array<{
+        type: string;
+        request: string;
+        name: string;
+    }>;
+}
+
+interface TagConfig {
+    tags: Record<string, string[]>;
+}
+
+interface FixturePackageJson {
+    scripts: Record<string, string>;
+}
+
+function readExtensionPackageJson(): PackageJsonConfig {
+    return JSON.parse(fs.readFileSync(getExtensionPath('package.json'), 'utf8')) as PackageJsonConfig;
+}
+
 suite('Configuration and File Watchers E2E Tests', () => {
     suiteSetup(async function() {
         this.timeout(30000);
@@ -19,7 +66,7 @@ suite('Configuration and File Watchers E2E Tests', () => {
     });
 
     suite('Extension Settings', () => {
-        test('excludePatterns setting exists', async function() {
+        test('excludePatterns setting exists', function() {
             this.timeout(10000);
 
             const config = vscode.workspace.getConfiguration('tasktree');
@@ -29,14 +76,11 @@ suite('Configuration and File Watchers E2E Tests', () => {
             assert.ok(Array.isArray(excludePatterns), 'excludePatterns should be an array');
         });
 
-        test('excludePatterns has sensible defaults', async function() {
+        test('excludePatterns has sensible defaults', function() {
             this.timeout(10000);
 
-            const packageJson = JSON.parse(
-                fs.readFileSync(getExtensionPath('package.json'), 'utf8')
-            );
-
-            const defaultPatterns = packageJson.contributes.configuration.properties['tasktree.excludePatterns'].default;
+            const packageJson = readExtensionPackageJson();
+            const defaultPatterns = packageJson.contributes.configuration.properties['tasktree.excludePatterns'].default as string[];
 
             assert.ok(defaultPatterns.includes('**/node_modules/**'), 'Should exclude node_modules');
             assert.ok(defaultPatterns.includes('**/bin/**'), 'Should exclude bin');
@@ -44,7 +88,7 @@ suite('Configuration and File Watchers E2E Tests', () => {
             assert.ok(defaultPatterns.includes('**/.git/**'), 'Should exclude .git');
         });
 
-        test('showEmptyCategories setting exists', async function() {
+        test('showEmptyCategories setting exists', function() {
             this.timeout(10000);
 
             const config = vscode.workspace.getConfiguration('tasktree');
@@ -53,66 +97,56 @@ suite('Configuration and File Watchers E2E Tests', () => {
             assert.strictEqual(typeof showEmptyCategories, 'boolean', 'showEmptyCategories should be boolean');
         });
 
-        test('showEmptyCategories defaults to false', async function() {
+        test('showEmptyCategories defaults to false', function() {
             this.timeout(10000);
 
-            const packageJson = JSON.parse(
-                fs.readFileSync(getExtensionPath('package.json'), 'utf8')
-            );
-
+            const packageJson = readExtensionPackageJson();
             const defaultValue = packageJson.contributes.configuration.properties['tasktree.showEmptyCategories'].default;
 
             assert.strictEqual(defaultValue, false, 'showEmptyCategories should default to false');
         });
 
-        test('sortOrder setting exists', async function() {
+        test('sortOrder setting exists', function() {
             this.timeout(10000);
 
             const config = vscode.workspace.getConfiguration('tasktree');
             const sortOrder = config.get<string>('sortOrder');
 
-            assert.ok(sortOrder, 'sortOrder should exist');
+            assert.ok(sortOrder !== undefined && sortOrder !== '', 'sortOrder should exist');
         });
 
-        test('sortOrder has valid enum values', async function() {
+        test('sortOrder has valid enum values', function() {
             this.timeout(10000);
 
-            const packageJson = JSON.parse(
-                fs.readFileSync(getExtensionPath('package.json'), 'utf8')
-            );
-
+            const packageJson = readExtensionPackageJson();
             const enumValues = packageJson.contributes.configuration.properties['tasktree.sortOrder'].enum;
 
+            assert.ok(enumValues, 'enum should exist');
             assert.ok(enumValues.includes('folder'), 'Should have folder option');
             assert.ok(enumValues.includes('name'), 'Should have name option');
             assert.ok(enumValues.includes('type'), 'Should have type option');
         });
 
-        test('sortOrder defaults to folder', async function() {
+        test('sortOrder defaults to folder', function() {
             this.timeout(10000);
 
-            const packageJson = JSON.parse(
-                fs.readFileSync(getExtensionPath('package.json'), 'utf8')
-            );
-
+            const packageJson = readExtensionPackageJson();
             const defaultValue = packageJson.contributes.configuration.properties['tasktree.sortOrder'].default;
 
             assert.strictEqual(defaultValue, 'folder', 'sortOrder should default to folder');
         });
 
-        test('sortOrder has descriptive enum descriptions', async function() {
+        test('sortOrder has descriptive enum descriptions', function() {
             this.timeout(10000);
 
-            const packageJson = JSON.parse(
-                fs.readFileSync(getExtensionPath('package.json'), 'utf8')
-            );
-
+            const packageJson = readExtensionPackageJson();
             const enumDescriptions = packageJson.contributes.configuration.properties['tasktree.sortOrder'].enumDescriptions;
 
+            assert.ok(enumDescriptions, 'enumDescriptions should exist');
             assert.ok(enumDescriptions.length === 3, 'Should have 3 descriptions');
-            assert.ok(enumDescriptions[0].includes('folder'), 'First should describe folder');
-            assert.ok(enumDescriptions[1].includes('name'), 'Second should describe name');
-            assert.ok(enumDescriptions[2].includes('type'), 'Third should describe type');
+            assert.ok(enumDescriptions[0]?.includes('folder'), 'First should describe folder');
+            assert.ok(enumDescriptions[1]?.includes('name'), 'Second should describe name');
+            assert.ok(enumDescriptions[2]?.includes('type'), 'Third should describe type');
         });
     });
 
@@ -180,7 +214,7 @@ suite('Configuration and File Watchers E2E Tests', () => {
             const newPackagePath = 'watcher-test/package.json';
 
             try {
-                await writeFile(newPackagePath, JSON.stringify({
+                writeFile(newPackagePath, JSON.stringify({
                     name: 'watcher-test',
                     version: '1.0.0',
                     scripts: {
@@ -197,7 +231,7 @@ suite('Configuration and File Watchers E2E Tests', () => {
 
                 assert.ok(true, 'Should detect package.json creation');
             } finally {
-                await deleteFile(newPackagePath);
+                deleteFile(newPackagePath);
                 const dir = getFixturePath('watcher-test');
                 if (fs.existsSync(dir)) {
                     fs.rmdirSync(dir);
@@ -213,7 +247,7 @@ suite('Configuration and File Watchers E2E Tests', () => {
 
             try {
                 // Modify package.json
-                const modified = JSON.parse(originalContent);
+                const modified = JSON.parse(originalContent) as FixturePackageJson;
                 modified.scripts['new-watcher-script'] = 'echo "new script"';
                 fs.writeFileSync(packageJsonPath, JSON.stringify(modified, null, 2));
 
@@ -248,7 +282,7 @@ suite('Configuration and File Watchers E2E Tests', () => {
 
                 assert.ok(true, 'Should detect Makefile creation');
             } finally {
-                await deleteFile(newMakefilePath);
+                deleteFile(newMakefilePath);
                 const dir = getFixturePath('watcher-make');
                 if (fs.existsSync(dir)) {
                     fs.rmdirSync(dir);
@@ -264,7 +298,7 @@ suite('Configuration and File Watchers E2E Tests', () => {
 
             try {
                 // Add new target
-                fs.writeFileSync(makefilePath, originalContent + '\nnew-watcher-target:\n\techo "new"');
+                fs.writeFileSync(makefilePath, `${originalContent}\nnew-watcher-target:\n\techo "new"`);
 
                 await sleep(2000);
 
@@ -283,7 +317,7 @@ suite('Configuration and File Watchers E2E Tests', () => {
             const newScriptPath = 'scripts/watcher-script.sh';
 
             try {
-                await writeFile(newScriptPath, '#!/bin/bash\n# Watcher test script\necho "watcher"');
+                writeFile(newScriptPath, '#!/bin/bash\n# Watcher test script\necho "watcher"');
 
                 await sleep(2000);
                 await vscode.commands.executeCommand('tasktree.refresh');
@@ -291,7 +325,7 @@ suite('Configuration and File Watchers E2E Tests', () => {
 
                 assert.ok(fs.existsSync(getFixturePath(newScriptPath)), 'Script should be created');
             } finally {
-                await deleteFile(newScriptPath);
+                deleteFile(newScriptPath);
             }
         });
 
@@ -301,10 +335,10 @@ suite('Configuration and File Watchers E2E Tests', () => {
             const tempScriptPath = 'scripts/temp-delete.sh';
 
             // Create then delete
-            await writeFile(tempScriptPath, '#!/bin/bash\necho "temp"');
+            writeFile(tempScriptPath, '#!/bin/bash\necho "temp"');
             await sleep(1000);
 
-            await deleteFile(tempScriptPath);
+            deleteFile(tempScriptPath);
             await sleep(2000);
 
             assert.ok(!fs.existsSync(getFixturePath(tempScriptPath)), 'Script should be deleted');
@@ -320,7 +354,7 @@ suite('Configuration and File Watchers E2E Tests', () => {
 
             try {
                 // Parse and modify
-                const tasks = JSON.parse(originalContent.replace(/\/\/.*$/gm, '').replace(/\/\*[\s\S]*?\*\//g, ''));
+                const tasks = JSON.parse(originalContent.replace(/\/\/.*$/gm, '').replace(/\/\*[\s\S]*?\*\//g, '')) as TasksJson;
                 tasks.tasks.push({
                     label: 'Watcher Test Task',
                     type: 'shell',
@@ -348,7 +382,7 @@ suite('Configuration and File Watchers E2E Tests', () => {
                 const cleanJson = originalContent
                     .replace(/\/\/.*$/gm, '')
                     .replace(/\/\*[\s\S]*?\*\//g, '');
-                const launch = JSON.parse(cleanJson);
+                const launch = JSON.parse(cleanJson) as LaunchJson;
 
                 launch.configurations.push({
                     type: 'node',
@@ -373,7 +407,7 @@ suite('Configuration and File Watchers E2E Tests', () => {
             const originalContent = fs.readFileSync(tagConfigPath, 'utf8');
 
             try {
-                const config = JSON.parse(originalContent);
+                const config = JSON.parse(originalContent) as TagConfig;
                 config.tags['watcher-tag'] = ['*watcher*'];
 
                 fs.writeFileSync(tagConfigPath, JSON.stringify(config, null, 4));
@@ -388,23 +422,23 @@ suite('Configuration and File Watchers E2E Tests', () => {
     });
 
     suite('Tag Configuration', () => {
-        test('tag config file has correct structure', async function() {
+        test('tag config file has correct structure', function() {
             this.timeout(10000);
 
             const tagConfig = JSON.parse(
                 fs.readFileSync(getFixturePath('.vscode/tasktree.json'), 'utf8')
-            );
+            ) as TagConfig;
 
             assert.ok(tagConfig.tags, 'Should have tags property');
             assert.ok(typeof tagConfig.tags === 'object', 'tags should be an object');
         });
 
-        test('tag patterns are arrays', async function() {
+        test('tag patterns are arrays', function() {
             this.timeout(10000);
 
             const tagConfig = JSON.parse(
                 fs.readFileSync(getFixturePath('.vscode/tasktree.json'), 'utf8')
-            );
+            ) as TagConfig;
 
             for (const [tagName, patterns] of Object.entries(tagConfig.tags)) {
                 assert.ok(Array.isArray(patterns), `Tag ${tagName} patterns should be an array`);
@@ -425,14 +459,11 @@ suite('Configuration and File Watchers E2E Tests', () => {
     });
 
     suite('Glob Pattern Matching', () => {
-        test('exclude patterns use glob syntax', async function() {
+        test('exclude patterns use glob syntax', function() {
             this.timeout(10000);
 
-            const packageJson = JSON.parse(
-                fs.readFileSync(getExtensionPath('package.json'), 'utf8')
-            );
-
-            const patterns = packageJson.contributes.configuration.properties['tasktree.excludePatterns'].default;
+            const packageJson = readExtensionPackageJson();
+            const patterns = packageJson.contributes.configuration.properties['tasktree.excludePatterns'].default as string[];
 
             // All patterns should use glob syntax with **
             for (const pattern of patterns) {
@@ -440,11 +471,11 @@ suite('Configuration and File Watchers E2E Tests', () => {
             }
         });
 
-        test('exclude patterns support common directories', async function() {
+        test('exclude patterns support common directories', function() {
             this.timeout(10000);
 
             const config = vscode.workspace.getConfiguration('tasktree');
-            const patterns = config.get<string[]>('excludePatterns') || [];
+            const patterns = config.get<string[]>('excludePatterns') ?? [];
 
             // Should exclude common build/dependency directories
             const excludedDirs = ['node_modules', 'bin', 'obj', '.git'];
@@ -457,7 +488,7 @@ suite('Configuration and File Watchers E2E Tests', () => {
     });
 
     suite('Configuration Persistence', () => {
-        test('workspace settings are read correctly', async function() {
+        test('workspace settings are read correctly', function() {
             this.timeout(10000);
 
             const config = vscode.workspace.getConfiguration('tasktree');
@@ -472,12 +503,10 @@ suite('Configuration and File Watchers E2E Tests', () => {
             assert.ok(sortOrder !== undefined, 'sortOrder should be readable');
         });
 
-        test('configuration has correct section title', async function() {
+        test('configuration has correct section title', function() {
             this.timeout(10000);
 
-            const packageJson = JSON.parse(
-                fs.readFileSync(getExtensionPath('package.json'), 'utf8')
-            );
+            const packageJson = readExtensionPackageJson();
 
             assert.strictEqual(
                 packageJson.contributes.configuration.title,
@@ -488,7 +517,7 @@ suite('Configuration and File Watchers E2E Tests', () => {
     });
 
     suite('Multiple Workspace Support', () => {
-        test('works with single workspace folder', async function() {
+        test('works with single workspace folder', function() {
             this.timeout(10000);
 
             const folders = vscode.workspace.workspaceFolders;
@@ -497,7 +526,7 @@ suite('Configuration and File Watchers E2E Tests', () => {
             assert.ok(folders.length >= 1, 'Should have at least one workspace folder');
         });
 
-        test('reads config from workspace root', async function() {
+        test('reads config from workspace root', function() {
             this.timeout(10000);
 
             const folders = vscode.workspace.workspaceFolders;

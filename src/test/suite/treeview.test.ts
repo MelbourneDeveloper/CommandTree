@@ -1,14 +1,22 @@
 import * as assert from 'assert';
 import * as vscode from 'vscode';
+import type { TaskTreeProvider, TaskTreeItem, TestContext } from './helpers';
 import {
     activateExtension,
     sleep,
     getTaskTreeProvider,
-    getTreeChildren,
-    TaskTreeProvider,
-    TaskTreeItem,
-    TestContext
+    getTreeChildren
 } from './helpers';
+
+function getLabelString(label: string | vscode.TreeItemLabel | undefined): string {
+    if (typeof label === 'string') {
+        return label;
+    }
+    if (label !== undefined && typeof label === 'object' && 'label' in label) {
+        return label.label;
+    }
+    return '';
+}
 
 suite('TreeView Real UI Tests', () => {
     let context: TestContext;
@@ -30,7 +38,7 @@ suite('TreeView Real UI Tests', () => {
 
             assert.strictEqual(roots.length, 5, `Expected 5 root categories, got ${roots.length}`);
 
-            const categoryLabels = roots.map(r => r.label?.toString() ?? '');
+            const categoryLabels = roots.map(r => getLabelString(r.label));
             assert.ok(categoryLabels.some(l => l.includes('Shell Scripts')), 'Should have Shell Scripts category');
             assert.ok(categoryLabels.some(l => l.includes('NPM Scripts')), 'Should have NPM Scripts category');
             assert.ok(categoryLabels.some(l => l.includes('Make Targets')), 'Should have Make Targets category');
@@ -42,13 +50,14 @@ suite('TreeView Real UI Tests', () => {
             this.timeout(10000);
 
             const roots = await getTreeChildren(provider);
-            const shellCategory = roots.find(r => r.label?.toString().includes('Shell Scripts'));
+            const shellCategory = roots.find(r => getLabelString(r.label).includes('Shell Scripts'));
 
             assert.ok(shellCategory, 'Shell Scripts category should exist');
             // 3 shell scripts: build.sh, deploy.sh, test.sh
+            const shellLabel = getLabelString(shellCategory.label);
             assert.ok(
-                shellCategory.label?.toString().includes('(3)'),
-                `Shell Scripts should show count (3), got: ${shellCategory.label}`
+                shellLabel.includes('(3)'),
+                `Shell Scripts should show count (3), got: ${shellLabel}`
             );
         });
 
@@ -56,13 +65,14 @@ suite('TreeView Real UI Tests', () => {
             this.timeout(10000);
 
             const roots = await getTreeChildren(provider);
-            const npmCategory = roots.find(r => r.label?.toString().includes('NPM Scripts'));
+            const npmCategory = roots.find(r => getLabelString(r.label).includes('NPM Scripts'));
 
             assert.ok(npmCategory, 'NPM Scripts category should exist');
             // 6 npm scripts: 4 from root + 2 from subproject
+            const npmLabel = getLabelString(npmCategory.label);
             assert.ok(
-                npmCategory.label?.toString().includes('(6)'),
-                `NPM Scripts should show count (6), got: ${npmCategory.label}`
+                npmLabel.includes('(6)'),
+                `NPM Scripts should show count (6), got: ${npmLabel}`
             );
         });
 
@@ -70,13 +80,14 @@ suite('TreeView Real UI Tests', () => {
             this.timeout(10000);
 
             const roots = await getTreeChildren(provider);
-            const makeCategory = roots.find(r => r.label?.toString().includes('Make Targets'));
+            const makeCategory = roots.find(r => getLabelString(r.label).includes('Make Targets'));
 
             assert.ok(makeCategory, 'Make Targets category should exist');
             // 6 targets: all, build, test, clean, install, new-watcher-target (.internal is skipped)
+            const makeLabel = getLabelString(makeCategory.label);
             assert.ok(
-                makeCategory.label?.toString().includes('(6)'),
-                `Make Targets should show count (6), got: ${makeCategory.label}`
+                makeLabel.includes('(6)'),
+                `Make Targets should show count (6), got: ${makeLabel}`
             );
         });
 
@@ -84,13 +95,14 @@ suite('TreeView Real UI Tests', () => {
             this.timeout(10000);
 
             const roots = await getTreeChildren(provider);
-            const launchCategory = roots.find(r => r.label?.toString().includes('VS Code Launch'));
+            const launchCategory = roots.find(r => getLabelString(r.label).includes('VS Code Launch'));
 
             assert.ok(launchCategory, 'VS Code Launch category should exist');
             // 3 launch configs: Debug Application, Debug Tests, Debug Python
+            const launchLabel = getLabelString(launchCategory.label);
             assert.ok(
-                launchCategory.label?.toString().includes('(3)'),
-                `VS Code Launch should show count (3), got: ${launchCategory.label}`
+                launchLabel.includes('(3)'),
+                `VS Code Launch should show count (3), got: ${launchLabel}`
             );
         });
 
@@ -98,13 +110,14 @@ suite('TreeView Real UI Tests', () => {
             this.timeout(10000);
 
             const roots = await getTreeChildren(provider);
-            const tasksCategory = roots.find(r => r.label?.toString().includes('VS Code Tasks'));
+            const tasksCategory = roots.find(r => getLabelString(r.label).includes('VS Code Tasks'));
 
             assert.ok(tasksCategory, 'VS Code Tasks category should exist');
             // 4 tasks: Build Project, Run Tests, Deploy with Config, Custom Build
+            const tasksLabel = getLabelString(tasksCategory.label);
             assert.ok(
-                tasksCategory.label?.toString().includes('(4)'),
-                `VS Code Tasks should show count (4), got: ${tasksCategory.label}`
+                tasksLabel.includes('(4)'),
+                `VS Code Tasks should show count (4), got: ${tasksLabel}`
             );
         });
     });
@@ -114,7 +127,7 @@ suite('TreeView Real UI Tests', () => {
             this.timeout(10000);
 
             const roots = await getTreeChildren(provider);
-            const shellCategory = roots.find(r => r.label?.toString().includes('Shell Scripts'));
+            const shellCategory = roots.find(r => getLabelString(r.label).includes('Shell Scripts'));
             assert.ok(shellCategory, 'Shell Scripts category required');
 
             const shellChildren = shellCategory.children;
@@ -130,7 +143,7 @@ suite('TreeView Real UI Tests', () => {
             this.timeout(10000);
 
             const roots = await getTreeChildren(provider);
-            const npmCategory = roots.find(r => r.label?.toString().includes('NPM Scripts'));
+            const npmCategory = roots.find(r => getLabelString(r.label).includes('NPM Scripts'));
             assert.ok(npmCategory, 'NPM Scripts category required');
 
             const allTasks = flattenTaskItems(npmCategory.children);
@@ -146,7 +159,7 @@ suite('TreeView Real UI Tests', () => {
             this.timeout(10000);
 
             const roots = await getTreeChildren(provider);
-            const makeCategory = roots.find(r => r.label?.toString().includes('Make Targets'));
+            const makeCategory = roots.find(r => getLabelString(r.label).includes('Make Targets'));
             assert.ok(makeCategory, 'Make Targets category required');
 
             const allTasks = flattenTaskItems(makeCategory.children);
@@ -164,7 +177,7 @@ suite('TreeView Real UI Tests', () => {
             this.timeout(10000);
 
             const roots = await getTreeChildren(provider);
-            const launchCategory = roots.find(r => r.label?.toString().includes('VS Code Launch'));
+            const launchCategory = roots.find(r => getLabelString(r.label).includes('VS Code Launch'));
             assert.ok(launchCategory, 'VS Code Launch category required');
 
             const allTasks = flattenTaskItems(launchCategory.children);
@@ -179,7 +192,7 @@ suite('TreeView Real UI Tests', () => {
             this.timeout(10000);
 
             const roots = await getTreeChildren(provider);
-            const tasksCategory = roots.find(r => r.label?.toString().includes('VS Code Tasks'));
+            const tasksCategory = roots.find(r => getLabelString(r.label).includes('VS Code Tasks'));
             assert.ok(tasksCategory, 'VS Code Tasks category required');
 
             const allTasks = flattenTaskItems(tasksCategory.children);
@@ -197,7 +210,7 @@ suite('TreeView Real UI Tests', () => {
             this.timeout(10000);
 
             const roots = await getTreeChildren(provider);
-            const shellCategory = roots.find(r => r.label?.toString().includes('Shell Scripts'));
+            const shellCategory = roots.find(r => getLabelString(r.label).includes('Shell Scripts'));
             assert.ok(shellCategory, 'Shell Scripts category required');
 
             const allTasks = flattenTaskItems(shellCategory.children);
@@ -211,7 +224,7 @@ suite('TreeView Real UI Tests', () => {
             this.timeout(10000);
 
             const roots = await getTreeChildren(provider);
-            const npmCategory = roots.find(r => r.label?.toString().includes('NPM Scripts'));
+            const npmCategory = roots.find(r => getLabelString(r.label).includes('NPM Scripts'));
             assert.ok(npmCategory, 'NPM Scripts category required');
 
             const allTasks = flattenTaskItems(npmCategory.children);
@@ -225,7 +238,7 @@ suite('TreeView Real UI Tests', () => {
             this.timeout(10000);
 
             const roots = await getTreeChildren(provider);
-            const makeCategory = roots.find(r => r.label?.toString().includes('Make Targets'));
+            const makeCategory = roots.find(r => getLabelString(r.label).includes('Make Targets'));
             assert.ok(makeCategory, 'Make Targets category required');
 
             const allTasks = flattenTaskItems(makeCategory.children);
@@ -239,7 +252,7 @@ suite('TreeView Real UI Tests', () => {
             this.timeout(10000);
 
             const roots = await getTreeChildren(provider);
-            const launchCategory = roots.find(r => r.label?.toString().includes('VS Code Launch'));
+            const launchCategory = roots.find(r => getLabelString(r.label).includes('VS Code Launch'));
             assert.ok(launchCategory, 'VS Code Launch category required');
 
             const allTasks = flattenTaskItems(launchCategory.children);
@@ -253,7 +266,7 @@ suite('TreeView Real UI Tests', () => {
             this.timeout(10000);
 
             const roots = await getTreeChildren(provider);
-            const tasksCategory = roots.find(r => r.label?.toString().includes('VS Code Tasks'));
+            const tasksCategory = roots.find(r => getLabelString(r.label).includes('VS Code Tasks'));
             assert.ok(tasksCategory, 'VS Code Tasks category required');
 
             const allTasks = flattenTaskItems(tasksCategory.children);
@@ -495,7 +508,7 @@ suite('TreeView Real UI Tests', () => {
             this.timeout(10000);
 
             const roots = await getTreeChildren(provider);
-            const launchCategory = roots.find(r => r.label?.toString().includes('VS Code Launch'));
+            const launchCategory = roots.find(r => getLabelString(r.label).includes('VS Code Launch'));
             assert.ok(launchCategory, 'VS Code Launch category required');
 
             const allTasks = flattenTaskItems(launchCategory.children);
@@ -511,7 +524,7 @@ suite('TreeView Real UI Tests', () => {
             this.timeout(10000);
 
             const roots = await getTreeChildren(provider);
-            const makeCategory = roots.find(r => r.label?.toString().includes('Make Targets'));
+            const makeCategory = roots.find(r => getLabelString(r.label).includes('Make Targets'));
             assert.ok(makeCategory, 'Make Targets category required');
 
             const allTasks = flattenTaskItems(makeCategory.children);
@@ -559,7 +572,7 @@ suite('TreeView Real UI Tests', () => {
             this.timeout(10000);
 
             const roots = await getTreeChildren(provider);
-            const shellCategory = roots.find(r => r.label?.toString().includes('Shell Scripts'));
+            const shellCategory = roots.find(r => getLabelString(r.label).includes('Shell Scripts'));
             assert.ok(shellCategory, 'Shell Scripts category required');
 
             const allTasks = flattenTaskItems(shellCategory.children);
@@ -580,7 +593,7 @@ suite('TreeView Real UI Tests', () => {
             this.timeout(10000);
 
             const roots = await getTreeChildren(provider);
-            const npmCategory = roots.find(r => r.label?.toString().includes('NPM Scripts'));
+            const npmCategory = roots.find(r => getLabelString(r.label).includes('NPM Scripts'));
             assert.ok(npmCategory, 'NPM Scripts category required');
 
             const allTasks = flattenTaskItems(npmCategory.children);
