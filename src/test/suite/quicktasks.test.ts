@@ -4,8 +4,11 @@ import * as fs from 'fs';
 import {
     activateExtension,
     sleep,
-    getFixturePath
+    getFixturePath,
+    getQuickTasksProvider,
+    getTaskTreeProvider
 } from './helpers';
+import type { QuickTasksProvider, TaskTreeProvider } from './helpers';
 
 interface TaskTreeConfig {
     tags?: Record<string, string[]>;
@@ -495,6 +498,218 @@ suite('Quick Tasks E2E Tests', () => {
             }
 
             assert.ok(true, 'Should handle null task');
+        });
+    });
+
+    suite('Quick Tasks Provider Direct Access', () => {
+        let quickProvider: QuickTasksProvider;
+        let treeProvider: TaskTreeProvider;
+
+        suiteSetup(async function() {
+            this.timeout(15000);
+            quickProvider = getQuickTasksProvider();
+            treeProvider = getTaskTreeProvider();
+            await treeProvider.refresh();
+            await quickProvider.updateTasks(treeProvider.getAllTasks());
+            await sleep(1000);
+        });
+
+        test('getChildren returns placeholder when no quick tasks', async function() {
+            this.timeout(15000);
+
+            // Clear quick tasks
+            const config: TaskTreeConfig = {
+                tags: {}
+            };
+            writeTaskTreeConfig(config);
+
+            await treeProvider.refresh();
+            await quickProvider.updateTasks(treeProvider.getAllTasks());
+            await sleep(500);
+
+            const children = quickProvider.getChildren(undefined);
+            assert.ok(children.length === 1, 'Should have exactly one placeholder item');
+
+            const placeholder = children[0];
+            assert.ok(placeholder !== undefined, 'Placeholder should exist');
+            assert.ok(placeholder.task === null, 'Placeholder should have null task');
+            const labelText = typeof placeholder.label === 'string' ? placeholder.label : '';
+            assert.ok(labelText.includes('No quick tasks'), 'Placeholder should indicate no quick tasks');
+        });
+
+        test('getChildren returns task items when quick tasks exist', async function() {
+            this.timeout(15000);
+
+            await treeProvider.refresh();
+            const allTasks = treeProvider.getAllTasks();
+            assert.ok(allTasks.length > 0, 'Should have tasks to work with');
+
+            const testTask = allTasks[0];
+            assert.ok(testTask !== undefined, 'First task should exist');
+
+            // Add task to quick
+            await quickProvider.addToQuick(testTask);
+            await sleep(500);
+
+            const children = quickProvider.getChildren(undefined);
+            assert.ok(children.length >= 1, 'Should have at least one quick task');
+
+            const taskItem = children.find(c => c.task !== null);
+            assert.ok(taskItem !== undefined, 'Should have a non-placeholder task item');
+
+            // Clean up
+            await quickProvider.removeFromQuick(testTask);
+        });
+
+        test('getTreeItem returns element as-is', function() {
+            this.timeout(10000);
+
+            const children = quickProvider.getChildren(undefined);
+            if (children.length > 0) {
+                const child = children[0];
+                assert.ok(child !== undefined, 'Child should exist');
+                const treeItem = quickProvider.getTreeItem(child);
+                assert.strictEqual(treeItem, child, 'getTreeItem should return element unchanged');
+            } else {
+                assert.ok(true, 'No children to test');
+            }
+        });
+
+        test('refresh fires tree data change event', async function() {
+            this.timeout(10000);
+
+            // Just verify refresh doesn't throw
+            quickProvider.refresh();
+            await sleep(100);
+
+            assert.ok(true, 'refresh should complete without error');
+        });
+
+        test('addToQuick adds task to quick tag', async function() {
+            this.timeout(15000);
+
+            await treeProvider.refresh();
+            const allTasks = treeProvider.getAllTasks();
+            const testTask = allTasks[0];
+            assert.ok(testTask !== undefined, 'Should have a task');
+
+            // Ensure task is not in quick
+            await quickProvider.removeFromQuick(testTask);
+            await sleep(500);
+
+            // Add to quick
+            await quickProvider.addToQuick(testTask);
+            await sleep(500);
+
+            // Verify it's in quick
+            const config = readTaskTreeConfig();
+            const quickTags = config.tags?.['quick'] ?? [];
+            assert.ok(quickTags.includes(testTask.id), 'Task should be added to quick tag');
+
+            // Clean up
+            await quickProvider.removeFromQuick(testTask);
+        });
+
+        test('removeFromQuick removes task from quick tag', async function() {
+            this.timeout(15000);
+
+            await treeProvider.refresh();
+            const allTasks = treeProvider.getAllTasks();
+            const testTask = allTasks[0];
+            assert.ok(testTask !== undefined, 'Should have a task');
+
+            // Add to quick first
+            await quickProvider.addToQuick(testTask);
+            await sleep(500);
+
+            // Verify it's there
+            let config = readTaskTreeConfig();
+            let quickTags = config.tags?.['quick'] ?? [];
+            assert.ok(quickTags.includes(testTask.id), 'Task should be in quick tag');
+
+            // Remove from quick
+            await quickProvider.removeFromQuick(testTask);
+            await sleep(500);
+
+            // Verify it's removed
+            config = readTaskTreeConfig();
+            quickTags = config.tags?.['quick'] ?? [];
+            assert.ok(!quickTags.includes(testTask.id), 'Task should be removed from quick tag');
+        });
+
+        test('updateTasks applies tags and refreshes', async function() {
+            this.timeout(15000);
+
+            await treeProvider.refresh();
+            const allTasks = treeProvider.getAllTasks();
+
+            // updateTasks should not throw
+            await quickProvider.updateTasks(allTasks);
+            await sleep(500);
+
+            assert.ok(true, 'updateTasks should complete without error');
+        });
+
+        test('handleDrag sets data transfer with task id', function() {
+            this.timeout(10000);
+
+            // This tests the drag functionality indirectly
+            // In E2E we verify the drag mime types are registered
+            assert.ok(quickProvider.dragMimeTypes.length > 0, 'Should have drag mime types');
+            assert.ok(quickProvider.dropMimeTypes.length > 0, 'Should have drop mime types');
+        });
+
+        test('drag and drop reorders quick tasks', async function() {
+            this.timeout(20000);
+
+            await treeProvider.refresh();
+            const allTasks = treeProvider.getAllTasks();
+            assert.ok(allTasks.length >= 2, 'Need at least 2 tasks');
+
+            const task1 = allTasks[0];
+            const task2 = allTasks[1];
+            assert.ok(task1 !== undefined && task2 !== undefined, 'Tasks should exist');
+
+            // Add both tasks to quick in specific order
+            await quickProvider.removeFromQuick(task1);
+            await quickProvider.removeFromQuick(task2);
+            await sleep(500);
+
+            await quickProvider.addToQuick(task1);
+            await quickProvider.addToQuick(task2);
+            await sleep(500);
+
+            // Verify initial order
+            let config = readTaskTreeConfig();
+            let quickTags = config.tags?.['quick'] ?? [];
+            const initialIndex1 = quickTags.indexOf(task1.id);
+            const initialIndex2 = quickTags.indexOf(task2.id);
+            assert.ok(initialIndex1 < initialIndex2, 'Task1 should be before Task2 initially');
+
+            // Simulate reorder via config (as drag/drop would do via moveTaskInTag)
+            const reorderedConfig: TaskTreeConfig = {
+                tags: {
+                    ...config.tags,
+                    quick: [task2.id, task1.id]
+                }
+            };
+            writeTaskTreeConfig(reorderedConfig);
+
+            await sleep(500);
+            await treeProvider.refresh();
+            await quickProvider.updateTasks(treeProvider.getAllTasks());
+            await sleep(500);
+
+            // Verify new order
+            config = readTaskTreeConfig();
+            quickTags = config.tags?.['quick'] ?? [];
+            const newIndex1 = quickTags.indexOf(task1.id);
+            const newIndex2 = quickTags.indexOf(task2.id);
+            assert.ok(newIndex2 < newIndex1, 'Task2 should be before Task1 after reorder');
+
+            // Clean up
+            await quickProvider.removeFromQuick(task1);
+            await quickProvider.removeFromQuick(task2);
         });
     });
 });

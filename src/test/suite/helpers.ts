@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
 import { TaskTreeProvider } from '../../TaskTreeProvider';
+import { QuickTasksProvider } from '../../QuickTasksProvider';
 import { TaskTreeItem } from '../../models/TaskItem';
 
 export const EXTENSION_ID = 'nimblesite.tasktree';
@@ -158,7 +159,23 @@ export async function getTreeChildren(provider: TaskTreeProvider, parent?: TaskT
     return await provider.getChildren(parent);
 }
 
-export { TaskTreeProvider, TaskTreeItem };
+export function getQuickTasksProvider(): QuickTasksProvider {
+    const extension = vscode.extensions.getExtension(EXTENSION_ID);
+    if (extension === undefined) {
+        throw new Error('Extension not found');
+    }
+    if (!extension.isActive) {
+        throw new Error('Extension not active');
+    }
+    const extensionExports = extension.exports as { quickTasksProvider?: QuickTasksProvider } | undefined;
+    const provider = extensionExports?.quickTasksProvider;
+    if (!provider) {
+        throw new Error('QuickTasksProvider not exported from extension');
+    }
+    return provider;
+}
+
+export { TaskTreeProvider, TaskTreeItem, QuickTasksProvider };
 
 export async function captureTerminalOutput(terminalName: string, timeout = 5000): Promise<string> {
     // Find the terminal by name

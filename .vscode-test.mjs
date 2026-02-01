@@ -14,5 +14,11 @@ export default defineConfig({
     launchArgs: [
         '--disable-extensions',
         '--disable-gpu'
-    ]
+    ],
+    coverage: {
+        include: ['out/**/*.js'],
+        exclude: ['out/test/**/*.js'],
+        reporter: ['text', 'lcov', 'html'],
+        output: './coverage'
+    }
 });

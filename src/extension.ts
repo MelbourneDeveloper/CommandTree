@@ -65,12 +65,6 @@ export async function activate(context: vscode.ExtensionContext): Promise<Extens
             }
         }),
 
-        vscode.commands.registerCommand('tasktree.debug', async (item: TaskTreeItem | undefined) => {
-            if (item !== undefined && item.task !== null) {
-                await taskRunner.run(item.task, 'debug');
-            }
-        }),
-
         vscode.commands.registerCommand('tasktree.filter', async () => {
             const filter = await vscode.window.showInputBox({
                 prompt: 'Filter tasks by name, path, or description',

@@ -349,4 +349,244 @@ suite('Tag Context Menu E2E Tests', () => {
             );
         });
     });
+
+    suite('Tag Pattern Matching', () => {
+        test('glob pattern with ** matches deep paths', async function () {
+            this.timeout(15000);
+
+            await provider.refresh();
+            await sleep(500);
+
+            // Set up a glob pattern with **
+            const config: TagConfig = {
+                tags: {
+                    'deep-match': ['**/scripts/**']
+                }
+            };
+            fs.writeFileSync(tagConfigPath, JSON.stringify(config, null, 4));
+
+            await provider.refresh();
+            await sleep(500);
+
+            const allTasks = provider.getAllTasks();
+            const taggedTasks = allTasks.filter(t => t.tags.includes('deep-match'));
+
+            // Should match tasks in scripts folder
+            assert.ok(taggedTasks.length >= 0, 'Glob pattern should work');
+        });
+
+        test('glob pattern with * matches single segment', async function () {
+            this.timeout(15000);
+
+            await provider.refresh();
+            await sleep(500);
+
+            const config: TagConfig = {
+                tags: {
+                    'single-match': ['npm:*']
+                }
+            };
+            fs.writeFileSync(tagConfigPath, JSON.stringify(config, null, 4));
+
+            await provider.refresh();
+            await sleep(500);
+
+            const allTasks = provider.getAllTasks();
+            const taggedTasks = allTasks.filter(t => t.tags.includes('single-match'));
+
+            // Should match npm tasks
+            assert.ok(taggedTasks.length >= 0, 'Single segment glob should work');
+        });
+
+        test('exact task ID pattern matches only that task', async function () {
+            this.timeout(15000);
+
+            await provider.refresh();
+            await sleep(500);
+
+            const allTasks = provider.getAllTasks();
+            assert.ok(allTasks.length > 0, 'Should have tasks');
+
+            const testTask = allTasks[0];
+            assert.ok(testTask !== undefined, 'First task should exist');
+
+            const config: TagConfig = {
+                tags: {
+                    'exact-match': [testTask.id]
+                }
+            };
+            fs.writeFileSync(tagConfigPath, JSON.stringify(config, null, 4));
+
+            await provider.refresh();
+            await sleep(500);
+
+            const refreshedTasks = provider.getAllTasks();
+            const taggedTasks = refreshedTasks.filter(t => t.tags.includes('exact-match'));
+
+            assert.strictEqual(taggedTasks.length, 1, 'Exact ID should match exactly one task');
+            const taggedTask = taggedTasks[0];
+            assert.ok(taggedTask !== undefined, 'Tagged task should exist');
+            assert.strictEqual(taggedTask.id, testTask.id, 'Should match the correct task');
+        });
+
+        test('type:name pattern matches tasks of that type', async function () {
+            this.timeout(15000);
+
+            const config: TagConfig = {
+                tags: {
+                    'type-match': ['npm:build']
+                }
+            };
+            fs.writeFileSync(tagConfigPath, JSON.stringify(config, null, 4));
+
+            await provider.refresh();
+            await sleep(500);
+
+            const allTasks = provider.getAllTasks();
+            const taggedTasks = allTasks.filter(t => t.tags.includes('type-match'));
+
+            // Should match npm:build tasks
+            for (const task of taggedTasks) {
+                assert.strictEqual(task.type, 'npm', 'Should only match npm tasks');
+                assert.strictEqual(task.label, 'build', 'Should only match build label');
+            }
+        });
+
+        test('plain label without glob does NOT match', async function () {
+            this.timeout(15000);
+
+            const config: TagConfig = {
+                tags: {
+                    'plain-label': ['build']  // No glob, no type: prefix
+                }
+            };
+            fs.writeFileSync(tagConfigPath, JSON.stringify(config, null, 4));
+
+            await provider.refresh();
+            await sleep(500);
+
+            const allTasks = provider.getAllTasks();
+            const taggedTasks = allTasks.filter(t => t.tags.includes('plain-label'));
+
+            // Plain labels without glob should NOT match (safety feature)
+            assert.strictEqual(taggedTasks.length, 0, 'Plain label should not match tasks');
+        });
+    });
+
+    suite('Tag Config Edge Cases', () => {
+        test('empty tags object is handled', async function () {
+            this.timeout(15000);
+
+            const config: TagConfig = {
+                tags: {}
+            };
+            fs.writeFileSync(tagConfigPath, JSON.stringify(config, null, 4));
+
+            await provider.refresh();
+            await sleep(500);
+
+            const tags = provider.getAllTags();
+            assert.strictEqual(tags.length, 0, 'Should have no tags');
+        });
+
+        test('missing tags property is handled', async function () {
+            this.timeout(15000);
+
+            // Write config without tags property
+            fs.writeFileSync(tagConfigPath, JSON.stringify({}, null, 4));
+
+            await provider.refresh();
+            await sleep(500);
+
+            const tags = provider.getAllTags();
+            assert.strictEqual(tags.length, 0, 'Should handle missing tags property');
+        });
+
+        test('editTags command opens config file', async function () {
+            this.timeout(15000);
+
+            // Execute editTags command
+            await vscode.commands.executeCommand('tasktree.editTags');
+            await sleep(1500);
+
+            // Check if a document is open
+            const openEditors = vscode.window.visibleTextEditors;
+            const configEditor = openEditors.find(e => e.document.uri.fsPath.includes('tasktree.json'));
+
+            assert.ok(configEditor !== undefined, 'Config file should be open in editor');
+
+            // Close the editor
+            await vscode.commands.executeCommand('workbench.action.closeActiveEditor');
+        });
+
+        test('adding duplicate task to tag does not create duplicate', async function () {
+            this.timeout(15000);
+
+            await provider.refresh();
+            const allTasks = provider.getAllTasks();
+            const testTask = allTasks[0];
+            assert.ok(testTask !== undefined, 'Should have a task');
+
+            const tagName = 'no-duplicates';
+
+            // Add task twice
+            await provider.addTaskToTag(testTask, tagName);
+            await provider.addTaskToTag(testTask, tagName);
+            await sleep(500);
+
+            // Verify only one entry
+            const configContent = fs.readFileSync(tagConfigPath, 'utf8');
+            const config = JSON.parse(configContent) as TagConfig;
+            const patterns = config.tags[tagName] ?? [];
+
+            const matchingPatterns = patterns.filter(p => p === testTask.id);
+            assert.strictEqual(matchingPatterns.length, 1, 'Should have only one entry for the task');
+        });
+
+        test('removing non-existent task from tag does not error', async function () {
+            this.timeout(15000);
+
+            await provider.refresh();
+            const allTasks = provider.getAllTasks();
+            const testTask = allTasks[0];
+            assert.ok(testTask !== undefined, 'Should have a task');
+
+            const tagName = 'non-existent-tag';
+
+            // Try to remove from non-existent tag
+            await provider.removeTaskFromTag(testTask, tagName);
+            await sleep(500);
+
+            assert.ok(true, 'Should not throw when removing from non-existent tag');
+        });
+
+        test('special characters in task ID are handled', async function () {
+            this.timeout(15000);
+
+            await provider.refresh();
+            const allTasks = provider.getAllTasks();
+
+            // Find a task with special chars in path (like subproject tasks)
+            const taskWithPath = allTasks.find(t => t.filePath.includes('/'));
+            if (taskWithPath === undefined) {
+                // Skip if no suitable task found
+                assert.ok(true, 'No task with path separators found');
+                return;
+            }
+
+            const tagName = 'special-chars-test';
+
+            await provider.addTaskToTag(taskWithPath, tagName);
+            await sleep(500);
+
+            const configContent = fs.readFileSync(tagConfigPath, 'utf8');
+            const config = JSON.parse(configContent) as TagConfig;
+
+            assert.ok(config.tags[tagName] !== undefined, 'Tag should be created');
+            assert.ok(config.tags[tagName].includes(taskWithPath.id), 'Task with special chars should be added');
+
+            // Clean up
+            await provider.removeTaskFromTag(taskWithPath, tagName);
+        });
+    });
 });

@@ -1,7 +1,0 @@
-{
-  "name": "watcher-test",
-  "version": "1.0.0",
-  "scripts": {
-    "watcher-build": "echo \"watcher build\""
-  }
-}

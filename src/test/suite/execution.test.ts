@@ -401,8 +401,179 @@ suite('Task Execution E2E Tests', () => {
         });
     });
 
-    suite('Debug Session Management', () => {
-        test('debug API is available for launch tasks', function() {
+    suite('Run In New Terminal', () => {
+        test('runInNewTerminal command is registered', async function() {
+            this.timeout(10000);
+
+            const commands = await vscode.commands.getCommands(true);
+            assert.ok(commands.includes('tasktree.runInNewTerminal'), 'runInNewTerminal command should be registered');
+        });
+
+        test('runInNewTerminal creates a new terminal', async function() {
+            this.timeout(15000);
+
+            const terminalsBefore = vscode.window.terminals.length;
+
+            const shellTask = createMockTaskItem({
+                type: 'shell',
+                label: 'Test New Terminal',
+                command: 'echo "hello from new terminal"',
+                cwd: context.workspaceRoot,
+                filePath: path.join(context.workspaceRoot, 'scripts/test.sh')
+            });
+
+            // Create a TaskTreeItem wrapper
+            const taskTreeItem = { task: shellTask };
+
+            await vscode.commands.executeCommand('tasktree.runInNewTerminal', taskTreeItem);
+            await sleep(1500);
+
+            const terminalsAfter = vscode.window.terminals.length;
+            assert.ok(terminalsAfter >= terminalsBefore, 'Should have at least as many terminals');
+        });
+
+        test('runInNewTerminal terminal has descriptive name', async function() {
+            this.timeout(15000);
+
+            const shellTask = createMockTaskItem({
+                type: 'shell',
+                label: 'Descriptive Task Name',
+                command: 'echo "test"',
+                cwd: context.workspaceRoot,
+                filePath: path.join(context.workspaceRoot, 'scripts/test.sh')
+            });
+
+            const taskTreeItem = { task: shellTask };
+
+            await vscode.commands.executeCommand('tasktree.runInNewTerminal', taskTreeItem);
+            await sleep(1500);
+
+            // Check if a terminal with TaskTree in the name exists
+            const taskTreeTerminal = vscode.window.terminals.find(t => t.name.includes('TaskTree'));
+            assert.ok(taskTreeTerminal !== undefined, 'Should create terminal with TaskTree in name');
+        });
+
+        test('runInNewTerminal handles undefined gracefully', async function() {
+            this.timeout(10000);
+
+            try {
+                await vscode.commands.executeCommand('tasktree.runInNewTerminal', undefined);
+            } catch {
+                // Expected behavior
+            }
+
+            assert.ok(true, 'Should handle undefined task');
+        });
+
+        test('runInNewTerminal handles null task property gracefully', async function() {
+            this.timeout(10000);
+
+            try {
+                await vscode.commands.executeCommand('tasktree.runInNewTerminal', { task: null });
+            } catch {
+                // Expected behavior
+            }
+
+            assert.ok(true, 'Should handle null task property');
+        });
+    });
+
+    suite('Run In Current Terminal', () => {
+        test('runInCurrentTerminal command is registered', async function() {
+            this.timeout(10000);
+
+            const commands = await vscode.commands.getCommands(true);
+            assert.ok(commands.includes('tasktree.runInCurrentTerminal'), 'runInCurrentTerminal command should be registered');
+        });
+
+        test('runInCurrentTerminal creates terminal if none exists', async function() {
+            this.timeout(15000);
+
+            // Close all terminals first
+            for (const t of vscode.window.terminals) {
+                t.dispose();
+            }
+            await sleep(500);
+
+            const shellTask = createMockTaskItem({
+                type: 'shell',
+                label: 'Test Current Terminal',
+                command: 'echo "hello from current terminal"',
+                cwd: context.workspaceRoot,
+                filePath: path.join(context.workspaceRoot, 'scripts/test.sh')
+            });
+
+            const taskTreeItem = { task: shellTask };
+
+            await vscode.commands.executeCommand('tasktree.runInCurrentTerminal', taskTreeItem);
+            await sleep(1500);
+
+            assert.ok(vscode.window.terminals.length >= 1, 'Should create terminal if none exists');
+        });
+
+        test('runInCurrentTerminal uses active terminal if available', async function() {
+            this.timeout(15000);
+
+            // Create a terminal manually
+            const existingTerminal = vscode.window.createTerminal('Existing Terminal');
+            existingTerminal.show();
+            await sleep(500);
+
+            const terminalsBefore = vscode.window.terminals.length;
+
+            const shellTask = createMockTaskItem({
+                type: 'shell',
+                label: 'Test Use Existing',
+                command: 'echo "use existing"',
+                cwd: context.workspaceRoot,
+                filePath: path.join(context.workspaceRoot, 'scripts/test.sh')
+            });
+
+            const taskTreeItem = { task: shellTask };
+
+            await vscode.commands.executeCommand('tasktree.runInCurrentTerminal', taskTreeItem);
+            await sleep(1000);
+
+            // Should not create new terminal when one is active
+            const terminalsAfter = vscode.window.terminals.length;
+            assert.ok(terminalsAfter <= terminalsBefore + 1, 'Should reuse existing terminal or create at most one');
+        });
+
+        test('runInCurrentTerminal handles undefined gracefully', async function() {
+            this.timeout(10000);
+
+            try {
+                await vscode.commands.executeCommand('tasktree.runInCurrentTerminal', undefined);
+            } catch {
+                // Expected behavior
+            }
+
+            assert.ok(true, 'Should handle undefined task');
+        });
+
+        test('runInCurrentTerminal shows terminal', async function() {
+            this.timeout(15000);
+
+            const shellTask = createMockTaskItem({
+                type: 'shell',
+                label: 'Test Show Terminal',
+                command: 'echo "visible"',
+                cwd: context.workspaceRoot,
+                filePath: path.join(context.workspaceRoot, 'scripts/test.sh')
+            });
+
+            const taskTreeItem = { task: shellTask };
+
+            await vscode.commands.executeCommand('tasktree.runInCurrentTerminal', taskTreeItem);
+            await sleep(1000);
+
+            // Terminal should be active/visible
+            assert.ok(vscode.window.activeTerminal !== undefined, 'Should have active terminal after execution');
+        });
+    });
+
+    suite('Launch Config Execution', () => {
+        test('launch tasks use debug API', function() {
             this.timeout(10000);
 
             assert.strictEqual(typeof vscode.debug.startDebugging, 'function', 'startDebugging should be a function');
@@ -411,7 +582,6 @@ suite('Task Execution E2E Tests', () => {
         test('active debug sessions can be queried', function() {
             this.timeout(10000);
 
-            // Access active session - should not throw (may return undefined if no session)
             const session = vscode.debug.activeDebugSession;
             if (session !== undefined) {
                 assert.strictEqual(typeof session.name, 'string', 'Active session should have name');

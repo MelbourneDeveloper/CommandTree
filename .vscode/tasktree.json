@@ -27,7 +27,8 @@
     "quick": [
       "build.sh",
       "npm:/Users/christianfindlay/Documents/Code/TaskTree/package.json:build-and-install",
-      "npm:/Users/christianfindlay/Documents/Code/TaskTree/package.json:lint"
+      "npm:/Users/christianfindlay/Documents/Code/TaskTree/package.json:lint",
+      "make:/Users/christianfindlay/Documents/Code/TaskTree/test-fixtures/workspace/Makefile:all"
     ]
   }
 }

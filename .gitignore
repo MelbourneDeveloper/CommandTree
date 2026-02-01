@@ -8,6 +8,9 @@ out/
 # VS Code test artifacts
 .vscode-test/
 
+# Coverage reports
+coverage/
+
 # OS files
 .DS_Store
 Thumbs.db

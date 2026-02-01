@@ -603,6 +603,18 @@ suite('TreeView Real UI Tests', () => {
     });
 
     suite('Tree Item ID and Indentation Structure', () => {
+        function collectAllIds(items: TaskTreeItem[], allIds: Set<string>): void {
+            for (const item of items) {
+                if (item.id !== undefined) {
+                    assert.ok(!allIds.has(item.id), `ID "${item.id}" should be unique`);
+                    allIds.add(item.id);
+                }
+                if (item.children.length > 0) {
+                    collectAllIds(item.children, allIds);
+                }
+            }
+        }
+
         test('all tree items have unique IDs for proper indentation', async function() {
             this.timeout(10000);
 
