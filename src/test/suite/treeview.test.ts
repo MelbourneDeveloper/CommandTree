@@ -31,12 +31,12 @@ suite('TreeView Real UI Tests', () => {
     });
 
     suite('Tree Structure Verification', () => {
-        test('root level has exactly 5 categories', async function() {
+        test('root level has exactly 6 categories', async function() {
             this.timeout(10000);
 
             const roots = await getTreeChildren(provider);
 
-            assert.strictEqual(roots.length, 5, `Expected 5 root categories, got ${roots.length}`);
+            assert.strictEqual(roots.length, 6, `Expected 6 root categories, got ${roots.length}`);
 
             const categoryLabels = roots.map(r => getLabelString(r.label));
             assert.ok(categoryLabels.some(l => l.includes('Shell Scripts')), 'Should have Shell Scripts category');
@@ -44,6 +44,7 @@ suite('TreeView Real UI Tests', () => {
             assert.ok(categoryLabels.some(l => l.includes('Make Targets')), 'Should have Make Targets category');
             assert.ok(categoryLabels.some(l => l.includes('VS Code Launch')), 'Should have VS Code Launch category');
             assert.ok(categoryLabels.some(l => l.includes('VS Code Tasks')), 'Should have VS Code Tasks category');
+            assert.ok(categoryLabels.some(l => l.includes('Python Scripts')), 'Should have Python Scripts category');
         });
 
         test('Shell Scripts category shows correct count in label', async function() {
@@ -118,6 +119,21 @@ suite('TreeView Real UI Tests', () => {
             assert.ok(
                 tasksLabel.includes('(4)'),
                 `VS Code Tasks should show count (4), got: ${tasksLabel}`
+            );
+        });
+
+        test('Python Scripts category shows correct count in label', async function() {
+            this.timeout(10000);
+
+            const roots = await getTreeChildren(provider);
+            const pythonCategory = roots.find(r => getLabelString(r.label).includes('Python Scripts'));
+
+            assert.ok(pythonCategory, 'Python Scripts category should exist');
+            // 3 runnable python scripts: build_project.py, run_tests.py, deploy.py (utils.py has no __main__)
+            const pythonLabel = getLabelString(pythonCategory.label);
+            assert.ok(
+                pythonLabel.includes('(3)'),
+                `Python Scripts should show count (3), got: ${pythonLabel}`
             );
         });
     });
@@ -203,6 +219,22 @@ suite('TreeView Real UI Tests', () => {
             assert.ok(labels.includes('Deploy with Config'), 'Should have Deploy with Config');
             assert.ok(labels.includes('Custom Build'), 'Should have Custom Build');
         });
+
+        test('python script tasks have correct labels', async function() {
+            this.timeout(10000);
+
+            const roots = await getTreeChildren(provider);
+            const pythonCategory = roots.find(r => getLabelString(r.label).includes('Python Scripts'));
+            assert.ok(pythonCategory, 'Python Scripts category required');
+
+            const allTasks = flattenTaskItems(pythonCategory.children);
+            const labels = allTasks.map(t => t.task?.label ?? '');
+
+            assert.ok(labels.includes('build_project.py'), 'Should have build_project.py');
+            assert.ok(labels.includes('run_tests.py'), 'Should have run_tests.py');
+            assert.ok(labels.includes('deploy.py'), 'Should have deploy.py');
+            assert.ok(!labels.includes('utils.py'), 'Should NOT have utils.py (not runnable)');
+        });
     });
 
     suite('Icon Verification', () => {
@@ -273,6 +305,20 @@ suite('TreeView Real UI Tests', () => {
             for (const task of allTasks) {
                 const icon = task.iconPath as vscode.ThemeIcon;
                 assert.strictEqual(icon.id, 'gear', `VS Code task ${task.task?.label} should have gear icon`);
+            }
+        });
+
+        test('python tasks have symbol-misc icon', async function() {
+            this.timeout(10000);
+
+            const roots = await getTreeChildren(provider);
+            const pythonCategory = roots.find(r => getLabelString(r.label).includes('Python Scripts'));
+            assert.ok(pythonCategory, 'Python Scripts category required');
+
+            const allTasks = flattenTaskItems(pythonCategory.children);
+            for (const task of allTasks) {
+                const icon = task.iconPath as vscode.ThemeIcon;
+                assert.strictEqual(icon.id, 'symbol-misc', `Python task ${task.task?.label} should have symbol-misc icon`);
             }
         });
     });
@@ -552,6 +598,105 @@ suite('TreeView Real UI Tests', () => {
                     md.value.includes(taskData.type),
                     `Tooltip should contain task type`
                 );
+            }
+        });
+    });
+
+    suite('Tree Item ID and Indentation Structure', () => {
+        test('all tree items have unique IDs for proper indentation', async function() {
+            this.timeout(10000);
+
+            const roots = await getTreeChildren(provider);
+            const allIds = new Set<string>();
+
+            // Check root categories have IDs
+            for (const category of roots) {
+                assert.ok(category.id !== undefined, `Category "${getLabelString(category.label)}" should have an id`);
+                assert.ok(!allIds.has(category.id), `ID "${category.id}" should be unique`);
+                allIds.add(category.id);
+
+                // Check children recursively
+                collectAllIds(category.children, allIds);
+            }
+        });
+
+        test('folder nodes have hierarchical IDs', async function() {
+            this.timeout(10000);
+
+            const roots = await getTreeChildren(provider);
+            const npmCategory = roots.find(r => getLabelString(r.label).includes('NPM Scripts'));
+            assert.ok(npmCategory, 'NPM Scripts category required');
+
+            // NPM Scripts has folder grouping (Root, subproject, etc.)
+            for (const child of npmCategory.children) {
+                if (child.task === null && child.categoryLabel !== null) {
+                    // This is a folder node
+                    assert.ok(child.id !== undefined, `Folder "${child.categoryLabel}" should have an id`);
+                    assert.ok(
+                        child.id.includes('/'),
+                        `Folder id "${child.id}" should be hierarchical (contain /)`
+                    );
+                }
+            }
+        });
+
+        test('nested task items have proper parent context in IDs', async function() {
+            this.timeout(10000);
+
+            const roots = await getTreeChildren(provider);
+            const npmCategory = roots.find(r => getLabelString(r.label).includes('NPM Scripts'));
+            assert.ok(npmCategory, 'NPM Scripts category required');
+
+            // Find a folder with multiple tasks
+            const folderWithTasks = npmCategory.children.find(
+                c => c.task === null && c.children.length > 1
+            );
+
+            if (folderWithTasks !== undefined) {
+                // Tasks under a folder should have unique IDs
+                const taskIds = folderWithTasks.children.map(t => t.id);
+                const uniqueIds = new Set(taskIds);
+                assert.strictEqual(
+                    taskIds.length,
+                    uniqueIds.size,
+                    'All tasks in folder should have unique IDs'
+                );
+            }
+        });
+
+        test('tree has proper 3-level nesting for grouped categories', async function() {
+            this.timeout(10000);
+
+            const roots = await getTreeChildren(provider);
+            const npmCategory = roots.find(r => getLabelString(r.label).includes('NPM Scripts'));
+            assert.ok(npmCategory, 'NPM Scripts category required');
+
+            // Level 1: Category (NPM Scripts)
+            assert.ok(npmCategory.id !== undefined, 'Category should have ID');
+            assert.ok(
+                npmCategory.collapsibleState === vscode.TreeItemCollapsibleState.Collapsed,
+                'Category should be collapsible'
+            );
+
+            // Level 2: Folders (Root, subproject)
+            const folders = npmCategory.children.filter(c => c.task === null && c.children.length > 0);
+            assert.ok(folders.length > 0, 'Should have folder nodes under NPM Scripts');
+
+            for (const folder of folders) {
+                assert.ok(folder.id !== undefined, `Folder should have ID`);
+                assert.ok(
+                    folder.collapsibleState === vscode.TreeItemCollapsibleState.Collapsed,
+                    'Folder should be collapsible'
+                );
+
+                // Level 3: Tasks
+                for (const task of folder.children) {
+                    assert.ok(task.id !== undefined, `Task should have ID`);
+                    assert.ok(
+                        task.collapsibleState === vscode.TreeItemCollapsibleState.None,
+                        'Task should not be collapsible'
+                    );
+                }
             }
         });
     });

@@ -6,9 +6,9 @@ import {
     sleep,
     getFixturePath,
     getExtensionPath,
-    getTaskTreeProvider,
-    TaskTreeProvider
+    getTaskTreeProvider
 } from './helpers';
+import type { TaskTreeProvider } from './helpers';
 
 interface TagConfig {
     tags: Record<string, string[]>;
@@ -22,8 +22,8 @@ suite('Tag Context Menu E2E Tests', () => {
     suiteSetup(async function () {
         this.timeout(30000);
         await activateExtension();
+        // getTaskTreeProvider() throws if provider is not available
         provider = getTaskTreeProvider();
-        assert.ok(provider !== undefined, 'Provider should be available');
 
         tagConfigPath = getFixturePath('.vscode/tasktree.json');
         originalTagConfig = fs.readFileSync(tagConfigPath, 'utf8');
@@ -113,8 +113,10 @@ suite('Tag Context Menu E2E Tests', () => {
             // Verify it was added
             let configContent = fs.readFileSync(tagConfigPath, 'utf8');
             let config = JSON.parse(configContent) as TagConfig;
+            const tagPatternsBefore = config.tags[tagName];
+            assert.ok(tagPatternsBefore !== undefined, 'Tag should exist');
             assert.ok(
-                config.tags[tagName]?.includes(testTask.id),
+                tagPatternsBefore.includes(testTask.id),
                 'Task should be in tag before removal'
             );
 
@@ -335,12 +337,14 @@ suite('Tag Context Menu E2E Tests', () => {
                 m => m.command === 'tasktree.removeTag'
             );
 
+            assert.ok(addTagMenu !== undefined, 'addTag should be in context menu');
             assert.ok(
-                addTagMenu?.group.startsWith('3_tagging'),
+                addTagMenu.group.startsWith('3_tagging'),
                 'addTag should be in tagging group'
             );
+            assert.ok(removeTagMenu !== undefined, 'removeTag should be in context menu');
             assert.ok(
-                removeTagMenu?.group.startsWith('3_tagging'),
+                removeTagMenu.group.startsWith('3_tagging'),
                 'removeTag should be in tagging group'
             );
         });

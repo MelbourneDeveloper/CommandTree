@@ -1,7 +1,7 @@
 {
   "name": "tasktree",
   "displayName": "TaskTree",
-  "description": "Unified task runner: discover shell scripts, npm scripts, Makefiles, launch configs, and VS Code tasks in one filterable tree",
+  "description": "Unified task runner: discover shell scripts, npm scripts, Makefiles, launch configs, VS Code tasks and more in one filterable tree",
   "version": "0.1.0",
   "author": "Christian Findlay",
   "license": "MIT",
@@ -302,6 +302,9 @@
           "description": "How to sort tasks within categories"
         }
       }
+    },
+    "configurationDefaults": {
+      "workbench.tree.indent": 16
     }
   },
   "scripts": {

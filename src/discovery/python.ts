@@ -132,11 +132,7 @@ function parsePythonDescription(content: string): string | undefined {
     let inDocstring = false;
     let docstringQuote = '';
 
-    for (let i = 0; i < lines.length; i++) {
-        const line = lines[i];
-        if (line === undefined) {
-            continue;
-        }
+    for (const line of lines) {
         const trimmed = line.trim();
 
         // Skip shebang and encoding declarations

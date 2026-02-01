@@ -65,7 +65,8 @@ export class TaskTreeItem extends vscode.TreeItem {
     constructor(
         public readonly task: TaskItem | null,
         public readonly categoryLabel: string | null,
-        public readonly children: TaskTreeItem[] = []
+        public readonly children: TaskTreeItem[] = [],
+        parentId?: string
     ) {
         super(
             task?.label ?? categoryLabel ?? '',
@@ -74,7 +75,9 @@ export class TaskTreeItem extends vscode.TreeItem {
                 : vscode.TreeItemCollapsibleState.None
         );
 
-        if (task) {
+        // Set unique id for proper tree rendering and indentation
+        if (task !== null) {
+            this.id = task.id;
             this.contextValue = 'task';
             this.tooltip = this.buildTooltip(task);
             this.iconPath = this.getIcon(task.type);
@@ -86,6 +89,7 @@ export class TaskTreeItem extends vscode.TreeItem {
                 arguments: [this]
             };
         } else if (categoryLabel !== null && categoryLabel !== '') {
+            this.id = parentId !== undefined ? `${parentId}/${categoryLabel}` : categoryLabel;
             this.contextValue = 'category';
             this.iconPath = this.getCategoryIcon(categoryLabel);
         }

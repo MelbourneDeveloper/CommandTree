@@ -192,19 +192,21 @@ export class TaskTreeProvider implements vscode.TreeDataProvider<TaskTreeItem> {
         const grouped = this.groupByCategory(tasks);
         const sortedEntries = this.sortGroupedTasks(grouped);
         const children: TaskTreeItem[] = [];
+        const categoryId = name;
 
         for (const [folder, folderTasks] of sortedEntries) {
             const firstTask = folderTasks[0];
             if (folderTasks.length === 1 && sortedEntries.length === 1 && firstTask) {
                 // Single task in single folder - no need for folder node
-                children.push(new TaskTreeItem(firstTask, null, []));
+                children.push(new TaskTreeItem(firstTask, null, [], categoryId));
             } else if (folderTasks.length === 1 && firstTask) {
                 // Single task - show with folder in description
-                children.push(new TaskTreeItem(firstTask, null, []));
+                children.push(new TaskTreeItem(firstTask, null, [], categoryId));
             } else {
-                // Multiple tasks - create folder node
-                const taskItems = folderTasks.map(t => new TaskTreeItem(t, null, []));
-                children.push(new TaskTreeItem(null, folder, taskItems));
+                // Multiple tasks - create folder node with proper parent ID
+                const folderId = `${categoryId}/${folder}`;
+                const taskItems = folderTasks.map(t => new TaskTreeItem(t, null, [], folderId));
+                children.push(new TaskTreeItem(null, folder, taskItems, categoryId));
             }
         }
 
@@ -216,7 +218,8 @@ export class TaskTreeProvider implements vscode.TreeDataProvider<TaskTreeItem> {
      */
     private buildFlatCategory(name: string, tasks: TaskItem[]): TaskTreeItem {
         const sorted = this.sortTasks(tasks);
-        const children = sorted.map(t => new TaskTreeItem(t, null, []));
+        const categoryId = name;
+        const children = sorted.map(t => new TaskTreeItem(t, null, [], categoryId));
         return new TaskTreeItem(null, `${name} (${tasks.length})`, children);
     }
 

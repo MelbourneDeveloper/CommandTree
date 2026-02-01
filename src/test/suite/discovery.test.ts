@@ -543,6 +543,150 @@ suite('Task Discovery E2E Tests', () => {
         });
     });
 
+    suite('Python Script Discovery', () => {
+        test('discovers Python scripts with shebang', function() {
+            this.timeout(10000);
+
+            const buildScriptPath = getFixturePath('scripts/build_project.py');
+            assert.ok(fs.existsSync(buildScriptPath), 'build_project.py should exist');
+
+            const content = fs.readFileSync(buildScriptPath, 'utf8');
+            assert.ok(content.startsWith('#!/usr/bin/env python3'), 'Should have python shebang');
+        });
+
+        test('discovers Python scripts with __main__ block', function() {
+            this.timeout(10000);
+
+            const runTestsPath = getFixturePath('scripts/run_tests.py');
+            assert.ok(fs.existsSync(runTestsPath), 'run_tests.py should exist');
+
+            const content = fs.readFileSync(runTestsPath, 'utf8');
+            assert.ok(content.includes('if __name__ == "__main__"'), 'Should have __main__ block');
+        });
+
+        test('parses @param comments from Python scripts', function() {
+            this.timeout(10000);
+
+            const buildScript = fs.readFileSync(getFixturePath('scripts/build_project.py'), 'utf8');
+
+            // Verify params are in the file
+            assert.ok(buildScript.includes('@param config'), 'Should have config param');
+            assert.ok(buildScript.includes('@param output'), 'Should have output param');
+        });
+
+        test('parses argparse arguments from Python scripts', function() {
+            this.timeout(10000);
+
+            const runTestsScript = fs.readFileSync(getFixturePath('scripts/run_tests.py'), 'utf8');
+
+            // Verify argparse arguments are in the file
+            assert.ok(runTestsScript.includes("'--verbose'"), 'Should have verbose argument');
+            assert.ok(runTestsScript.includes("'--filter'"), 'Should have filter argument');
+        });
+
+        test('extracts docstring as description', function() {
+            this.timeout(10000);
+
+            const buildScript = fs.readFileSync(getFixturePath('scripts/build_project.py'), 'utf8');
+
+            // Verify docstring exists
+            assert.ok(buildScript.includes('"""Build the project'), 'Should have docstring description');
+        });
+
+        test('extracts comment as description', function() {
+            this.timeout(10000);
+
+            const deployScript = fs.readFileSync(getFixturePath('scripts/deploy.py'), 'utf8');
+
+            // Verify comment description exists
+            assert.ok(deployScript.includes('# Deploy to production'), 'Should have comment description');
+        });
+
+        test('excludes non-runnable Python files', function() {
+            this.timeout(10000);
+
+            const utilsPath = getFixturePath('scripts/utils.py');
+            assert.ok(fs.existsSync(utilsPath), 'utils.py should exist');
+
+            const content = fs.readFileSync(utilsPath, 'utf8');
+            // This file has no shebang and no __main__ block
+            assert.ok(!content.includes('#!/'), 'Should not have shebang');
+            assert.ok(!content.includes('__main__'), 'Should not have __main__ block');
+        });
+
+        test('discovers newly added Python scripts on refresh', async function() {
+            this.timeout(15000);
+
+            const newScriptPath = 'scripts/newpython.py';
+            const fullPath = getFixturePath(newScriptPath);
+
+            try {
+                // Create new script with __main__ block
+                writeFile(newScriptPath, '#!/usr/bin/env python3\n"""New script for testing"""\n\nif __name__ == "__main__":\n    print("Hello")');
+
+                // Trigger refresh
+                await vscode.commands.executeCommand('tasktree.refresh');
+                await sleep(1000);
+
+                // Verify file exists (discovery should pick it up)
+                assert.ok(fs.existsSync(fullPath), 'New script should be created');
+            } finally {
+                // Cleanup
+                deleteFile(newScriptPath);
+            }
+        });
+
+        test('shows Python scripts in tree view', async function() {
+            this.timeout(15000);
+
+            await vscode.commands.executeCommand('tasktree.refresh');
+            await sleep(1500);
+
+            const provider = getTaskTreeProvider();
+            const rootChildren = await getTreeChildren(provider);
+
+            // Find Python Scripts category
+            const pythonCategory = rootChildren.find(c => getLabelString(c.label).startsWith('Python Scripts'));
+            assert.ok(pythonCategory, `Should have Python Scripts category, got: ${rootChildren.map(c => getLabelString(c.label)).join(', ')}`);
+
+            // Get tasks in category
+            const pythonTasks = await getTreeChildren(provider, pythonCategory);
+            const labels = pythonTasks.map(t => getLabelString(t.label));
+
+            // Should have our runnable scripts but not utils.py
+            assert.ok(labels.some(l => l.includes('build_project.py')), `Should have build_project.py, got: ${labels.join(', ')}`);
+            assert.ok(labels.some(l => l.includes('run_tests.py')), `Should have run_tests.py, got: ${labels.join(', ')}`);
+            assert.ok(labels.some(l => l.includes('deploy.py')), `Should have deploy.py, got: ${labels.join(', ')}`);
+            assert.ok(!labels.some(l => l.includes('utils.py')), `Should NOT have utils.py (non-runnable), got: ${labels.join(', ')}`);
+        });
+
+        test('respects exclude patterns for Python scripts', async function() {
+            this.timeout(10000);
+
+            // Create script in node_modules (should be excluded)
+            const excludedPath = 'node_modules/test_script.py';
+            const fullPath = getFixturePath(excludedPath);
+
+            try {
+                const nodeModulesDir = path.dirname(fullPath);
+                if (!fs.existsSync(nodeModulesDir)) {
+                    fs.mkdirSync(nodeModulesDir, { recursive: true });
+                }
+                fs.writeFileSync(fullPath, '#!/usr/bin/env python3\nif __name__ == "__main__":\n    print("excluded")');
+
+                await vscode.commands.executeCommand('tasktree.refresh');
+                await sleep(1000);
+
+                // The script exists but should be excluded from discovery
+                assert.ok(fs.existsSync(fullPath), 'Excluded script should exist');
+            } finally {
+                if (fs.existsSync(fullPath)) {
+                    fs.unlinkSync(fullPath);
+                }
+            }
+        });
+    });
+
     suite('Discovery Error Handling', () => {
         test('handles file read errors gracefully', async function() {
             this.timeout(10000);

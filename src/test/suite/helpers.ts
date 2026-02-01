@@ -4,7 +4,7 @@ import * as fs from 'fs';
 import { TaskTreeProvider } from '../../TaskTreeProvider';
 import { TaskTreeItem } from '../../models/TaskItem';
 
-export const EXTENSION_ID = 'dataprovider.tasktree';
+export const EXTENSION_ID = 'nimblesite.tasktree';
 export const TREE_VIEW_ID = 'tasktree';
 
 export interface TestContext {

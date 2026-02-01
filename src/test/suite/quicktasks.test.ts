@@ -425,8 +425,10 @@ suite('Quick Tasks E2E Tests', () => {
             const quickPatterns = savedConfig.tags?.['quick'] ?? [];
 
             assert.strictEqual(quickPatterns.length, 1, 'Should have exactly 1 quick task pattern');
+            const firstPattern = quickPatterns[0];
+            assert.ok(firstPattern !== undefined, 'Should have at least one pattern');
             assert.ok(
-                quickPatterns[0]?.includes('npm:'),
+                firstPattern.includes('npm:'),
                 'Pattern should use type: prefix for specificity'
             );
         });

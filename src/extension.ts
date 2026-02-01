@@ -138,7 +138,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<Extens
         }),
 
         vscode.commands.registerCommand('tasktree.addTag', async (item: TaskTreeItem | undefined) => {
-            if (item === undefined || item.task === null) {
+            const task = item?.task;
+            if (task === undefined || task === null) {
                 return;
             }
 
@@ -156,7 +157,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<Extens
             });
 
             const selected = await vscode.window.showQuickPick(options, {
-                placeHolder: `Add tag to "${item.task.label}"`
+                placeHolder: `Add tag to "${task.label}"`
             });
 
             if (selected === undefined) {
@@ -177,16 +178,17 @@ export async function activate(context: vscode.ExtensionContext): Promise<Extens
                 tagName = (selected as vscode.QuickPickItem & { tag: string }).tag;
             }
 
-            await treeProvider.addTaskToTag(item.task, tagName);
+            await treeProvider.addTaskToTag(task, tagName);
             await quickTasksProvider.updateTasks(treeProvider.getAllTasks());
         }),
 
         vscode.commands.registerCommand('tasktree.removeTag', async (item: TaskTreeItem | undefined) => {
-            if (item === undefined || item.task === null) {
+            const task = item?.task;
+            if (task === undefined || task === null) {
                 return;
             }
 
-            const taskTags = item.task.tags;
+            const taskTags = task.tags;
             if (taskTags.length === 0) {
                 vscode.window.showInformationMessage('This task has no tags');
                 return;
@@ -198,14 +200,14 @@ export async function activate(context: vscode.ExtensionContext): Promise<Extens
             }));
 
             const selected = await vscode.window.showQuickPick(options, {
-                placeHolder: `Remove tag from "${item.task.label}"`
+                placeHolder: `Remove tag from "${task.label}"`
             });
 
             if (selected === undefined) {
                 return;
             }
 
-            await treeProvider.removeTaskFromTag(item.task, selected.tag);
+            await treeProvider.removeTaskFromTag(task, selected.tag);
             await quickTasksProvider.updateTasks(treeProvider.getAllTasks());
         })
     );
