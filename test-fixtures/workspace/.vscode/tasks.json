@@ -1,0 +1,63 @@
+{
+    // VS Code tasks configuration
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Build Project",
+            "type": "shell",
+            "command": "npm run build",
+            "problemMatcher": []
+        },
+        {
+            "label": "Run Tests",
+            "type": "shell",
+            "command": "npm test",
+            "problemMatcher": []
+        },
+        {
+            // Deploy task with input parameters
+            "label": "Deploy with Config",
+            "type": "shell",
+            "command": "deploy.sh ${input:deployEnv} ${input:buildConfig}",
+            "problemMatcher": []
+        },
+        {
+            "label": "Custom Build",
+            "type": "shell",
+            "command": "make ${input:buildTarget}",
+            "problemMatcher": []
+        },
+        {
+            "type": "npm",
+            "script": "my-test-script",
+            "problemMatcher": []
+        },
+        {
+            "type": "npm",
+            "script": "another-script",
+            "problemMatcher": []
+        }
+    ],
+    "inputs": [
+        {
+            "id": "deployEnv",
+            "description": "Select deployment environment",
+            "type": "pickString",
+            "options": ["development", "staging", "production"],
+            "default": "development"
+        },
+        {
+            "id": "buildConfig",
+            "description": "Build configuration",
+            "type": "promptString",
+            "default": "release"
+        },
+        {
+            "id": "buildTarget",
+            "description": "Make target",
+            "type": "pickString",
+            "options": ["all", "clean", "test"],
+            "default": "all"
+        }
+    ]
+}

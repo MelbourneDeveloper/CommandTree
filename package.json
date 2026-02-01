@@ -1,0 +1,212 @@
+{
+  "name": "tasktree",
+  "displayName": "TaskTree",
+  "description": "Organize all workspace tasks in a filterable tree",
+  "version": "0.1.0",
+  "publisher": "dataprovider",
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "icon": "icon.png",
+  "activationEvents": [
+    "onView:tasktree"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "views": {
+      "explorer": [
+        {
+          "id": "tasktree",
+          "name": "TaskTree",
+          "icon": "$(tasklist)",
+          "contextualTitle": "Tasks"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "tasktree.refresh",
+        "title": "Refresh Tasks",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "tasktree.run",
+        "title": "Run Task",
+        "icon": "$(play)"
+      },
+      {
+        "command": "tasktree.runInNewTerminal",
+        "title": "Run in New Terminal",
+        "icon": "$(terminal)"
+      },
+      {
+        "command": "tasktree.runInCurrentTerminal",
+        "title": "Run in Current Terminal",
+        "icon": "$(play-circle)"
+      },
+      {
+        "command": "tasktree.debug",
+        "title": "Debug Task",
+        "icon": "$(debug-alt)"
+      },
+      {
+        "command": "tasktree.filter",
+        "title": "Filter Tasks",
+        "icon": "$(search)"
+      },
+      {
+        "command": "tasktree.filterByTag",
+        "title": "Filter by Tag",
+        "icon": "$(tag)"
+      },
+      {
+        "command": "tasktree.clearFilter",
+        "title": "Clear Filter",
+        "icon": "$(clear-all)"
+      },
+      {
+        "command": "tasktree.editTags",
+        "title": "Edit Tags Configuration"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "tasktree.filter",
+          "when": "view == tasktree",
+          "group": "navigation@1"
+        },
+        {
+          "command": "tasktree.filterByTag",
+          "when": "view == tasktree",
+          "group": "navigation@2"
+        },
+        {
+          "command": "tasktree.clearFilter",
+          "when": "view == tasktree && tasktree.hasFilter",
+          "group": "navigation@3"
+        },
+        {
+          "command": "tasktree.refresh",
+          "when": "view == tasktree",
+          "group": "navigation@4"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "tasktree.runInNewTerminal",
+          "when": "view == tasktree && viewItem == task",
+          "group": "inline@1"
+        },
+        {
+          "command": "tasktree.debug",
+          "when": "view == tasktree && viewItem == task",
+          "group": "inline@2"
+        },
+        {
+          "command": "tasktree.runInCurrentTerminal",
+          "when": "view == tasktree && viewItem == task",
+          "group": "inline@3"
+        },
+        {
+          "command": "tasktree.run",
+          "when": "view == tasktree && viewItem == task",
+          "group": "1_run@1"
+        },
+        {
+          "command": "tasktree.runInNewTerminal",
+          "when": "view == tasktree && viewItem == task",
+          "group": "1_run@2"
+        },
+        {
+          "command": "tasktree.runInCurrentTerminal",
+          "when": "view == tasktree && viewItem == task",
+          "group": "1_run@3"
+        },
+        {
+          "command": "tasktree.debug",
+          "when": "view == tasktree && viewItem == task",
+          "group": "1_run@4"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "TaskTree",
+      "properties": {
+        "tasktree.excludePatterns": {
+          "type": "array",
+          "default": [
+            "**/node_modules/**",
+            "**/.vscode-test/**",
+            "**/vendor/**",
+            "**/dist/**",
+            "**/build/**",
+            "**/out/**",
+            "**/bin/**",
+            "**/obj/**",
+            "**/.git/**",
+            "**/.hg/**",
+            "**/.svn/**",
+            "**/coverage/**",
+            "**/__pycache__/**",
+            "**/venv/**",
+            "**/.venv/**",
+            "**/env/**",
+            "**/target/**",
+            "**/Pods/**",
+            "**/.gradle/**",
+            "**/.idea/**",
+            "**/.vs/**"
+          ],
+          "description": "Glob patterns to exclude from task discovery"
+        },
+        "tasktree.showEmptyCategories": {
+          "type": "boolean",
+          "default": false,
+          "description": "Show categories even when they have no tasks"
+        },
+        "tasktree.sortOrder": {
+          "type": "string",
+          "default": "folder",
+          "enum": ["folder", "name", "type"],
+          "enumDescriptions": [
+            "Sort by folder path, then alphabetically by name",
+            "Sort alphabetically by task name",
+            "Sort by task type, then alphabetically by name"
+          ],
+          "description": "How to sort tasks within categories"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "lint": "eslint src",
+    "pretest": "npm run compile",
+    "test": "vscode-test",
+    "clean": "rm -rf node_modules out *.vsix",
+    "package": "npm run compile && vsce package --allow-missing-repository --skip-license",
+    "uninstall": "code --uninstall-extension dataprovider.tasktree || true",
+    "install-ext": "code --install-extension tasktree-*.vsix",
+    "build-and-install": "npm run clean && npm install && npm run uninstall && npm run package && npm run install-ext"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.18.0",
+    "@types/glob": "^8.1.0",
+    "@types/mocha": "^10.0.6",
+    "@types/node": "^22.0.0",
+    "@types/vscode": "^1.80.0",
+    "@vscode/test-cli": "^0.0.12",
+    "@vscode/test-electron": "^2.4.1",
+    "@vscode/vsce": "^3.7.1",
+    "eslint": "^9.18.0",
+    "glob": "^11.0.0",
+    "mocha": "^11.0.0",
+    "typescript": "^5.0.0",
+    "typescript-eslint": "^8.21.0"
+  }
+}

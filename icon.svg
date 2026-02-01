@@ -1,0 +1,131 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <defs>
+    <!-- Tree trunk brown gradient -->
+    <linearGradient id="trunkGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#78350F"/>
+      <stop offset="50%" style="stop-color:#A16207"/>
+      <stop offset="100%" style="stop-color:#78350F"/>
+    </linearGradient>
+
+    <!-- Canopy gradient - lush green to teal -->
+    <linearGradient id="canopyGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#059669"/>
+      <stop offset="50%" style="stop-color:#10B981"/>
+      <stop offset="100%" style="stop-color:#06B6D4"/>
+    </linearGradient>
+
+    <!-- Process fruit - running (orange) -->
+    <linearGradient id="runningGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#FB923C"/>
+      <stop offset="100%" style="stop-color:#EA580C"/>
+    </linearGradient>
+
+    <!-- Process fruit - queued (purple) -->
+    <linearGradient id="queuedGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#A78BFA"/>
+      <stop offset="100%" style="stop-color:#7C3AED"/>
+    </linearGradient>
+
+    <!-- Process fruit - complete (cyan) -->
+    <linearGradient id="completeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#22D3EE"/>
+      <stop offset="100%" style="stop-color:#0891B2"/>
+    </linearGradient>
+
+    <!-- Glow -->
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="1.5" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <!-- Shadow -->
+    <filter id="shadow">
+      <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#000" flood-opacity="0.25"/>
+    </filter>
+  </defs>
+
+  <!-- TRUNK - actual tree trunk shape -->
+  <path d="M58 125
+           Q56 115 54 105
+           Q52 95 56 85
+           L56 75
+           Q54 70 58 65
+           L60 55
+           Q58 50 62 45
+           L64 40
+           L66 45
+           Q70 50 68 55
+           L70 65
+           Q74 70 72 75
+           L72 85
+           Q76 95 74 105
+           Q72 115 70 125
+           Z"
+        fill="url(#trunkGrad)" filter="url(#shadow)"/>
+
+  <!-- Trunk texture lines -->
+  <path d="M62 120 Q60 100 63 80 M66 115 Q68 95 65 75"
+        stroke="#92400E" stroke-width="1" fill="none" opacity="0.5"/>
+
+  <!-- CANOPY - layered organic cloud shapes -->
+  <!-- Back layer -->
+  <ellipse cx="40" cy="42" rx="22" ry="18" fill="url(#canopyGrad)" opacity="0.7"/>
+  <ellipse cx="88" cy="42" rx="22" ry="18" fill="url(#canopyGrad)" opacity="0.7"/>
+  <ellipse cx="64" cy="25" rx="26" ry="20" fill="url(#canopyGrad)" opacity="0.7"/>
+
+  <!-- Middle layer -->
+  <ellipse cx="35" cy="50" rx="20" ry="16" fill="url(#canopyGrad)" opacity="0.85"/>
+  <ellipse cx="93" cy="50" rx="20" ry="16" fill="url(#canopyGrad)" opacity="0.85"/>
+  <ellipse cx="64" cy="35" rx="28" ry="22" fill="url(#canopyGrad)" opacity="0.85"/>
+
+  <!-- Front layer -->
+  <ellipse cx="45" cy="55" rx="22" ry="17" fill="url(#canopyGrad)"/>
+  <ellipse cx="83" cy="55" rx="22" ry="17" fill="url(#canopyGrad)"/>
+  <ellipse cx="64" cy="42" rx="24" ry="20" fill="url(#canopyGrad)"/>
+  <ellipse cx="64" cy="60" rx="18" ry="12" fill="url(#canopyGrad)"/>
+
+  <!-- PROCESS FRUITS hanging from tree -->
+
+  <!-- Left side - running process (orange with pause) -->
+  <g transform="translate(28, 58)" filter="url(#glow)">
+    <circle cx="0" cy="0" r="10" fill="url(#runningGrad)"/>
+    <rect x="-5" y="-5" width="3" height="10" rx="1" fill="white"/>
+    <rect x="2" y="-5" width="3" height="10" rx="1" fill="white"/>
+  </g>
+
+  <!-- Left upper - queued (purple with play) -->
+  <g transform="translate(38, 32)" filter="url(#glow)">
+    <circle cx="0" cy="0" r="9" fill="url(#queuedGrad)"/>
+    <polygon points="-3,-5 -3,5 5,0" fill="white"/>
+  </g>
+
+  <!-- Center top - complete (cyan with check) -->
+  <g transform="translate(64, 22)" filter="url(#glow)">
+    <circle cx="0" cy="0" r="10" fill="url(#completeGrad)"/>
+    <path d="M-5 0 L-2 3 L5 -4" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+
+  <!-- Right upper - queued (purple with play) -->
+  <g transform="translate(90, 32)" filter="url(#glow)">
+    <circle cx="0" cy="0" r="9" fill="url(#queuedGrad)"/>
+    <polygon points="-3,-5 -3,5 5,0" fill="white"/>
+  </g>
+
+  <!-- Right side - running (orange with spinner effect) -->
+  <g transform="translate(100, 58)" filter="url(#glow)">
+    <circle cx="0" cy="0" r="10" fill="url(#runningGrad)"/>
+    <circle cx="0" cy="0" r="6" fill="none" stroke="white" stroke-width="2" stroke-dasharray="4 3"/>
+  </g>
+
+  <!-- Center - complete (cyan with check) -->
+  <g transform="translate(64, 48)" filter="url(#glow)">
+    <circle cx="0" cy="0" r="9" fill="url(#completeGrad)"/>
+    <path d="M-4 0 L-1 3 L5 -3" stroke="white" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+
+  <!-- Ground shadow -->
+  <ellipse cx="64" cy="124" rx="25" ry="4" fill="#000" opacity="0.15"/>
+</svg>

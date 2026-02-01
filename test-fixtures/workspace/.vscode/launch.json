@@ -1,0 +1,25 @@
+{
+    // VS Code launch configurations
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Debug Application",
+            "program": "${workspaceFolder}/index.js"
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Debug Tests",
+            "program": "${workspaceFolder}/test.js"
+        },
+        {
+            /* Multi-line comment */
+            "type": "python",
+            "request": "launch",
+            "name": "Debug Python",
+            "program": "${workspaceFolder}/main.py"
+        }
+    ]
+}

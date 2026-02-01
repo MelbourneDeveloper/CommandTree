@@ -1,0 +1,10 @@
+{
+    "tasktree.excludePatterns": [
+        "**/node_modules/**",
+        "**/bin/**",
+        "**/obj/**",
+        "**/.git/**"
+    ],
+    "tasktree.sortOrder": "folder",
+    "tasktree.showEmptyCategories": false
+}

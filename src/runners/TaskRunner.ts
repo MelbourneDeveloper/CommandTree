@@ -1,0 +1,405 @@
+import * as vscode from 'vscode';
+import type { TaskItem, ParamDef } from '../models/TaskItem';
+
+/**
+ * Execution mode for tasks.
+ */
+export type RunMode = 'task' | 'newTerminal' | 'currentTerminal' | 'debug';
+
+/**
+ * Executes tasks based on their type.
+ */
+export class TaskRunner {
+    /**
+     * Runs a task, prompting for parameters if needed.
+     */
+    async run(task: TaskItem, mode: RunMode = 'task'): Promise<void> {
+        const params = await this.collectParams(task.params);
+        if (params === null) {
+            return;
+        }
+
+        if (task.type === 'launch') {
+            await this.runLaunch(task);
+            return;
+        }
+
+        if (task.type === 'vscode') {
+            await this.runVsCodeTask(task);
+            return;
+        }
+
+        switch (mode) {
+            case 'newTerminal': {
+                this.runInNewTerminal(task, params);
+                break;
+            }
+            case 'currentTerminal': {
+                this.runInCurrentTerminal(task, params);
+                break;
+            }
+            case 'debug': {
+                await this.runDebug(task, params);
+                break;
+            }
+            case 'task': {
+                await this.runAsTask(task, params);
+                break;
+            }
+        }
+    }
+
+    /**
+     * Runs task as a VS Code task (default behavior).
+     */
+    private async runAsTask(task: TaskItem, params: Map<string, string>): Promise<void> {
+        switch (task.type) {
+            case 'shell': {
+                await this.runShell(task, params);
+                break;
+            }
+            case 'npm': {
+                await this.runNpm(task);
+                break;
+            }
+            case 'make': {
+                await this.runMake(task);
+                break;
+            }
+            case 'launch':
+            case 'vscode': {
+                // Already handled above
+                break;
+            }
+        }
+    }
+
+    /**
+     * Collects parameter values from user.
+     */
+    private async collectParams(
+        params?: readonly ParamDef[]
+    ): Promise<Map<string, string> | null> {
+        const values = new Map<string, string>();
+        if (params === undefined || params.length === 0) {
+            return values;
+        }
+
+        for (const param of params) {
+            let value: string | undefined;
+
+            if (param.options !== undefined && param.options.length > 0) {
+                value = await vscode.window.showQuickPick([...param.options], {
+                    placeHolder: param.description ?? `Select ${param.name}`,
+                    title: param.name
+                });
+            } else {
+                const inputOptions: vscode.InputBoxOptions = {
+                    prompt: param.description ?? `Enter ${param.name}`,
+                    title: param.name
+                };
+                if (param.default !== undefined) {
+                    inputOptions.value = param.default;
+                }
+                value = await vscode.window.showInputBox(inputOptions);
+            }
+
+            if (value === undefined) {
+                return null;
+            }
+            values.set(param.name, value);
+        }
+
+        return values;
+    }
+
+    /**
+     * Runs a shell script.
+     */
+    private async runShell(task: TaskItem, params: Map<string, string>): Promise<void> {
+        let command = task.command;
+        if (params.size > 0) {
+            const args = Array.from(params.values())
+                .map(v => `"${v}"`)
+                .join(' ');
+            command = `${command} ${args}`;
+        }
+
+        const shellOptions: vscode.ShellExecutionOptions = {};
+        if (task.cwd !== undefined) {
+            shellOptions.cwd = task.cwd;
+        }
+        const execution = new vscode.ShellExecution(command, shellOptions);
+
+        const vscodeTask = new vscode.Task(
+            { type: 'tasktree', task: task.id },
+            vscode.TaskScope.Workspace,
+            task.label,
+            'TaskTree',
+            execution
+        );
+
+        await vscode.tasks.executeTask(vscodeTask);
+    }
+
+    /**
+     * Runs an npm script.
+     */
+    private async runNpm(task: TaskItem): Promise<void> {
+        const shellOptions: vscode.ShellExecutionOptions = {};
+        if (task.cwd !== undefined) {
+            shellOptions.cwd = task.cwd;
+        }
+        const execution = new vscode.ShellExecution(task.command, shellOptions);
+
+        const vscodeTask = new vscode.Task(
+            { type: 'npm', script: task.label },
+            vscode.TaskScope.Workspace,
+            task.label,
+            'npm',
+            execution
+        );
+
+        await vscode.tasks.executeTask(vscodeTask);
+    }
+
+    /**
+     * Runs a make target.
+     */
+    private async runMake(task: TaskItem): Promise<void> {
+        const shellOptions: vscode.ShellExecutionOptions = {};
+        if (task.cwd !== undefined) {
+            shellOptions.cwd = task.cwd;
+        }
+        const execution = new vscode.ShellExecution(task.command, shellOptions);
+
+        const vscodeTask = new vscode.Task(
+            { type: 'make', target: task.label },
+            vscode.TaskScope.Workspace,
+            task.label,
+            'make',
+            execution
+        );
+
+        await vscode.tasks.executeTask(vscodeTask);
+    }
+
+    /**
+     * Runs a VS Code debug configuration.
+     */
+    private async runLaunch(task: TaskItem): Promise<void> {
+        const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+        if (workspaceFolder === undefined) {
+            await vscode.window.showErrorMessage('No workspace folder found');
+            return;
+        }
+
+        const started = await vscode.debug.startDebugging(
+            workspaceFolder,
+            task.command
+        );
+
+        if (!started) {
+            await vscode.window.showErrorMessage(`Failed to start: ${task.label}`);
+        }
+    }
+
+    /**
+     * Runs a VS Code task from tasks.json.
+     */
+    private async runVsCodeTask(task: TaskItem): Promise<void> {
+        const allTasks = await vscode.tasks.fetchTasks();
+        const matchingTask = allTasks.find(t => t.name === task.command);
+
+        if (matchingTask !== undefined) {
+            await vscode.tasks.executeTask(matchingTask);
+        } else {
+            await vscode.window.showErrorMessage(`Task not found: ${task.label}`);
+        }
+    }
+
+    /**
+     * Runs a task in a new terminal.
+     */
+    private runInNewTerminal(task: TaskItem, params: Map<string, string>): void {
+        const command = this.buildCommand(task, params);
+        const terminalOptions: vscode.TerminalOptions = {
+            name: `TaskTree: ${task.label}`
+        };
+        if (task.cwd !== undefined) {
+            terminalOptions.cwd = task.cwd;
+        }
+        const terminal = vscode.window.createTerminal(terminalOptions);
+        terminal.show();
+        terminal.sendText(command);
+    }
+
+    /**
+     * Runs a task in the current (active) terminal.
+     */
+    private runInCurrentTerminal(task: TaskItem, params: Map<string, string>): void {
+        const command = this.buildCommand(task, params);
+        let terminal = vscode.window.activeTerminal;
+
+        if (terminal === undefined) {
+            const terminalOptions: vscode.TerminalOptions = {
+                name: `TaskTree: ${task.label}`
+            };
+            if (task.cwd !== undefined) {
+                terminalOptions.cwd = task.cwd;
+            }
+            terminal = vscode.window.createTerminal(terminalOptions);
+        }
+
+        terminal.show();
+
+        if (task.cwd !== undefined && task.cwd !== '') {
+            terminal.sendText(`cd "${task.cwd}"`);
+        }
+
+        terminal.sendText(command);
+    }
+
+    /**
+     * Runs a task in debug mode where possible.
+     */
+    private async runDebug(task: TaskItem, params: Map<string, string>): Promise<void> {
+        const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+        if (workspaceFolder === undefined) {
+            await vscode.window.showErrorMessage('No workspace folder found');
+            return;
+        }
+
+        switch (task.type) {
+            case 'npm': {
+                await this.debugNpm(task, workspaceFolder);
+                break;
+            }
+            case 'shell': {
+                await this.debugShell(task, params, workspaceFolder);
+                break;
+            }
+            case 'make': {
+                await vscode.window.showWarningMessage(
+                    'Make targets cannot be debugged directly. Running normally.',
+                    'OK'
+                );
+                await this.runMake(task);
+                break;
+            }
+            case 'launch':
+            case 'vscode': {
+                // Already handled above
+                break;
+            }
+        }
+    }
+
+    /**
+     * Debugs an npm script using Node.js debugger.
+     */
+    private async debugNpm(task: TaskItem, workspaceFolder: vscode.WorkspaceFolder): Promise<void> {
+        const debugConfig: vscode.DebugConfiguration = {
+            type: 'node',
+            request: 'launch',
+            name: `Debug: ${task.label}`,
+            runtimeExecutable: 'npm',
+            runtimeArgs: ['run', task.label],
+            cwd: task.cwd ?? workspaceFolder.uri.fsPath,
+            console: 'integratedTerminal',
+            skipFiles: ['<node_internals>/**']
+        };
+
+        const started = await vscode.debug.startDebugging(workspaceFolder, debugConfig);
+        if (!started) {
+            await vscode.window.showErrorMessage(`Failed to debug: ${task.label}`);
+        }
+    }
+
+    /**
+     * Debugs a shell script (limited support).
+     */
+    private async debugShell(
+        task: TaskItem,
+        params: Map<string, string>,
+        workspaceFolder: vscode.WorkspaceFolder
+    ): Promise<void> {
+        if (task.command.includes('node ') || task.command.includes('ts-node ')) {
+            const debugConfig: vscode.DebugConfiguration = {
+                type: 'node',
+                request: 'launch',
+                name: `Debug: ${task.label}`,
+                program: this.extractScriptPath(task.command),
+                args: this.extractArgs(task.command, params),
+                cwd: task.cwd ?? workspaceFolder.uri.fsPath,
+                console: 'integratedTerminal',
+                skipFiles: ['<node_internals>/**']
+            };
+
+            const started = await vscode.debug.startDebugging(workspaceFolder, debugConfig);
+            if (!started) {
+                await vscode.window.showErrorMessage(`Failed to debug: ${task.label}`);
+            }
+        } else if (task.filePath.endsWith('.sh')) {
+            const debugConfig: vscode.DebugConfiguration = {
+                type: 'bashdb',
+                request: 'launch',
+                name: `Debug: ${task.label}`,
+                program: task.filePath,
+                cwd: task.cwd ?? workspaceFolder.uri.fsPath,
+                terminalKind: 'integrated'
+            };
+
+            const started = await vscode.debug.startDebugging(workspaceFolder, debugConfig);
+            if (!started) {
+                const action = await vscode.window.showWarningMessage(
+                    'Bash debugging requires the Bash Debug extension. Run normally instead?',
+                    'Run Normally',
+                    'Cancel'
+                );
+                if (action === 'Run Normally') {
+                    this.runInNewTerminal(task, params);
+                }
+            }
+        } else {
+            await vscode.window.showWarningMessage(
+                'Debug mode not supported for this script type. Running in new terminal.',
+                'OK'
+            );
+            this.runInNewTerminal(task, params);
+        }
+    }
+
+    /**
+     * Builds the full command string with parameters.
+     */
+    private buildCommand(task: TaskItem, params: Map<string, string>): string {
+        let command = task.command;
+        if (params.size > 0) {
+            const args = Array.from(params.values())
+                .map(v => `"${v}"`)
+                .join(' ');
+            command = `${command} ${args}`;
+        }
+        return command;
+    }
+
+    /**
+     * Extracts script path from a node/ts-node command.
+     */
+    private extractScriptPath(command: string): string {
+        const match = command.match(/(?:node|ts-node)\s+["']?([^"'\s]+)/);
+        return match?.[1] ?? command;
+    }
+
+    /**
+     * Extracts arguments from command and params.
+     */
+    private extractArgs(command: string, params: Map<string, string>): string[] {
+        const args: string[] = [];
+        const parts = command.split(/\s+/).slice(2);
+        args.push(...parts);
+        args.push(...Array.from(params.values()));
+        return args;
+    }
+}

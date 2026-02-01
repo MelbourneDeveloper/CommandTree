@@ -1,0 +1,10 @@
+{
+  "typescript.tsserver.experimental.enableProjectDiagnostics": true,
+  "eslint.lintTask.enable": true,
+  "eslint.run": "onType",
+  "eslint.probe": ["typescript"],
+  "eslint.validate": ["typescript"],
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "explicit"
+  }
+}

@@ -1,0 +1,18 @@
+import { defineConfig } from '@vscode/test-cli';
+
+export default defineConfig({
+    files: 'out/test/**/*.test.js',
+    version: 'stable',
+    workspaceFolder: './test-fixtures/workspace',
+    extensionDevelopmentPath: './',
+    mocha: {
+        ui: 'tdd',
+        timeout: 60000,
+        color: true,
+        slow: 10000
+    },
+    launchArgs: [
+        '--disable-extensions',
+        '--disable-gpu'
+    ]
+});

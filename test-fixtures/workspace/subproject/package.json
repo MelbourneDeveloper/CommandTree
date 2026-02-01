@@ -1,0 +1,8 @@
+{
+  "name": "test-subproject",
+  "version": "1.0.0",
+  "scripts": {
+    "build": "echo 'Building subproject'",
+    "test": "echo 'Testing subproject'"
+  }
+}

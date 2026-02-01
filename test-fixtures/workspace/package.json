@@ -1,0 +1,10 @@
+{
+  "name": "test-workspace",
+  "version": "1.0.0",
+  "scripts": {
+    "build": "echo 'Building main project'",
+    "test": "echo 'Running tests'",
+    "lint": "echo 'Linting code'",
+    "start": "echo 'Starting application'"
+  }
+}

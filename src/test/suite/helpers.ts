@@ -1,0 +1,195 @@
+import * as vscode from 'vscode';
+import * as path from 'path';
+import * as fs from 'fs';
+import { TaskTreeProvider } from '../../TaskTreeProvider';
+import { TaskTreeItem } from '../../models/TaskItem';
+
+export const EXTENSION_ID = 'dataprovider.tasktree';
+export const TREE_VIEW_ID = 'tasktree';
+
+export interface TestContext {
+    extension: vscode.Extension<unknown>;
+    workspaceRoot: string;
+}
+
+export async function activateExtension(): Promise<TestContext> {
+    const extension = vscode.extensions.getExtension(EXTENSION_ID);
+    if (!extension) {
+        throw new Error(`Extension ${EXTENSION_ID} not found`);
+    }
+
+    if (!extension.isActive) {
+        await extension.activate();
+    }
+
+    const workspaceFolders = vscode.workspace.workspaceFolders;
+    if (!workspaceFolders || workspaceFolders.length === 0) {
+        throw new Error('No workspace folder open');
+    }
+
+    const firstFolder = workspaceFolders[0];
+    if (!firstFolder) {
+        throw new Error('No workspace folder open');
+    }
+
+    return {
+        extension,
+        workspaceRoot: firstFolder.uri.fsPath
+    };
+}
+
+export async function getTreeView(): Promise<vscode.TreeView<unknown> | undefined> {
+    // The tree view is registered internally, we interact via commands
+    return undefined;
+}
+
+export async function executeCommand<T>(command: string, ...args: unknown[]): Promise<T> {
+    return vscode.commands.executeCommand<T>(command, ...args);
+}
+
+export async function refreshTasks(): Promise<void> {
+    await executeCommand('tasktree.refresh');
+    // Wait for async discovery to complete
+    await sleep(500);
+}
+
+export async function filterTasks(_filterText: string): Promise<void> {
+    // We need to mock the input box since we can't interact with UI in tests
+    // Instead, we'll test the filtering logic through the provider directly
+    await executeCommand('tasktree.filter');
+}
+
+export async function filterByTag(_tag: string): Promise<void> {
+    void _tag; // Used for API compatibility
+    await executeCommand('tasktree.filterByTag');
+}
+
+export async function clearFilter(): Promise<void> {
+    await executeCommand('tasktree.clearFilter');
+}
+
+export async function runTask(taskItem: unknown): Promise<void> {
+    await executeCommand('tasktree.run', taskItem);
+}
+
+export async function sleep(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+export function getFixturePath(relativePath: string): string {
+    const workspaceFolders = vscode.workspace.workspaceFolders;
+    if (!workspaceFolders || workspaceFolders.length === 0) {
+        throw new Error('No workspace folder open');
+    }
+    const firstFolder = workspaceFolders[0];
+    if (!firstFolder) {
+        throw new Error('No workspace folder open');
+    }
+    return path.join(firstFolder.uri.fsPath, relativePath);
+}
+
+export function getExtensionPath(relativePath: string): string {
+    const extension = vscode.extensions.getExtension(EXTENSION_ID);
+    if (!extension) {
+        throw new Error(`Extension ${EXTENSION_ID} not found`);
+    }
+    return path.join(extension.extensionPath, relativePath);
+}
+
+export async function writeFile(filePath: string, content: string): Promise<void> {
+    const fullPath = getFixturePath(filePath);
+    const dir = path.dirname(fullPath);
+    if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+    }
+    fs.writeFileSync(fullPath, content, 'utf8');
+}
+
+export async function deleteFile(filePath: string): Promise<void> {
+    const fullPath = getFixturePath(filePath);
+    if (fs.existsSync(fullPath)) {
+        fs.unlinkSync(fullPath);
+    }
+}
+
+export async function readFile(filePath: string): Promise<string> {
+    const fullPath = getFixturePath(filePath);
+    return fs.readFileSync(fullPath, 'utf8');
+}
+
+export async function fileExists(filePath: string): Promise<boolean> {
+    const fullPath = getFixturePath(filePath);
+    return fs.existsSync(fullPath);
+}
+
+export async function waitForCondition(
+    condition: () => Promise<boolean>,
+    timeout: number = 5000,
+    interval: number = 100
+): Promise<void> {
+    const startTime = Date.now();
+    while (Date.now() - startTime < timeout) {
+        if (await condition()) {
+            return;
+        }
+        await sleep(interval);
+    }
+    throw new Error(`Condition not met within ${timeout}ms`);
+}
+
+export async function getTaskTreeProvider(): Promise<TaskTreeProvider> {
+    // Access the tree data provider through the extension's exports
+    const extension = vscode.extensions.getExtension(EXTENSION_ID);
+    if (!extension || !extension.isActive) {
+        throw new Error('Extension not active');
+    }
+    const provider = extension.exports?.taskTreeProvider as TaskTreeProvider;
+    if (!provider) {
+        throw new Error('TaskTreeProvider not exported from extension');
+    }
+    return provider;
+}
+
+export async function getTreeChildren(provider: TaskTreeProvider, parent?: TaskTreeItem): Promise<TaskTreeItem[]> {
+    return provider.getChildren(parent);
+}
+
+export { TaskTreeProvider, TaskTreeItem };
+
+export async function captureTerminalOutput(terminalName: string, timeout: number = 5000): Promise<string> {
+    // Find the terminal by name
+    const terminal = vscode.window.terminals.find(t => t.name === terminalName);
+    if (!terminal) {
+        throw new Error(`Terminal "${terminalName}" not found`);
+    }
+    // Note: VS Code API doesn't provide direct access to terminal output
+    // This is a limitation of the VS Code API
+    await sleep(timeout);
+    return '';
+}
+
+export function createMockTaskItem(overrides: Partial<{
+    id: string;
+    label: string;
+    type: string;
+    command: string;
+    cwd: string;
+    filePath: string;
+    category: string;
+    description: string;
+    params: Array<{ name: string; description: string; default?: string; options?: string[] }>;
+    tags: string[];
+}> = {}): unknown {
+    return {
+        id: overrides.id ?? 'test-task-id',
+        label: overrides.label ?? 'Test Task',
+        type: overrides.type ?? 'shell',
+        command: overrides.command ?? 'echo test',
+        cwd: overrides.cwd ?? '/tmp',
+        filePath: overrides.filePath ?? '/tmp/test.sh',
+        category: overrides.category ?? 'Test Category',
+        description: overrides.description ?? 'A test task',
+        params: overrides.params ?? [],
+        tags: overrides.tags ?? []
+    };
+}
