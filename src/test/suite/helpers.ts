@@ -140,11 +140,14 @@ export async function waitForCondition(
 export function getTaskTreeProvider(): TaskTreeProvider {
     // Access the tree data provider through the extension's exports
     const extension = vscode.extensions.getExtension(EXTENSION_ID);
-    if (extension === undefined || extension.isActive !== true) {
+    if (extension === undefined) {
+        throw new Error('Extension not found');
+    }
+    if (!extension.isActive) {
         throw new Error('Extension not active');
     }
-    const exports = extension.exports as { taskTreeProvider?: TaskTreeProvider } | undefined;
-    const provider = exports?.taskTreeProvider;
+    const extensionExports = extension.exports as { taskTreeProvider?: TaskTreeProvider } | undefined;
+    const provider = extensionExports?.taskTreeProvider;
     if (!provider) {
         throw new Error('TaskTreeProvider not exported from extension');
     }
