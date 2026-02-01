@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import type { TaskItem } from './models/TaskItem';
+import type { TaskItem, Result } from './models/TaskItem';
 import { TaskTreeItem } from './models/TaskItem';
 import type { DiscoveryResult } from './discovery';
 import { discoverAllTasks, flattenTasks, getExcludePatterns } from './discovery';
@@ -97,17 +97,23 @@ export class TaskTreeProvider implements vscode.TreeDataProvider<TaskTreeItem> {
     /**
      * Adds a task to a tag.
      */
-    async addTaskToTag(task: TaskItem, tagName: string): Promise<void> {
-        await this.tagConfig.addTaskToTag(task, tagName);
-        await this.refresh();
+    async addTaskToTag(task: TaskItem, tagName: string): Promise<Result<void, string>> {
+        const result = await this.tagConfig.addTaskToTag(task, tagName);
+        if (result.ok) {
+            await this.refresh();
+        }
+        return result;
     }
 
     /**
      * Removes a task from a tag.
      */
-    async removeTaskFromTag(task: TaskItem, tagName: string): Promise<void> {
-        await this.tagConfig.removeTaskFromTag(task, tagName);
-        await this.refresh();
+    async removeTaskFromTag(task: TaskItem, tagName: string): Promise<Result<void, string>> {
+        const result = await this.tagConfig.removeTaskFromTag(task, tagName);
+        if (result.ok) {
+            await this.refresh();
+        }
+        return result;
     }
 
     /**
@@ -140,45 +146,41 @@ export class TaskTreeProvider implements vscode.TreeDataProvider<TaskTreeItem> {
      */
     private buildRootCategories(): TaskTreeItem[] {
         const filtered = this.applyFilters(this.tasks);
-        const showEmpty = vscode.workspace
-            .getConfiguration('tasktree')
-            .get<boolean>('showEmptyCategories', false);
-
         const categories: TaskTreeItem[] = [];
 
         // Shell Scripts - grouped by folder
         const shellTasks = filtered.filter(t => t.type === 'shell');
-        if (shellTasks.length > 0 || showEmpty) {
+        if (shellTasks.length > 0) {
             categories.push(this.buildCategoryWithFolders('Shell Scripts', shellTasks));
         }
 
         // NPM Scripts - grouped by package location
         const npmTasks = filtered.filter(t => t.type === 'npm');
-        if (npmTasks.length > 0 || showEmpty) {
+        if (npmTasks.length > 0) {
             categories.push(this.buildCategoryWithFolders('NPM Scripts', npmTasks));
         }
 
         // Make Targets - grouped by Makefile location
         const makeTasks = filtered.filter(t => t.type === 'make');
-        if (makeTasks.length > 0 || showEmpty) {
+        if (makeTasks.length > 0) {
             categories.push(this.buildCategoryWithFolders('Make Targets', makeTasks));
         }
 
         // VS Code Launch - flat list
         const launchTasks = filtered.filter(t => t.type === 'launch');
-        if (launchTasks.length > 0 || showEmpty) {
+        if (launchTasks.length > 0) {
             categories.push(this.buildFlatCategory('VS Code Launch', launchTasks));
         }
 
         // VS Code Tasks - flat list
         const vscodeTasks = filtered.filter(t => t.type === 'vscode');
-        if (vscodeTasks.length > 0 || showEmpty) {
+        if (vscodeTasks.length > 0) {
             categories.push(this.buildFlatCategory('VS Code Tasks', vscodeTasks));
         }
 
         // Python Scripts - grouped by folder
         const pythonTasks = filtered.filter(t => t.type === 'python');
-        if (pythonTasks.length > 0 || showEmpty) {
+        if (pythonTasks.length > 0) {
             categories.push(this.buildCategoryWithFolders('Python Scripts', pythonTasks));
         }
 

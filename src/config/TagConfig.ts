@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
-import type { TaskItem } from '../models/TaskItem';
+import type { TaskItem, Result } from '../models/TaskItem';
+import { ok, err } from '../models/TaskItem';
 
 type TagDefinition = Record<string, string[]>;
 
@@ -101,7 +102,7 @@ export class TagConfig {
      * Adds a task to a specific tag by adding its full task ID.
      * Uses the full ID (type:filePath:name) to uniquely identify the task.
      */
-    async addTaskToTag(task: TaskItem, tagName: string): Promise<void> {
+    async addTaskToTag(task: TaskItem, tagName: string): Promise<Result<void, string>> {
         this.config.tags ??= {};
 
         // Use the full task ID for unique identification
@@ -110,17 +111,18 @@ export class TagConfig {
 
         if (!existingPatterns.includes(pattern)) {
             this.config.tags[tagName] = [...existingPatterns, pattern];
-            await this.save();
+            return await this.save();
         }
+        return ok(undefined);
     }
 
     /**
      * Removes a task from a specific tag.
      * Uses the full task ID for precise matching.
      */
-    async removeTaskFromTag(task: TaskItem, tagName: string): Promise<void> {
+    async removeTaskFromTag(task: TaskItem, tagName: string): Promise<Result<void, string>> {
         if (this.config.tags?.[tagName] === undefined) {
-            return;
+            return ok(undefined);
         }
 
         // Use the full task ID for precise removal
@@ -135,7 +137,7 @@ export class TagConfig {
             this.config.tags[tagName] = filtered;
         }
 
-        await this.save();
+        return await this.save();
     }
 
     /**
@@ -149,9 +151,9 @@ export class TagConfig {
      * Moves a task to a new position within a tag's pattern list.
      * Uses the full task ID for precise matching.
      */
-    async moveTaskInTag(task: TaskItem, tagName: string, newIndex: number): Promise<void> {
+    async moveTaskInTag(task: TaskItem, tagName: string, newIndex: number): Promise<Result<void, string>> {
         if (this.config.tags?.[tagName] === undefined) {
-            return;
+            return ok(undefined);
         }
 
         // Use the full task ID for precise matching
@@ -160,7 +162,7 @@ export class TagConfig {
         const currentIndex = patterns.indexOf(pattern);
 
         if (currentIndex === -1) {
-            return;
+            return ok(undefined);
         }
 
         // Remove from current position
@@ -171,16 +173,22 @@ export class TagConfig {
         patterns.splice(Math.max(0, Math.min(insertAt, patterns.length)), 0, pattern);
 
         this.config.tags[tagName] = patterns;
-        await this.save();
+        return await this.save();
     }
 
     /**
      * Saves the current configuration to file.
      */
-    private async save(): Promise<void> {
+    private async save(): Promise<Result<void, string>> {
         const uri = vscode.Uri.file(this.configPath);
         const content = JSON.stringify(this.config, null, 2);
-        await vscode.workspace.fs.writeFile(uri, new TextEncoder().encode(content));
+        try {
+            await vscode.workspace.fs.writeFile(uri, new TextEncoder().encode(content));
+            return ok(undefined);
+        } catch (e) {
+            const message = e instanceof Error ? e.message : 'Unknown error saving config';
+            return err(message);
+        }
     }
 
     /**

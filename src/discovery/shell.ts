@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import type { TaskItem, ParamDef, MutableTaskItem } from '../models/TaskItem';
 import { generateTaskId, simplifyPath } from '../models/TaskItem';
+import { readFile } from '../utils/fileUtils';
 
 /**
  * Discovers shell scripts (.sh files) in the workspace.
@@ -15,32 +16,33 @@ export async function discoverShellScripts(
     const tasks: TaskItem[] = [];
 
     for (const file of files) {
-        try {
-            const content = await readFile(file);
-            const name = path.basename(file.fsPath);
-            const params = parseShellParams(content);
-            const description = parseShellDescription(content);
-
-            const task: MutableTaskItem = {
-                id: generateTaskId('shell', file.fsPath, name),
-                label: name,
-                type: 'shell',
-                category: simplifyPath(file.fsPath, workspaceRoot),
-                command: file.fsPath,
-                cwd: path.dirname(file.fsPath),
-                filePath: file.fsPath,
-                tags: []
-            };
-            if (params.length > 0) {
-                task.params = params;
-            }
-            if (description !== undefined && description !== '') {
-                task.description = description;
-            }
-            tasks.push(task);
-        } catch {
-            // Skip files we can't read
+        const result = await readFile(file);
+        if (!result.ok) {
+            continue; // Skip files we can't read
         }
+
+        const content = result.value;
+        const name = path.basename(file.fsPath);
+        const params = parseShellParams(content);
+        const description = parseShellDescription(content);
+
+        const task: MutableTaskItem = {
+            id: generateTaskId('shell', file.fsPath, name),
+            label: name,
+            type: 'shell',
+            category: simplifyPath(file.fsPath, workspaceRoot),
+            command: file.fsPath,
+            cwd: path.dirname(file.fsPath),
+            filePath: file.fsPath,
+            tags: []
+        };
+        if (params.length > 0) {
+            task.params = params;
+        }
+        if (description !== undefined && description !== '') {
+            task.description = description;
+        }
+        tasks.push(task);
     }
 
     return tasks;
@@ -99,7 +101,3 @@ function parseShellDescription(content: string): string | undefined {
     return undefined;
 }
 
-async function readFile(uri: vscode.Uri): Promise<string> {
-    const bytes = await vscode.workspace.fs.readFile(uri);
-    return new TextDecoder().decode(bytes);
-}

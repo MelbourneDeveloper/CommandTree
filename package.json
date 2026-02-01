@@ -258,11 +258,6 @@
           ],
           "description": "Glob patterns to exclude from task discovery"
         },
-        "tasktree.showEmptyCategories": {
-          "type": "boolean",
-          "default": false,
-          "description": "Show categories even when they have no tasks"
-        },
         "tasktree.sortOrder": {
           "type": "string",
           "default": "folder",

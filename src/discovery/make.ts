@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import type { TaskItem } from '../models/TaskItem';
 import { generateTaskId, simplifyPath } from '../models/TaskItem';
+import { readFile } from '../utils/fileUtils';
 
 /**
  * Discovers make targets from Makefiles.
@@ -24,31 +25,32 @@ export async function discoverMakeTargets(
     const tasks: TaskItem[] = [];
 
     for (const file of allFiles) {
-        try {
-            const content = await readFile(file);
-            const targets = parseMakeTargets(content);
-            const makeDir = path.dirname(file.fsPath);
-            const category = simplifyPath(file.fsPath, workspaceRoot);
+        const result = await readFile(file);
+        if (!result.ok) {
+            continue; // Skip files we can't read
+        }
 
-            for (const target of targets) {
-                // Skip internal targets (start with .)
-                if (target.startsWith('.')) {
-                    continue;
-                }
+        const content = result.value;
+        const targets = parseMakeTargets(content);
+        const makeDir = path.dirname(file.fsPath);
+        const category = simplifyPath(file.fsPath, workspaceRoot);
 
-                tasks.push({
-                    id: generateTaskId('make', file.fsPath, target),
-                    label: target,
-                    type: 'make',
-                    category,
-                    command: `make ${target}`,
-                    cwd: makeDir,
-                    filePath: file.fsPath,
-                    tags: []
-                });
+        for (const target of targets) {
+            // Skip internal targets (start with .)
+            if (target.startsWith('.')) {
+                continue;
             }
-        } catch {
-            // Skip files we can't read
+
+            tasks.push({
+                id: generateTaskId('make', file.fsPath, target),
+                label: target,
+                type: 'make',
+                category,
+                command: `make ${target}`,
+                cwd: makeDir,
+                filePath: file.fsPath,
+                tags: []
+            });
         }
     }
 
@@ -79,7 +81,3 @@ function parseMakeTargets(content: string): string[] {
     return targets;
 }
 
-async function readFile(uri: vscode.Uri): Promise<string> {
-    const bytes = await vscode.workspace.fs.readFile(uri);
-    return new TextDecoder().decode(bytes);
-}

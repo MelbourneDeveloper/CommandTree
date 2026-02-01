@@ -4,7 +4,8 @@
         "**/bin/**",
         "**/obj/**",
         "**/.git/**",
-        "**/test-fixtures/**"
+        "**/test-fixtures/**",
+        "**/scripts/**"
     ],
     "tasktree.sortOrder": "folder",
     "tasktree.showEmptyCategories": false

@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import type { TaskItem, ParamDef, MutableTaskItem } from '../models/TaskItem';
 import { generateTaskId, simplifyPath } from '../models/TaskItem';
+import { readFile } from '../utils/fileUtils';
 
 /**
  * Discovers Python scripts (.py files) in the workspace.
@@ -15,38 +16,39 @@ export async function discoverPythonScripts(
     const tasks: TaskItem[] = [];
 
     for (const file of files) {
-        try {
-            const content = await readFile(file);
-
-            // Skip non-runnable Python files (no main block or shebang)
-            if (!isRunnablePythonScript(content)) {
-                continue;
-            }
-
-            const name = path.basename(file.fsPath);
-            const params = parsePythonParams(content);
-            const description = parsePythonDescription(content);
-
-            const task: MutableTaskItem = {
-                id: generateTaskId('python', file.fsPath, name),
-                label: name,
-                type: 'python',
-                category: simplifyPath(file.fsPath, workspaceRoot),
-                command: file.fsPath,
-                cwd: path.dirname(file.fsPath),
-                filePath: file.fsPath,
-                tags: []
-            };
-            if (params.length > 0) {
-                task.params = params;
-            }
-            if (description !== undefined && description !== '') {
-                task.description = description;
-            }
-            tasks.push(task);
-        } catch {
-            // Skip files we can't read
+        const result = await readFile(file);
+        if (!result.ok) {
+            continue; // Skip files we can't read
         }
+
+        const content = result.value;
+
+        // Skip non-runnable Python files (no main block or shebang)
+        if (!isRunnablePythonScript(content)) {
+            continue;
+        }
+
+        const name = path.basename(file.fsPath);
+        const params = parsePythonParams(content);
+        const description = parsePythonDescription(content);
+
+        const task: MutableTaskItem = {
+            id: generateTaskId('python', file.fsPath, name),
+            label: name,
+            type: 'python',
+            category: simplifyPath(file.fsPath, workspaceRoot),
+            command: file.fsPath,
+            cwd: path.dirname(file.fsPath),
+            filePath: file.fsPath,
+            tags: []
+        };
+        if (params.length > 0) {
+            task.params = params;
+        }
+        if (description !== undefined && description !== '') {
+            task.description = description;
+        }
+        tasks.push(task);
     }
 
     return tasks;
@@ -191,7 +193,3 @@ function parsePythonDescription(content: string): string | undefined {
     return undefined;
 }
 
-async function readFile(uri: vscode.Uri): Promise<string> {
-    const bytes = await vscode.workspace.fs.readFile(uri);
-    return new TextDecoder().decode(bytes);
-}

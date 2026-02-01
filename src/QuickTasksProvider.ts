@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import type { TaskItem } from './models/TaskItem';
+import type { TaskItem, Result } from './models/TaskItem';
 import { TaskTreeItem } from './models/TaskItem';
 import { TagConfig } from './config/TagConfig';
 
@@ -37,21 +37,27 @@ export class QuickTasksProvider implements vscode.TreeDataProvider<TaskTreeItem>
     /**
      * Adds a task to the quick list.
      */
-    async addToQuick(task: TaskItem): Promise<void> {
-        await this.tagConfig.addTaskToTag(task, 'quick');
-        await this.tagConfig.load();
-        this.allTasks = this.tagConfig.applyTags(this.allTasks);
-        this.onDidChangeTreeDataEmitter.fire(undefined);
+    async addToQuick(task: TaskItem): Promise<Result<void, string>> {
+        const result = await this.tagConfig.addTaskToTag(task, 'quick');
+        if (result.ok) {
+            await this.tagConfig.load();
+            this.allTasks = this.tagConfig.applyTags(this.allTasks);
+            this.onDidChangeTreeDataEmitter.fire(undefined);
+        }
+        return result;
     }
 
     /**
      * Removes a task from the quick list.
      */
-    async removeFromQuick(task: TaskItem): Promise<void> {
-        await this.tagConfig.removeTaskFromTag(task, 'quick');
-        await this.tagConfig.load();
-        this.allTasks = this.tagConfig.applyTags(this.allTasks);
-        this.onDidChangeTreeDataEmitter.fire(undefined);
+    async removeFromQuick(task: TaskItem): Promise<Result<void, string>> {
+        const result = await this.tagConfig.removeTaskFromTag(task, 'quick');
+        if (result.ok) {
+            await this.tagConfig.load();
+            this.allTasks = this.tagConfig.applyTags(this.allTasks);
+            this.onDidChangeTreeDataEmitter.fire(undefined);
+        }
+        return result;
     }
 
     /**
@@ -145,9 +151,11 @@ export class QuickTasksProvider implements vscode.TreeDataProvider<TaskTreeItem>
         }
 
         // Move the task
-        await this.tagConfig.moveTaskInTag(draggedTask, 'quick', newIndex);
-        await this.tagConfig.load();
-        this.allTasks = this.tagConfig.applyTags(this.allTasks);
-        this.onDidChangeTreeDataEmitter.fire(undefined);
+        const result = await this.tagConfig.moveTaskInTag(draggedTask, 'quick', newIndex);
+        if (result.ok) {
+            await this.tagConfig.load();
+            this.allTasks = this.tagConfig.applyTags(this.allTasks);
+            this.onDidChangeTreeDataEmitter.fire(undefined);
+        }
     }
 }

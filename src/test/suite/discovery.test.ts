@@ -162,8 +162,14 @@ suite('Task Discovery E2E Tests', () => {
                 await vscode.commands.executeCommand('tasktree.refresh');
                 await sleep(1000);
 
-                // Should not crash - gracefully handle missing scripts
-                assert.ok(true, 'Should handle missing scripts section');
+                // Verify provider still works - original tasks should still exist
+                const provider = getTaskTreeProvider();
+                const allTasks = provider.getAllTasks();
+                // Should have tasks from the main package.json and other sources
+                assert.ok(allTasks.length > 0, 'Provider should still return tasks from other sources');
+                // Verify NPM tasks from main package.json still exist
+                const npmBuildTask = allTasks.find(t => t.label === 'build' && t.type === 'npm');
+                assert.ok(npmBuildTask !== undefined, 'Main package.json npm tasks should still be discovered');
             } finally {
                 if (fs.existsSync(dir)) {
                     fs.rmSync(dir, { recursive: true, force: true });
@@ -186,8 +192,14 @@ suite('Task Discovery E2E Tests', () => {
                 await vscode.commands.executeCommand('tasktree.refresh');
                 await sleep(1000);
 
-                // Should not crash
-                assert.ok(true, 'Should handle malformed JSON');
+                // Verify provider still works and returns tasks from valid sources
+                const provider = getTaskTreeProvider();
+                const allTasks = provider.getAllTasks();
+                // Should have tasks from valid sources (main package.json, Makefile, etc.)
+                assert.ok(allTasks.length > 0, 'Provider should still return tasks from valid sources');
+                // Malformed JSON should be skipped, but other tasks should exist
+                const shellTasks = allTasks.filter(t => t.type === 'shell');
+                assert.ok(shellTasks.length > 0, 'Shell script tasks should still be discovered');
             } finally {
                 if (fs.existsSync(dir)) {
                     fs.rmSync(dir, { recursive: true, force: true });
@@ -265,7 +277,15 @@ suite('Task Discovery E2E Tests', () => {
                 await vscode.commands.executeCommand('tasktree.refresh');
                 await sleep(1000);
 
-                assert.ok(true, 'Should handle duplicate targets');
+                // Verify provider discovers the Makefile and returns tasks
+                const provider = getTaskTreeProvider();
+                const allTasks = provider.getAllTasks();
+                // Should have tasks including the duplicate-named target (last definition wins, or first)
+                const makeTasks = allTasks.filter(t => t.type === 'make');
+                assert.ok(makeTasks.length > 0, 'Make targets should be discovered');
+                // The main Makefile targets should still be discovered
+                const mainBuildTarget = makeTasks.find(t => t.filePath.includes('Makefile') && !t.filePath.includes('dupe-make'));
+                assert.ok(mainBuildTarget !== undefined, 'Main Makefile targets should still be discovered');
             } finally {
                 deleteFile(dupePath);
                 const dir = getFixturePath('dupe-make');
@@ -300,10 +320,17 @@ suite('Task Discovery E2E Tests', () => {
             assert.ok(launchJson.includes('//'), 'Should have single-line comments');
             assert.ok(launchJson.includes('/*'), 'Should have multi-line comments');
 
-            // Discovery should still work despite comments
+            // Discovery should still work despite comments - verify launch configs are found
             await vscode.commands.executeCommand('tasktree.refresh');
-            await sleep(500);
-            assert.ok(true, 'Should parse launch.json with comments');
+            await sleep(1000);
+
+            const provider = getTaskTreeProvider();
+            const allTasks = provider.getAllTasks();
+            const launchTasks = allTasks.filter(t => t.type === 'launch');
+            assert.ok(launchTasks.length > 0, 'Launch configurations should be discovered despite JSONC comments');
+            // Verify specific launch configs from launch.json are found
+            const debugAppConfig = launchTasks.find(t => t.label === 'Debug Application');
+            assert.ok(debugAppConfig !== undefined, 'Debug Application config should be discovered');
         });
 
         test('extracts configuration type as description', function() {
@@ -329,9 +356,16 @@ suite('Task Discovery E2E Tests', () => {
                 // Directory exists but no launch.json
 
                 await vscode.commands.executeCommand('tasktree.refresh');
-                await sleep(500);
+                await sleep(1000);
 
-                assert.ok(true, 'Should handle missing launch.json');
+                // Verify provider still works and returns tasks from other sources
+                const provider = getTaskTreeProvider();
+                const allTasks = provider.getAllTasks();
+                // Should have tasks from main launch.json and other sources
+                assert.ok(allTasks.length > 0, 'Provider should still return tasks from valid sources');
+                // Main launch.json should still be discovered
+                const launchTasks = allTasks.filter(t => t.type === 'launch');
+                assert.ok(launchTasks.length > 0, 'Main launch.json configs should still be discovered');
             } finally {
                 const dir = getFixturePath('no-launch/.vscode');
                 if (fs.existsSync(dir)) {
@@ -515,10 +549,17 @@ suite('Task Discovery E2E Tests', () => {
             // File contains comments
             assert.ok(tasksJson.includes('//'), 'Should have comments');
 
-            // Discovery should still work
+            // Discovery should still work - verify tasks are found
             await vscode.commands.executeCommand('tasktree.refresh');
-            await sleep(500);
-            assert.ok(true, 'Should parse tasks.json with comments');
+            await sleep(1000);
+
+            const provider = getTaskTreeProvider();
+            const allTasks = provider.getAllTasks();
+            const vscodeTasks = allTasks.filter(t => t.type === 'vscode');
+            assert.ok(vscodeTasks.length > 0, 'VS Code tasks should be discovered despite JSONC comments');
+            // Verify specific tasks from tasks.json are found
+            const buildProjectTask = vscodeTasks.find(t => t.label === 'Build Project');
+            assert.ok(buildProjectTask !== undefined, 'Build Project task should be discovered');
         });
 
         test('handles pickString input type with options', function() {
@@ -749,14 +790,25 @@ suite('Task Discovery E2E Tests', () => {
             // This tests the error handling in discovery modules
 
             await vscode.commands.executeCommand('tasktree.refresh');
-            await sleep(500);
+            await sleep(1000);
 
-            // Should not crash
-            assert.ok(true, 'Should handle file errors gracefully');
+            // Verify provider returns valid tasks after refresh (proves it didn't crash)
+            const provider = getTaskTreeProvider();
+            const allTasks = provider.getAllTasks();
+            assert.ok(Array.isArray(allTasks), 'getAllTasks should return an array');
+            assert.ok(allTasks.length > 0, 'Provider should still discover tasks from valid sources');
+            // Verify shell scripts are still found
+            const shellTasks = allTasks.filter(t => t.type === 'shell');
+            assert.ok(shellTasks.length > 0, 'Shell tasks should be discovered');
         });
 
         test('handles concurrent discovery operations', async function() {
             this.timeout(15000);
+
+            // Get initial task count for comparison
+            const provider = getTaskTreeProvider();
+            const initialTasks = provider.getAllTasks();
+            const initialCount = initialTasks.length;
 
             // Trigger multiple refreshes rapidly
             const promises = [
@@ -766,9 +818,14 @@ suite('Task Discovery E2E Tests', () => {
             ];
 
             await Promise.all(promises);
-            await sleep(1000);
+            await sleep(1500);
 
-            assert.ok(true, 'Should handle concurrent refreshes');
+            // Verify provider state is consistent after concurrent refreshes
+            const finalTasks = provider.getAllTasks();
+            assert.ok(Array.isArray(finalTasks), 'getAllTasks should return an array after concurrent refreshes');
+            assert.ok(finalTasks.length > 0, 'Should have tasks after concurrent refreshes');
+            // Task count should be approximately the same (no duplicates or missing tasks)
+            assert.strictEqual(finalTasks.length, initialCount, 'Task count should be consistent after concurrent refreshes');
         });
 
         test('handles empty workspace', async function() {
@@ -778,9 +835,17 @@ suite('Task Discovery E2E Tests', () => {
             // Our test workspace has tasks, but this validates the code path exists
 
             await vscode.commands.executeCommand('tasktree.refresh');
-            await sleep(500);
+            await sleep(1000);
 
-            assert.ok(true, 'Should handle workspace scenarios');
+            // Verify provider returns valid data structure
+            const provider = getTaskTreeProvider();
+            const allTasks = provider.getAllTasks();
+            assert.ok(Array.isArray(allTasks), 'getAllTasks should return an array');
+            // Our test workspace has tasks, verify they are discovered
+            assert.ok(allTasks.length > 0, 'Test workspace should have discoverable tasks');
+            // Verify getChildren returns valid structure
+            const rootChildren = await provider.getChildren(undefined);
+            assert.ok(Array.isArray(rootChildren), 'getChildren should return an array');
         });
     });
 

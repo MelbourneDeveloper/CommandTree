@@ -813,8 +813,7 @@ suite('TreeView Real UI Tests', () => {
                 // If category is visible, it should have matching tasks
                 if (allTasks.length > 0) {
                     const hasMatchingTask = allTasks.some(t => {
-                        const task = t.task;
-                        return task !== undefined && task !== null && task.label.toLowerCase().includes('deploy.sh');
+                        return t.task?.label.toLowerCase().includes('deploy.sh') ?? false;
                     });
                     assert.ok(
                         hasMatchingTask,
@@ -853,6 +852,196 @@ suite('TreeView Real UI Tests', () => {
             provider.clearFilters();
             await sleep(300);
         });
+    });
+});
+
+/**
+ * PROOF TESTS: Verify NO DUPLICATE items appear in the tree.
+ * These tests prove at the data level that each task appears exactly once.
+ */
+suite('PROOF: No Duplicate Items In Tree', () => {
+    let provider: TaskTreeProvider;
+
+    suiteSetup(async function() {
+        this.timeout(30000);
+        await activateExtension();
+        provider = getTaskTreeProvider();
+        await provider.refresh();
+        await sleep(2000);
+    });
+
+    test('PROOF: Each task ID appears exactly ONCE in entire tree', async function() {
+        this.timeout(15000);
+
+        const roots = await getTreeChildren(provider);
+        const allTaskIds: string[] = [];
+        const duplicates: string[] = [];
+
+        // Collect ALL task IDs from the entire tree
+        function collectTaskIds(items: TaskTreeItem[]): void {
+            for (const item of items) {
+                if (item.task !== null) {
+                    const taskId = item.task.id;
+                    if (allTaskIds.includes(taskId)) {
+                        duplicates.push(taskId);
+                    }
+                    allTaskIds.push(taskId);
+                }
+                if (item.children.length > 0) {
+                    collectTaskIds(item.children);
+                }
+            }
+        }
+
+        for (const category of roots) {
+            collectTaskIds(category.children);
+        }
+
+        assert.strictEqual(
+            duplicates.length, 0,
+            `PROOF FAILED: Found ${duplicates.length} duplicate task IDs: [${duplicates.join(', ')}]`
+        );
+
+        // Also verify we have tasks
+        assert.ok(allTaskIds.length > 0, 'Should have at least some tasks');
+    });
+
+    test('PROOF: Each TreeItem ID appears exactly ONCE', async function() {
+        this.timeout(15000);
+
+        const roots = await getTreeChildren(provider);
+        const allIds: string[] = [];
+        const duplicates: string[] = [];
+
+        // Collect ALL TreeItem IDs (categories, folders, and tasks)
+        function collectAllIds(items: TaskTreeItem[]): void {
+            for (const item of items) {
+                if (item.id !== undefined) {
+                    if (allIds.includes(item.id)) {
+                        duplicates.push(item.id);
+                    }
+                    allIds.push(item.id);
+                }
+                if (item.children.length > 0) {
+                    collectAllIds(item.children);
+                }
+            }
+        }
+
+        // Include root categories
+        for (const root of roots) {
+            if (root.id !== undefined) {
+                if (allIds.includes(root.id)) {
+                    duplicates.push(root.id);
+                }
+                allIds.push(root.id);
+            }
+            collectAllIds(root.children);
+        }
+
+        assert.strictEqual(
+            duplicates.length, 0,
+            `PROOF FAILED: Found ${duplicates.length} duplicate TreeItem IDs: [${duplicates.join(', ')}]`
+        );
+    });
+
+    test('PROOF: Task count matches getAllTasks length', async function() {
+        this.timeout(15000);
+
+        const roots = await getTreeChildren(provider);
+        const allTasks = provider.getAllTasks();
+
+        // Count tasks in tree
+        let treeTaskCount = 0;
+        function countTasks(items: TaskTreeItem[]): void {
+            for (const item of items) {
+                if (item.task !== null) {
+                    treeTaskCount++;
+                }
+                if (item.children.length > 0) {
+                    countTasks(item.children);
+                }
+            }
+        }
+
+        for (const category of roots) {
+            countTasks(category.children);
+        }
+
+        assert.strictEqual(
+            treeTaskCount, allTasks.length,
+            `PROOF FAILED: Tree shows ${treeTaskCount} tasks but getAllTasks returns ${allTasks.length}`
+        );
+    });
+
+    test('PROOF: No task appears in multiple categories', async function() {
+        this.timeout(15000);
+
+        const roots = await getTreeChildren(provider);
+        const taskIdToCategories = new Map<string, string[]>();
+
+        for (const category of roots) {
+            const categoryLabel = getLabelString(category.label);
+            const categoryTasks = flattenTaskItems(category.children);
+
+            for (const taskItem of categoryTasks) {
+                if (taskItem.task !== null) {
+                    const taskId = taskItem.task.id;
+                    const existing = taskIdToCategories.get(taskId) ?? [];
+                    existing.push(categoryLabel);
+                    taskIdToCategories.set(taskId, existing);
+                }
+            }
+        }
+
+        // Find tasks that appear in multiple categories
+        const multiCategoryTasks: string[] = [];
+        for (const [taskId, categories] of taskIdToCategories) {
+            if (categories.length > 1) {
+                multiCategoryTasks.push(`${taskId} in [${categories.join(', ')}]`);
+            }
+        }
+
+        assert.strictEqual(
+            multiCategoryTasks.length, 0,
+            `PROOF FAILED: Tasks appear in multiple categories: ${multiCategoryTasks.join('; ')}`
+        );
+    });
+
+    test('PROOF: Category task counts match actual children', async function() {
+        this.timeout(15000);
+
+        const roots = await getTreeChildren(provider);
+
+        for (const category of roots) {
+            const label = getLabelString(category.label);
+            const countMatch = /\((\d+)\)/.exec(label);
+
+            if (countMatch?.[1] !== undefined) {
+                const claimedCount = parseInt(countMatch[1], 10);
+                const actualTasks = flattenTaskItems(category.children);
+
+                assert.strictEqual(
+                    actualTasks.length, claimedCount,
+                    `PROOF FAILED: Category "${label}" claims ${claimedCount} tasks but has ${actualTasks.length}`
+                );
+            }
+        }
+    });
+
+    test('PROOF: getAllTasks returns unique tasks only', function() {
+        this.timeout(10000);
+
+        const allTasks = provider.getAllTasks();
+        const taskIds = allTasks.map(t => t.id);
+        const uniqueIds = new Set(taskIds);
+
+        const duplicates = taskIds.filter((id, index) => taskIds.indexOf(id) !== index);
+
+        assert.strictEqual(
+            taskIds.length, uniqueIds.size,
+            `PROOF FAILED: getAllTasks has ${taskIds.length - uniqueIds.size} duplicates: [${duplicates.join(', ')}]`
+        );
     });
 });
 

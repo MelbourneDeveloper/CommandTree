@@ -8,7 +8,8 @@ import {
     getFixturePath,
     getExtensionPath,
     writeFile,
-    deleteFile
+    deleteFile,
+    getTaskTreeProvider
 } from './helpers';
 
 interface ConfigurationProperty {
@@ -23,7 +24,6 @@ interface PackageJsonConfig {
             title: string;
             properties: {
                 'tasktree.excludePatterns': ConfigurationProperty;
-                'tasktree.showEmptyCategories': ConfigurationProperty;
                 'tasktree.sortOrder': ConfigurationProperty;
             };
         };
@@ -88,24 +88,6 @@ suite('Configuration and File Watchers E2E Tests', () => {
             assert.ok(defaultPatterns.includes('**/.git/**'), 'Should exclude .git');
         });
 
-        test('showEmptyCategories setting exists', function() {
-            this.timeout(10000);
-
-            const config = vscode.workspace.getConfiguration('tasktree');
-            const showEmptyCategories = config.get<boolean>('showEmptyCategories');
-
-            assert.strictEqual(typeof showEmptyCategories, 'boolean', 'showEmptyCategories should be boolean');
-        });
-
-        test('showEmptyCategories defaults to false', function() {
-            this.timeout(10000);
-
-            const packageJson = readExtensionPackageJson();
-            const defaultValue = packageJson.contributes.configuration.properties['tasktree.showEmptyCategories'].default;
-
-            assert.strictEqual(defaultValue, false, 'showEmptyCategories should default to false');
-        });
-
         test('sortOrder setting exists', function() {
             this.timeout(10000);
 
@@ -151,22 +133,25 @@ suite('Configuration and File Watchers E2E Tests', () => {
     });
 
     suite('Configuration Change Handling', () => {
-        test('responds to excludePatterns changes', async function() {
+        test('excludePatterns config is applied on refresh', async function() {
             this.timeout(15000);
 
             const config = vscode.workspace.getConfiguration('tasktree');
             const originalPatterns = config.get<string[]>('excludePatterns');
 
             try {
-                // Update configuration
-                await config.update('excludePatterns', ['**/test/**'], vscode.ConfigurationTarget.Workspace);
+                // Update configuration to exclude scripts directory
+                await config.update('excludePatterns', [...(originalPatterns ?? []), '**/scripts/**'], vscode.ConfigurationTarget.Workspace);
                 await sleep(1000);
 
                 // Trigger refresh
                 await vscode.commands.executeCommand('tasktree.refresh');
-                await sleep(500);
+                await sleep(1500);
 
-                assert.ok(true, 'Should respond to config changes');
+                // Verify the config was actually updated
+                const updatedConfig = vscode.workspace.getConfiguration('tasktree');
+                const updatedPatterns = updatedConfig.get<string[]>('excludePatterns') ?? [];
+                assert.ok(updatedPatterns.includes('**/scripts/**'), 'Config should include new exclude pattern');
             } finally {
                 // Restore original
                 await config.update('excludePatterns', originalPatterns, vscode.ConfigurationTarget.Workspace);
@@ -174,7 +159,7 @@ suite('Configuration and File Watchers E2E Tests', () => {
             }
         });
 
-        test('responds to sortOrder changes', async function() {
+        test('sortOrder config has valid value', function() {
             this.timeout(10000);
 
             const config = vscode.workspace.getConfiguration('tasktree');
@@ -182,36 +167,15 @@ suite('Configuration and File Watchers E2E Tests', () => {
 
             // Verify config is readable and has valid value
             assert.ok(['folder', 'name', 'type'].includes(sortOrder ?? ''), 'sortOrder should have valid value');
-
-            // Verify refresh works with current config
-            await vscode.commands.executeCommand('tasktree.refresh');
-            await sleep(500);
-
-            assert.ok(true, 'Should handle sortOrder config');
-        });
-
-        test('responds to showEmptyCategories changes', async function() {
-            this.timeout(10000);
-
-            const config = vscode.workspace.getConfiguration('tasktree');
-            const showEmpty = config.get<boolean>('showEmptyCategories');
-
-            // Verify config is readable
-            assert.strictEqual(typeof showEmpty, 'boolean', 'showEmptyCategories should be boolean');
-
-            // Verify refresh works with current config
-            await vscode.commands.executeCommand('tasktree.refresh');
-            await sleep(500);
-
-            assert.ok(true, 'Should handle showEmptyCategories config');
         });
     });
 
     suite('File Watcher - Package.json', () => {
-        test('detects package.json creation', async function() {
+        test('discovers new npm scripts after package.json creation and refresh', async function() {
             this.timeout(15000);
 
             const newPackagePath = 'watcher-test/package.json';
+            const provider = getTaskTreeProvider();
 
             try {
                 writeFile(newPackagePath, JSON.stringify({
@@ -222,52 +186,64 @@ suite('Configuration and File Watchers E2E Tests', () => {
                     }
                 }, null, 2));
 
-                // Wait for file watcher to detect
+                // Wait for file watcher to detect and refresh
                 await sleep(2000);
-
-                // Refresh to ensure tasks are updated
                 await vscode.commands.executeCommand('tasktree.refresh');
-                await sleep(500);
+                await sleep(1500);
 
-                assert.ok(true, 'Should detect package.json creation');
+                // Verify the new npm script was discovered
+                const allTasks = provider.getAllTasks();
+                const watcherTask = allTasks.find(t => t.label === 'watcher-build' && t.type === 'npm');
+                assert.ok(watcherTask !== undefined, 'Should discover watcher-build npm script after package.json creation');
             } finally {
                 deleteFile(newPackagePath);
                 const dir = getFixturePath('watcher-test');
                 if (fs.existsSync(dir)) {
                     fs.rmdirSync(dir);
                 }
+                // Refresh to remove the deleted task
+                await vscode.commands.executeCommand('tasktree.refresh');
+                await sleep(500);
             }
         });
 
-        test('detects package.json modification', async function() {
+        test('discovers new npm script after package.json modification and refresh', async function() {
             this.timeout(15000);
 
             const packageJsonPath = getFixturePath('package.json');
             const originalContent = fs.readFileSync(packageJsonPath, 'utf8');
+            const provider = getTaskTreeProvider();
 
             try {
-                // Modify package.json
+                // Modify package.json to add new script
                 const modified = JSON.parse(originalContent) as FixturePackageJson;
                 modified.scripts['new-watcher-script'] = 'echo "new script"';
                 fs.writeFileSync(packageJsonPath, JSON.stringify(modified, null, 2));
 
-                // Wait for watcher
+                // Wait for watcher and refresh
                 await sleep(2000);
+                await vscode.commands.executeCommand('tasktree.refresh');
+                await sleep(1500);
 
-                assert.ok(true, 'Should detect package.json modification');
+                // Verify the new script was discovered
+                const allTasks = provider.getAllTasks();
+                const newTask = allTasks.find(t => t.label === 'new-watcher-script' && t.type === 'npm');
+                assert.ok(newTask !== undefined, 'Should discover new-watcher-script after package.json modification');
             } finally {
                 // Restore original
                 fs.writeFileSync(packageJsonPath, originalContent);
+                await vscode.commands.executeCommand('tasktree.refresh');
                 await sleep(500);
             }
         });
     });
 
     suite('File Watcher - Makefile', () => {
-        test('detects Makefile creation', async function() {
+        test('discovers new make target after Makefile creation and refresh', async function() {
             this.timeout(15000);
 
             const newMakefilePath = 'watcher-make/Makefile';
+            const provider = getTaskTreeProvider();
 
             try {
                 const dir = path.dirname(getFixturePath(newMakefilePath));
@@ -278,33 +254,45 @@ suite('Configuration and File Watchers E2E Tests', () => {
 
                 await sleep(2000);
                 await vscode.commands.executeCommand('tasktree.refresh');
-                await sleep(500);
+                await sleep(1500);
 
-                assert.ok(true, 'Should detect Makefile creation');
+                // Verify the new make target was discovered
+                const allTasks = provider.getAllTasks();
+                const watcherTarget = allTasks.find(t => t.label === 'watcher-target' && t.type === 'make');
+                assert.ok(watcherTarget !== undefined, 'Should discover watcher-target after Makefile creation');
             } finally {
                 deleteFile(newMakefilePath);
                 const dir = getFixturePath('watcher-make');
                 if (fs.existsSync(dir)) {
                     fs.rmdirSync(dir);
                 }
+                await vscode.commands.executeCommand('tasktree.refresh');
+                await sleep(500);
             }
         });
 
-        test('detects Makefile modification', async function() {
+        test('discovers new make target after Makefile modification and refresh', async function() {
             this.timeout(15000);
 
             const makefilePath = getFixturePath('Makefile');
             const originalContent = fs.readFileSync(makefilePath, 'utf8');
+            const provider = getTaskTreeProvider();
 
             try {
                 // Add new target
                 fs.writeFileSync(makefilePath, `${originalContent}\nnew-watcher-target:\n\techo "new"`);
 
                 await sleep(2000);
+                await vscode.commands.executeCommand('tasktree.refresh');
+                await sleep(1500);
 
-                assert.ok(true, 'Should detect Makefile modification');
+                // Verify the new target was discovered
+                const allTasks = provider.getAllTasks();
+                const newTarget = allTasks.find(t => t.label === 'new-watcher-target' && t.type === 'make');
+                assert.ok(newTarget !== undefined, 'Should discover new-watcher-target after Makefile modification');
             } finally {
                 fs.writeFileSync(makefilePath, originalContent);
+                await vscode.commands.executeCommand('tasktree.refresh');
                 await sleep(500);
             }
         });
@@ -346,15 +334,17 @@ suite('Configuration and File Watchers E2E Tests', () => {
     });
 
     suite('File Watcher - VS Code Config', () => {
-        test('detects tasks.json modification', async function() {
+        test('discovers new vscode task after tasks.json modification and refresh', async function() {
             this.timeout(15000);
 
             const tasksJsonPath = getFixturePath('.vscode/tasks.json');
             const originalContent = fs.readFileSync(tasksJsonPath, 'utf8');
+            const provider = getTaskTreeProvider();
 
             try {
-                // Parse and modify
-                const tasks = JSON.parse(originalContent.replace(/\/\/.*$/gm, '').replace(/\/\*[\s\S]*?\*\//g, '')) as TasksJson;
+                // Parse and modify (remove comments first)
+                const cleanJson = originalContent.replace(/\/\/.*$/gm, '').replace(/\/\*[\s\S]*?\*\//g, '');
+                const tasks = JSON.parse(cleanJson) as TasksJson;
                 tasks.tasks.push({
                     label: 'Watcher Test Task',
                     type: 'shell',
@@ -363,19 +353,26 @@ suite('Configuration and File Watchers E2E Tests', () => {
 
                 fs.writeFileSync(tasksJsonPath, JSON.stringify(tasks, null, 4));
                 await sleep(2000);
+                await vscode.commands.executeCommand('tasktree.refresh');
+                await sleep(1500);
 
-                assert.ok(true, 'Should detect tasks.json modification');
+                // Verify the new task was discovered
+                const allTasks = provider.getAllTasks();
+                const watcherTask = allTasks.find(t => t.label === 'Watcher Test Task' && t.type === 'vscode');
+                assert.ok(watcherTask !== undefined, 'Should discover Watcher Test Task after tasks.json modification');
             } finally {
                 fs.writeFileSync(tasksJsonPath, originalContent);
+                await vscode.commands.executeCommand('tasktree.refresh');
                 await sleep(500);
             }
         });
 
-        test('detects launch.json modification', async function() {
+        test('discovers new launch config after launch.json modification and refresh', async function() {
             this.timeout(15000);
 
             const launchJsonPath = getFixturePath('.vscode/launch.json');
             const originalContent = fs.readFileSync(launchJsonPath, 'utf8');
+            const provider = getTaskTreeProvider();
 
             try {
                 // Parse (remove comments first)
@@ -392,19 +389,26 @@ suite('Configuration and File Watchers E2E Tests', () => {
 
                 fs.writeFileSync(launchJsonPath, JSON.stringify(launch, null, 4));
                 await sleep(2000);
+                await vscode.commands.executeCommand('tasktree.refresh');
+                await sleep(1500);
 
-                assert.ok(true, 'Should detect launch.json modification');
+                // Verify the new launch config was discovered
+                const allTasks = provider.getAllTasks();
+                const watcherConfig = allTasks.find(t => t.label === 'Watcher Debug Config' && t.type === 'launch');
+                assert.ok(watcherConfig !== undefined, 'Should discover Watcher Debug Config after launch.json modification');
             } finally {
                 fs.writeFileSync(launchJsonPath, originalContent);
+                await vscode.commands.executeCommand('tasktree.refresh');
                 await sleep(500);
             }
         });
 
-        test('detects tasktree.json modification', async function() {
+        test('new tag appears in getAllTags after tasktree.json modification and refresh', async function() {
             this.timeout(15000);
 
             const tagConfigPath = getFixturePath('.vscode/tasktree.json');
             const originalContent = fs.readFileSync(tagConfigPath, 'utf8');
+            const provider = getTaskTreeProvider();
 
             try {
                 const config = JSON.parse(originalContent) as TagConfig;
@@ -412,10 +416,15 @@ suite('Configuration and File Watchers E2E Tests', () => {
 
                 fs.writeFileSync(tagConfigPath, JSON.stringify(config, null, 4));
                 await sleep(2000);
+                await vscode.commands.executeCommand('tasktree.refresh');
+                await sleep(1500);
 
-                assert.ok(true, 'Should detect tasktree.json modification');
+                // Verify the new tag is available
+                const allTags = provider.getAllTags();
+                assert.ok(allTags.includes('watcher-tag'), 'Should have watcher-tag after tasktree.json modification');
             } finally {
                 fs.writeFileSync(tagConfigPath, originalContent);
+                await vscode.commands.executeCommand('tasktree.refresh');
                 await sleep(500);
             }
         });
@@ -444,16 +453,19 @@ suite('Configuration and File Watchers E2E Tests', () => {
             }
         });
 
-        test('handles missing tag config gracefully', async function() {
+        test('extension works without tasktree.json - returns empty tags', async function() {
             this.timeout(15000);
 
             // The extension should work even without tasktree.json
             // It will just have no tags
+            const provider = getTaskTreeProvider();
 
             await vscode.commands.executeCommand('tasktree.refresh');
-            await sleep(500);
+            await sleep(1000);
 
-            assert.ok(true, 'Should handle missing tag config');
+            // Provider should still function and return tasks
+            const allTasks = provider.getAllTasks();
+            assert.ok(allTasks.length > 0, 'Should still discover tasks without tasktree.json');
         });
     });
 
@@ -494,11 +506,9 @@ suite('Configuration and File Watchers E2E Tests', () => {
 
             // Read all settings
             const excludePatterns = config.get<string[]>('excludePatterns');
-            const showEmptyCategories = config.get<boolean>('showEmptyCategories');
             const sortOrder = config.get<string>('sortOrder');
 
             assert.ok(excludePatterns !== undefined, 'excludePatterns should be readable');
-            assert.ok(showEmptyCategories !== undefined, 'showEmptyCategories should be readable');
             assert.ok(sortOrder !== undefined, 'sortOrder should be readable');
         });
 

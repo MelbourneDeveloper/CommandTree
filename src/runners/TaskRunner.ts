@@ -14,7 +14,7 @@ function showError(message: string): void {
 /**
  * Execution mode for tasks.
  */
-export type RunMode = 'task' | 'newTerminal' | 'currentTerminal';
+export type RunMode = 'newTerminal' | 'currentTerminal';
 
 /**
  * Executes tasks based on their type.
@@ -23,7 +23,7 @@ export class TaskRunner {
     /**
      * Runs a task, prompting for parameters if needed.
      */
-    async run(task: TaskItem, mode: RunMode = 'task'): Promise<void> {
+    async run(task: TaskItem, mode: RunMode = 'newTerminal'): Promise<void> {
         const params = await this.collectParams(task.params);
         if (params === null) {
             return;
@@ -46,39 +46,6 @@ export class TaskRunner {
             }
             case 'currentTerminal': {
                 this.runInCurrentTerminal(task, params);
-                break;
-            }
-            case 'task': {
-                await this.runAsTask(task, params);
-                break;
-            }
-        }
-    }
-
-    /**
-     * Runs task as a VS Code task (default behavior).
-     */
-    private async runAsTask(task: TaskItem, params: Map<string, string>): Promise<void> {
-        switch (task.type) {
-            case 'shell': {
-                await this.runShell(task, params);
-                break;
-            }
-            case 'npm': {
-                await this.runNpm(task);
-                break;
-            }
-            case 'make': {
-                await this.runMake(task);
-                break;
-            }
-            case 'python': {
-                await this.runPython(task, params);
-                break;
-            }
-            case 'launch':
-            case 'vscode': {
-                // Already handled above
                 break;
             }
         }
@@ -121,106 +88,6 @@ export class TaskRunner {
         }
 
         return values;
-    }
-
-    /**
-     * Runs a shell script.
-     */
-    private async runShell(task: TaskItem, params: Map<string, string>): Promise<void> {
-        let command = task.command;
-        if (params.size > 0) {
-            const args = Array.from(params.values())
-                .map(v => `"${v}"`)
-                .join(' ');
-            command = `${command} ${args}`;
-        }
-
-        const shellOptions: vscode.ShellExecutionOptions = {};
-        if (task.cwd !== undefined) {
-            shellOptions.cwd = task.cwd;
-        }
-        const execution = new vscode.ShellExecution(command, shellOptions);
-
-        const vscodeTask = new vscode.Task(
-            { type: 'tasktree', task: task.id },
-            vscode.TaskScope.Workspace,
-            task.label,
-            'TaskTree',
-            execution
-        );
-
-        await vscode.tasks.executeTask(vscodeTask);
-    }
-
-    /**
-     * Runs an npm script.
-     */
-    private async runNpm(task: TaskItem): Promise<void> {
-        const shellOptions: vscode.ShellExecutionOptions = {};
-        if (task.cwd !== undefined) {
-            shellOptions.cwd = task.cwd;
-        }
-        const execution = new vscode.ShellExecution(task.command, shellOptions);
-
-        const vscodeTask = new vscode.Task(
-            { type: 'npm', script: task.label },
-            vscode.TaskScope.Workspace,
-            task.label,
-            'npm',
-            execution
-        );
-
-        await vscode.tasks.executeTask(vscodeTask);
-    }
-
-    /**
-     * Runs a make target.
-     */
-    private async runMake(task: TaskItem): Promise<void> {
-        const shellOptions: vscode.ShellExecutionOptions = {};
-        if (task.cwd !== undefined) {
-            shellOptions.cwd = task.cwd;
-        }
-        const execution = new vscode.ShellExecution(task.command, shellOptions);
-
-        const vscodeTask = new vscode.Task(
-            { type: 'make', target: task.label },
-            vscode.TaskScope.Workspace,
-            task.label,
-            'make',
-            execution
-        );
-
-        await vscode.tasks.executeTask(vscodeTask);
-    }
-
-    /**
-     * Runs a Python script.
-     */
-    private async runPython(task: TaskItem, params: Map<string, string>): Promise<void> {
-        let command = `python "${task.command}"`;
-        if (params.size > 0) {
-            const args = Array.from(params.values())
-                .map(v => `"${v}"`)
-                .join(' ');
-            command = `${command} ${args}`;
-        }
-
-        const shellOptions: vscode.ShellExecutionOptions = {};
-        if (task.cwd !== undefined) {
-            shellOptions.cwd = task.cwd;
-        }
-        const execution = new vscode.ShellExecution(command, shellOptions);
-
-        const vscodeTask = new vscode.Task(
-            { type: 'tasktree', task: task.id },
-            vscode.TaskScope.Workspace,
-            task.label,
-            'TaskTree',
-            execution
-        );
-
-        await vscode.tasks.executeTask(vscodeTask);
     }
 
     /**

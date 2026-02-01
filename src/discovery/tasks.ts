@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import type { TaskItem, ParamDef, MutableTaskItem } from '../models/TaskItem';
 import { generateTaskId } from '../models/TaskItem';
+import { readJsonFile } from '../utils/fileUtils';
 
 interface TaskInput {
     id: string;
@@ -33,46 +34,46 @@ export async function discoverVsCodeTasks(
     const tasks: TaskItem[] = [];
 
     for (const file of files) {
-        try {
-            const content = await readFile(file);
-            const cleanJson = removeJsonComments(content);
-            const tasksConfig = JSON.parse(cleanJson) as TasksJsonConfig;
+        const result = await readJsonFile<TasksJsonConfig>(file);
+        if (!result.ok) {
+            continue; // Skip malformed tasks.json
+        }
 
-            const inputs = parseInputs(tasksConfig.inputs);
+        const tasksConfig = result.value;
+        const inputs = parseInputs(tasksConfig.inputs);
 
-            if (tasksConfig.tasks !== undefined && Array.isArray(tasksConfig.tasks)) {
-                for (const task of tasksConfig.tasks) {
-                    let label = task.label;
-                    if (label === undefined && task.type === 'npm' && task.script !== undefined) {
-                        label = `npm: ${task.script}`;
-                    }
-                    if (label === undefined) {
-                        continue;
-                    }
+        if (tasksConfig.tasks === undefined || !Array.isArray(tasksConfig.tasks)) {
+            continue;
+        }
 
-                    const taskParams = findTaskInputs(task, inputs);
-
-                    const taskItem: MutableTaskItem = {
-                        id: generateTaskId('vscode', file.fsPath, label),
-                        label,
-                        type: 'vscode',
-                        category: 'VS Code Tasks',
-                        command: label,
-                        cwd: workspaceRoot,
-                        filePath: file.fsPath,
-                        tags: []
-                    };
-                    if (taskParams.length > 0) {
-                        taskItem.params = taskParams;
-                    }
-                    if (task.detail !== undefined && typeof task.detail === 'string' && task.detail !== '') {
-                        taskItem.description = task.detail;
-                    }
-                    tasks.push(taskItem);
-                }
+        for (const task of tasksConfig.tasks) {
+            let label = task.label;
+            if (label === undefined && task.type === 'npm' && task.script !== undefined) {
+                label = `npm: ${task.script}`;
             }
-        } catch {
-            // Skip malformed tasks.json
+            if (label === undefined) {
+                continue;
+            }
+
+            const taskParams = findTaskInputs(task, inputs);
+
+            const taskItem: MutableTaskItem = {
+                id: generateTaskId('vscode', file.fsPath, label),
+                label,
+                type: 'vscode',
+                category: 'VS Code Tasks',
+                command: label,
+                cwd: workspaceRoot,
+                filePath: file.fsPath,
+                tags: []
+            };
+            if (taskParams.length > 0) {
+                taskItem.params = taskParams;
+            }
+            if (task.detail !== undefined && typeof task.detail === 'string' && task.detail !== '') {
+                taskItem.description = task.detail;
+            }
+            tasks.push(taskItem);
         }
     }
 
@@ -124,16 +125,3 @@ function findTaskInputs(task: VscodeTaskDef, inputs: Map<string, ParamDef>): Par
     return params;
 }
 
-/**
- * Removes single-line and multi-line comments from JSONC.
- */
-function removeJsonComments(content: string): string {
-    let result = content.replace(/\/\/.*$/gm, '');
-    result = result.replace(/\/\*[\s\S]*?\*\//g, '');
-    return result;
-}
-
-async function readFile(uri: vscode.Uri): Promise<string> {
-    const bytes = await vscode.workspace.fs.readFile(uri);
-    return new TextDecoder().decode(bytes);
-}

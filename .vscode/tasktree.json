@@ -26,10 +26,7 @@
       "python:/Users/christianfindlay/Documents/Code/TaskTree/test-fixtures/workspace/scripts/build_project.py:build_project.py"
     ],
     "quick": [
-      "build.sh",
-      "npm:/Users/christianfindlay/Documents/Code/TaskTree/package.json:build-and-install",
-      "npm:/Users/christianfindlay/Documents/Code/TaskTree/package.json:lint",
-      "make:/Users/christianfindlay/Documents/Code/TaskTree/test-fixtures/workspace/Makefile:all"
+      "shell:/Users/christianfindlay/Documents/Code/TaskTree/test-fixtures/workspace/scripts/build.sh:build.sh"
     ]
   }
 }

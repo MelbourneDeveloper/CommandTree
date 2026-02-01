@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import type { TaskItem } from '../models/TaskItem';
 import { generateTaskId, simplifyPath } from '../models/TaskItem';
+import { readFile, parseJson } from '../utils/fileUtils';
 
 interface PackageJson {
     scripts?: Record<string, string>;
@@ -19,43 +20,44 @@ export async function discoverNpmScripts(
     const tasks: TaskItem[] = [];
 
     for (const file of files) {
-        try {
-            const content = await readFile(file);
-            const pkg = JSON.parse(content) as PackageJson;
+        const contentResult = await readFile(file);
+        if (!contentResult.ok) {
+            continue; // Skip unreadable package.json
+        }
 
-            if (pkg.scripts !== undefined && typeof pkg.scripts === 'object') {
-                const pkgDir = path.dirname(file.fsPath);
-                const category = simplifyPath(file.fsPath, workspaceRoot);
+        const pkgResult = parseJson<PackageJson>(contentResult.value);
+        if (!pkgResult.ok) {
+            continue; // Skip malformed package.json
+        }
 
-                for (const [name, command] of Object.entries(pkg.scripts)) {
-                    if (typeof command !== 'string') {
-                        continue;
-                    }
+        const pkg = pkgResult.value;
+        if (pkg.scripts === undefined || typeof pkg.scripts !== 'object') {
+            continue;
+        }
 
-                    tasks.push({
-                        id: generateTaskId('npm', file.fsPath, name),
-                        label: name,
-                        type: 'npm',
-                        category,
-                        command: `npm run ${name}`,
-                        cwd: pkgDir,
-                        filePath: file.fsPath,
-                        tags: [],
-                        description: truncate(command, 60)
-                    });
-                }
+        const pkgDir = path.dirname(file.fsPath);
+        const category = simplifyPath(file.fsPath, workspaceRoot);
+
+        for (const [name, command] of Object.entries(pkg.scripts)) {
+            if (typeof command !== 'string') {
+                continue;
             }
-        } catch {
-            // Skip malformed package.json
+
+            tasks.push({
+                id: generateTaskId('npm', file.fsPath, name),
+                label: name,
+                type: 'npm',
+                category,
+                command: `npm run ${name}`,
+                cwd: pkgDir,
+                filePath: file.fsPath,
+                tags: [],
+                description: truncate(command, 60)
+            });
         }
     }
 
     return tasks;
-}
-
-async function readFile(uri: vscode.Uri): Promise<string> {
-    const bytes = await vscode.workspace.fs.readFile(uri);
-    return new TextDecoder().decode(bytes);
 }
 
 function truncate(str: string, max: number): string {

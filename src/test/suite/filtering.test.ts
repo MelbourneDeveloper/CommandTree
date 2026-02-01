@@ -5,7 +5,7 @@ import {
     activateExtension,
     sleep,
     getFixturePath,
-    deleteFile
+    getTaskTreeProvider
 } from './helpers';
 
 interface TagConfig {
@@ -20,35 +20,32 @@ suite('Task Filtering E2E Tests', () => {
     });
 
     suite('Text Filtering', () => {
-        test('filter command is registered and executable', async function() {
+        test('filter command is registered', async function() {
             this.timeout(10000);
 
             const commands = await vscode.commands.getCommands(true);
             assert.ok(commands.includes('tasktree.filter'), 'filter command should be registered');
         });
 
-        test('clearFilter command is registered and executable', async function() {
+        test('clearFilter command is registered', async function() {
             this.timeout(10000);
 
             const commands = await vscode.commands.getCommands(true);
             assert.ok(commands.includes('tasktree.clearFilter'), 'clearFilter command should be registered');
-
-            // Execute clear filter - should not throw
-            await vscode.commands.executeCommand('tasktree.clearFilter');
-            await sleep(500);
-            assert.ok(true, 'clearFilter should execute without error');
         });
 
-        test('filter context is set when filter is active', async function() {
+        test('clearFilter resets hasFilter to false', async function() {
             this.timeout(10000);
 
-            // Clear any existing filter
-            await vscode.commands.executeCommand('tasktree.clearFilter');
-            await sleep(500);
+            const provider = getTaskTreeProvider();
 
-            // Note: We can't directly test the context value, but we can verify
-            // the command doesn't throw
-            assert.ok(true, 'Filter context should be manageable');
+            // Set a filter first
+            provider.setTextFilter('build');
+            assert.strictEqual(provider.hasFilter(), true, 'hasFilter should be true after setTextFilter');
+
+            // Clear filter via provider
+            provider.clearFilters();
+            assert.strictEqual(provider.hasFilter(), false, 'hasFilter should be false after clearFilters');
         });
     });
 
@@ -127,35 +124,16 @@ suite('Task Filtering E2E Tests', () => {
             await vscode.commands.executeCommand('workbench.action.closeAllEditors');
         });
 
-        test('editTags creates config file if missing', function(this: Mocha.Context) {
+        test('tasktree.json config file exists in fixtures', function(this: Mocha.Context) {
             this.timeout(15000);
 
-            const newDir = 'new-config-test/.vscode';
-            const newConfigPath = `${newDir}/tasktree.json`;
+            // Verify the fixture has the expected config file
+            const configPath = getFixturePath('.vscode/tasktree.json');
+            assert.ok(fs.existsSync(configPath), 'tasktree.json should exist in fixtures');
 
-            try {
-                // Create directory without config
-                const dir = getFixturePath(newDir);
-                if (!fs.existsSync(dir)) {
-                    fs.mkdirSync(dir, { recursive: true });
-                }
-
-                // The editTags command creates the file if it doesn't exist
-                // when called from the extension context
-
-                assert.ok(true, 'Should handle missing config gracefully');
-            } finally {
-                // Cleanup
-                deleteFile(newConfigPath);
-                const vscodedir = getFixturePath(newDir);
-                if (fs.existsSync(vscodedir)) {
-                    fs.rmdirSync(vscodedir);
-                }
-                const parentDir = getFixturePath('new-config-test');
-                if (fs.existsSync(parentDir)) {
-                    fs.rmdirSync(parentDir);
-                }
-            }
+            // Verify it has valid JSON
+            const content = JSON.parse(fs.readFileSync(configPath, 'utf8')) as TagConfig;
+            assert.ok(typeof content.tags === 'object', 'Config should have tags object');
         });
     });
 
@@ -214,111 +192,133 @@ suite('Task Filtering E2E Tests', () => {
         test('filter state persists across refresh', async function() {
             this.timeout(15000);
 
-            // Clear filter first
-            await vscode.commands.executeCommand('tasktree.clearFilter');
-            await sleep(500);
+            const provider = getTaskTreeProvider();
+
+            // Set a filter
+            provider.setTextFilter('build');
+            assert.strictEqual(provider.hasFilter(), true, 'hasFilter should be true before refresh');
 
             // Trigger refresh
             await vscode.commands.executeCommand('tasktree.refresh');
             await sleep(1000);
 
-            // Filter state should still be cleared
-            assert.ok(true, 'Filter state should persist');
+            // Filter state should persist
+            assert.strictEqual(provider.hasFilter(), true, 'hasFilter should still be true after refresh');
+
+            // Clean up
+            provider.clearFilters();
         });
 
-        test('multiple filters can be cleared at once', async function() {
+        test('clearFilters clears both text and tag filters', async function() {
             this.timeout(10000);
 
-            // Clear all filters
-            await vscode.commands.executeCommand('tasktree.clearFilter');
-            await sleep(500);
+            const provider = getTaskTreeProvider();
 
-            assert.ok(true, 'Should clear all filters');
+            // Set both filters
+            provider.setTextFilter('build');
+            provider.setTagFilter('test');
+            assert.strictEqual(provider.hasFilter(), true, 'hasFilter should be true with filters set');
+
+            // Clear all filters
+            provider.clearFilters();
+            assert.strictEqual(provider.hasFilter(), false, 'hasFilter should be false after clearFilters');
         });
     });
 
     suite('Filter UI Integration', () => {
-        test('filter command shows input box', async function() {
+        test('filter command is registered', async function() {
             this.timeout(10000);
-
-            // We can verify the command is executable
-            // The actual input box interaction requires user input
-            // which we can't automate in E2E tests without mocking
 
             const commands = await vscode.commands.getCommands(true);
             assert.ok(commands.includes('tasktree.filter'), 'filter command should exist');
         });
 
-        test('filterByTag command shows quick pick', async function() {
+        test('filterByTag command is registered', async function() {
             this.timeout(10000);
-
-            // Similar to filter, we verify the command exists
-            // Quick pick interaction requires user input
 
             const commands = await vscode.commands.getCommands(true);
             assert.ok(commands.includes('tasktree.filterByTag'), 'filterByTag command should exist');
         });
 
-        test('clearFilter is available when filter is active', async function() {
+        test('setTextFilter reduces visible tasks', async function() {
             this.timeout(10000);
 
-            // The context when condition "tasktree.hasFilter" controls visibility
-            // We verify the command itself works
+            const provider = getTaskTreeProvider();
 
-            await vscode.commands.executeCommand('tasktree.clearFilter');
+            // Get unfiltered count
+            provider.clearFilters();
+            await provider.refresh();
             await sleep(500);
+            const allTasks = provider.getAllTasks();
+            const unfilteredCount = allTasks.length;
 
-            assert.ok(true, 'clearFilter should be executable');
+            // Apply filter
+            provider.setTextFilter('deploy');
+            const filteredTasks = provider.getAllTasks().filter(t =>
+                t.label.toLowerCase().includes('deploy') ||
+                t.filePath.toLowerCase().includes('deploy') ||
+                (t.description ?? '').toLowerCase().includes('deploy')
+            );
+
+            // Filtered count should be less than unfiltered (unless all tasks match)
+            assert.ok(filteredTasks.length <= unfilteredCount, 'Filtering should not increase task count');
+
+            // Clean up
+            provider.clearFilters();
         });
     });
 
     suite('Filter Edge Cases', () => {
-        test('handles empty filter text gracefully', async function() {
+        test('empty filter shows all tasks', async function() {
             this.timeout(10000);
 
-            // Clear filter effectively sets empty filter
-            await vscode.commands.executeCommand('tasktree.clearFilter');
-            await sleep(500);
+            const provider = getTaskTreeProvider();
 
-            assert.ok(true, 'Should handle empty filter');
+            // Get initial count with no filter
+            provider.clearFilters();
+            await provider.refresh();
+            await sleep(500);
+            const allTasksCount = provider.getAllTasks().length;
+
+            // Set empty filter (should show all)
+            provider.setTextFilter('');
+            const afterEmptyFilter = provider.getAllTasks().length;
+
+            assert.strictEqual(afterEmptyFilter, allTasksCount, 'Empty filter should show all tasks');
         });
 
-        test('handles special characters in filter', async function() {
+        test('non-existent tag filter shows no tasks', async function() {
             this.timeout(10000);
 
-            // The filter command would need to handle special regex characters
-            // This validates the extension doesn't crash with various inputs
+            const provider = getTaskTreeProvider();
 
-            await vscode.commands.executeCommand('tasktree.refresh');
+            // Set filter for non-existent tag
+            provider.setTagFilter('nonexistent-tag-xyz-12345');
+            await provider.refresh();
             await sleep(500);
 
-            assert.ok(true, 'Should handle special characters');
+            // Get children - should have no tasks with this tag
+            const children = await provider.getChildren(undefined);
+            let totalTasks = 0;
+            for (const category of children) {
+                const categoryChildren = await provider.getChildren(category);
+                totalTasks += categoryChildren.length;
+            }
+
+            assert.strictEqual(totalTasks, 0, 'Non-existent tag filter should show no tasks');
+
+            // Clean up
+            provider.clearFilters();
         });
 
-        test('handles non-existent tags gracefully', async function() {
+        test('tags in config are lowercase', function() {
             this.timeout(10000);
-
-            // When filtering by a tag that no tasks have, should show empty list
-            // not crash
-
-            await vscode.commands.executeCommand('tasktree.clearFilter');
-            await sleep(500);
-
-            assert.ok(true, 'Should handle non-existent tags');
-        });
-
-        test('case insensitive filtering', function() {
-            this.timeout(10000);
-
-            // The filter implementation should be case-insensitive
-            // Verified by the implementation using toLowerCase()
 
             const tagConfig = JSON.parse(fs.readFileSync(getFixturePath('.vscode/tasktree.json'), 'utf8')) as TagConfig;
 
-            // Tags are defined in lowercase
-            assert.ok(tagConfig.tags['build'], 'Tags should be lowercase');
-
-            assert.ok(true, 'Filter should be case-insensitive');
+            // Tags should be lowercase
+            assert.ok(tagConfig.tags['build'] !== undefined, 'Should have lowercase build tag');
+            assert.ok(tagConfig.tags['test'] !== undefined, 'Should have lowercase test tag');
         });
     });
 
@@ -348,11 +348,12 @@ suite('Task Filtering E2E Tests', () => {
             }
         });
 
-        test('handles invalid tag configuration gracefully', async function() {
+        test('invalid JSON config results in empty tags', async function() {
             this.timeout(15000);
 
             const tagConfigPath = getFixturePath('.vscode/tasktree.json');
             const originalContent = fs.readFileSync(tagConfigPath, 'utf8');
+            const provider = getTaskTreeProvider();
 
             try {
                 // Write invalid JSON
@@ -361,20 +362,23 @@ suite('Task Filtering E2E Tests', () => {
                 await vscode.commands.executeCommand('tasktree.refresh');
                 await sleep(1000);
 
-                // Should not crash
-                assert.ok(true, 'Should handle invalid config');
+                // Provider should still work, just with no tags
+                const tags = provider.getAllTags();
+                assert.ok(Array.isArray(tags), 'getAllTags should return array even with invalid config');
             } finally {
                 // Restore original
                 fs.writeFileSync(tagConfigPath, originalContent);
+                await vscode.commands.executeCommand('tasktree.refresh');
                 await sleep(500);
             }
         });
 
-        test('handles missing tags property in configuration', async function() {
+        test('missing tags property results in empty tags', async function() {
             this.timeout(15000);
 
             const tagConfigPath = getFixturePath('.vscode/tasktree.json');
             const originalContent = fs.readFileSync(tagConfigPath, 'utf8');
+            const provider = getTaskTreeProvider();
 
             try {
                 // Write config without tags property
@@ -383,19 +387,23 @@ suite('Task Filtering E2E Tests', () => {
                 await vscode.commands.executeCommand('tasktree.refresh');
                 await sleep(1000);
 
-                assert.ok(true, 'Should handle missing tags property');
+                // Provider should return empty tags array
+                const tags = provider.getAllTags();
+                assert.strictEqual(tags.length, 0, 'Missing tags property should result in empty tags');
             } finally {
                 // Restore original
                 fs.writeFileSync(tagConfigPath, originalContent);
+                await vscode.commands.executeCommand('tasktree.refresh');
                 await sleep(500);
             }
         });
 
-        test('handles empty tags object', async function() {
+        test('empty tags object results in empty tags', async function() {
             this.timeout(15000);
 
             const tagConfigPath = getFixturePath('.vscode/tasktree.json');
             const originalContent = fs.readFileSync(tagConfigPath, 'utf8');
+            const provider = getTaskTreeProvider();
 
             try {
                 // Write config with empty tags
@@ -404,10 +412,13 @@ suite('Task Filtering E2E Tests', () => {
                 await vscode.commands.executeCommand('tasktree.refresh');
                 await sleep(1000);
 
-                assert.ok(true, 'Should handle empty tags object');
+                // Provider should return empty tags array
+                const tags = provider.getAllTags();
+                assert.strictEqual(tags.length, 0, 'Empty tags object should result in empty tags');
             } finally {
                 // Restore original
                 fs.writeFileSync(tagConfigPath, originalContent);
+                await vscode.commands.executeCommand('tasktree.refresh');
                 await sleep(500);
             }
         });

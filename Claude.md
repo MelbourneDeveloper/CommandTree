@@ -31,7 +31,7 @@ You are working with many other agents. Make sure there is effective cooperation
 - Run tests to verify that test fails because of this reason
 - Adjust test and repeat until you see failure for the reason above
 - Add missing feature or fix bug
-- Run tests to verify test passes. 
+- Run tests to verify test passes.
 - Repeat and fix until test passes WITHOUT changing the test
 
 - **E2E tests ONLY** - No unit tests, no mocks
@@ -40,6 +40,45 @@ You are working with many other agents. Make sure there is effective cooperation
 - Run tests: `npm test`
 - NEVER remove assertions
 - FAILING TEST = OK. TEST THAT DOESN'T ENFORCE BEHAVIOR = ILLEGAL
+
+### ⛔️ FAKE TESTS ARE ILLEGAL
+
+**A "fake test" is any test that passes without actually verifying behavior. These are STRICTLY FORBIDDEN:**
+
+```typescript
+// ❌ ILLEGAL - asserts true unconditionally
+assert.ok(true, 'Should work');
+
+// ❌ ILLEGAL - no assertion on actual behavior
+try { await doSomething(); } catch { }
+assert.ok(true, 'Did not crash');
+
+// ❌ ILLEGAL - only checks config file, not actual UI/view behavior
+writeConfig({ quick: ['task1'] });
+const config = readConfig();
+assert.ok(config.quick.includes('task1')); // This doesn't test the FEATURE
+
+// ❌ ILLEGAL - empty catch with success assertion
+try { await command(); } catch { /* swallow */ }
+assert.ok(true, 'Command ran');
+```
+
+**Every test MUST:**
+1. Assert on the ACTUAL OBSERVABLE BEHAVIOR (UI state, view contents, return values)
+2. Fail if the feature is broken
+3. Test the full flow, not just side effects like config files
+
+```typescript
+// ✅ CORRECT - verifies actual view state
+await addToQuick(task);
+const children = provider.getChildren();
+const found = children.find(c => c.task?.id === task.id);
+assert.ok(found !== undefined, 'Task MUST appear in view');
+
+// ✅ CORRECT - verifies actual return value
+const result = await discover();
+assert.strictEqual(result.length, 5, 'Must find 5 tasks');
+```
 
 ## Critical Docs
 

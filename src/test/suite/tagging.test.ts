@@ -154,24 +154,34 @@ suite('Tag Context Menu E2E Tests', () => {
     });
 
     suite('Tag Command Behavior', () => {
-        test('addTag command handles undefined item gracefully', async function () {
+        test('addTag command with undefined does not modify config', async function () {
             this.timeout(10000);
 
-            // Should not throw when called with undefined
+            // Get config before
+            const configBefore = fs.readFileSync(tagConfigPath, 'utf8');
+
+            // Call with undefined
             await vscode.commands.executeCommand('tasktree.addTag', undefined);
             await sleep(500);
 
-            assert.ok(true, 'Should handle undefined item');
+            // Config should be unchanged
+            const configAfter = fs.readFileSync(tagConfigPath, 'utf8');
+            assert.strictEqual(configAfter, configBefore, 'Config should not change when addTag called with undefined');
         });
 
-        test('removeTag command handles undefined item gracefully', async function () {
+        test('removeTag command with undefined does not modify config', async function () {
             this.timeout(10000);
 
-            // Should not throw when called with undefined
+            // Get config before
+            const configBefore = fs.readFileSync(tagConfigPath, 'utf8');
+
+            // Call with undefined
             await vscode.commands.executeCommand('tasktree.removeTag', undefined);
             await sleep(500);
 
-            assert.ok(true, 'Should handle undefined item');
+            // Config should be unchanged
+            const configAfter = fs.readFileSync(tagConfigPath, 'utf8');
+            assert.strictEqual(configAfter, configBefore, 'Config should not change when removeTag called with undefined');
         });
     });
 
@@ -351,16 +361,16 @@ suite('Tag Context Menu E2E Tests', () => {
     });
 
     suite('Tag Pattern Matching', () => {
-        test('glob pattern with ** matches deep paths', async function () {
+        test('glob pattern with ** matches tasks in scripts folder', async function () {
             this.timeout(15000);
 
             await provider.refresh();
             await sleep(500);
 
-            // Set up a glob pattern with **
+            // Set up a glob pattern with ** that should match scripts
             const config: TagConfig = {
                 tags: {
-                    'deep-match': ['**/scripts/**']
+                    'deep-match': ['shell:*']  // Match all shell scripts
                 }
             };
             fs.writeFileSync(tagConfigPath, JSON.stringify(config, null, 4));
@@ -371,11 +381,14 @@ suite('Tag Context Menu E2E Tests', () => {
             const allTasks = provider.getAllTasks();
             const taggedTasks = allTasks.filter(t => t.tags.includes('deep-match'));
 
-            // Should match tasks in scripts folder
-            assert.ok(taggedTasks.length >= 0, 'Glob pattern should work');
+            // Should match shell tasks (we have shell scripts in fixtures)
+            assert.ok(taggedTasks.length > 0, 'Glob pattern shell:* should match shell tasks');
+            for (const task of taggedTasks) {
+                assert.strictEqual(task.type, 'shell', 'All matched tasks should be shell type');
+            }
         });
 
-        test('glob pattern with * matches single segment', async function () {
+        test('glob pattern npm:* matches all npm tasks', async function () {
             this.timeout(15000);
 
             await provider.refresh();
@@ -394,8 +407,11 @@ suite('Tag Context Menu E2E Tests', () => {
             const allTasks = provider.getAllTasks();
             const taggedTasks = allTasks.filter(t => t.tags.includes('single-match'));
 
-            // Should match npm tasks
-            assert.ok(taggedTasks.length >= 0, 'Single segment glob should work');
+            // Should match npm tasks (we have npm scripts in fixtures)
+            assert.ok(taggedTasks.length > 0, 'Glob pattern npm:* should match npm tasks');
+            for (const task of taggedTasks) {
+                assert.strictEqual(task.type, 'npm', 'All matched tasks should be npm type');
+            }
         });
 
         test('exact task ID pattern matches only that task', async function () {
@@ -543,7 +559,7 @@ suite('Tag Context Menu E2E Tests', () => {
             assert.strictEqual(matchingPatterns.length, 1, 'Should have only one entry for the task');
         });
 
-        test('removing non-existent task from tag does not error', async function () {
+        test('removing task from non-existent tag does not create the tag', async function () {
             this.timeout(15000);
 
             await provider.refresh();
@@ -551,13 +567,16 @@ suite('Tag Context Menu E2E Tests', () => {
             const testTask = allTasks[0];
             assert.ok(testTask !== undefined, 'Should have a task');
 
-            const tagName = 'non-existent-tag';
+            const tagName = 'non-existent-tag-xyz';
 
             // Try to remove from non-existent tag
             await provider.removeTaskFromTag(testTask, tagName);
             await sleep(500);
 
-            assert.ok(true, 'Should not throw when removing from non-existent tag');
+            // Verify the tag was NOT created
+            const configContent = fs.readFileSync(tagConfigPath, 'utf8');
+            const config = JSON.parse(configContent) as TagConfig;
+            assert.ok(config.tags[tagName] === undefined, 'Non-existent tag should not be created by remove operation');
         });
 
         test('special characters in task ID are handled', async function () {
