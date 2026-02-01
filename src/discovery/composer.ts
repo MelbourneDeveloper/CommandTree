@@ -66,7 +66,7 @@ export async function discoverComposerScripts(
                 filePath: file.fsPath,
                 tags: []
             };
-            if (description !== undefined && description !== '') {
+            if (description !== '') {
                 task.description = description;
             }
             tasks.push(task);

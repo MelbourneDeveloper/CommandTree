@@ -40,7 +40,7 @@ suite('Task Filtering E2E Tests', () => {
             assert.ok(commands.includes('tasktree.clearFilter'), 'clearFilter command should be registered');
         });
 
-        test('clearFilter resets hasFilter to false', async function() {
+        test('clearFilter resets hasFilter to false', function() {
             this.timeout(10000);
 
             const provider = getTaskTreeProvider();
@@ -230,7 +230,7 @@ suite('Task Filtering E2E Tests', () => {
             provider.clearFilters();
         });
 
-        test('clearFilters clears both text and tag filters', async function() {
+        test('clearFilters clears both text and tag filters', function() {
             this.timeout(10000);
 
             const provider = getTaskTreeProvider();
@@ -453,7 +453,7 @@ suite('Task Filtering E2E Tests', () => {
         let originalConfig: string;
         const tagConfigPath = getFixturePath('.vscode/tasktree.json');
 
-        suiteSetup(async function() {
+        suiteSetup(function() {
             this.timeout(15000);
             originalConfig = fs.readFileSync(tagConfigPath, 'utf8');
         });

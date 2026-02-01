@@ -107,7 +107,7 @@ function parseCargoBinaries(content: string): string[] {
     const binaries: string[] = [];
 
     // Match [[bin]] sections with name = "..."
-    const binRegex = /\[\[bin\]\][^\[]*name\s*=\s*["'](\w+)["']/g;
+    const binRegex = /\[\[bin\]\][^[]*name\s*=\s*["'](\w+)["']/g;
     let match;
     while ((match = binRegex.exec(content)) !== null) {
         const name = match[1];
@@ -126,7 +126,7 @@ function parseCargoExamples(content: string): string[] {
     const examples: string[] = [];
 
     // Match [[example]] sections with name = "..."
-    const exampleRegex = /\[\[example\]\][^\[]*name\s*=\s*["'](\w+)["']/g;
+    const exampleRegex = /\[\[example\]\][^[]*name\s*=\s*["'](\w+)["']/g;
     let match;
     while ((match = exampleRegex.exec(content)) !== null) {
         const name = match[1];

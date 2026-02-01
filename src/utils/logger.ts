@@ -30,7 +30,9 @@ class Logger {
      * Logs an info message
      */
     info(message: string, data?: unknown): void {
-        if (!this.enabled) return;
+        if (!this.enabled) {
+            return;
+        }
         const timestamp = new Date().toISOString();
         const logLine = data !== undefined
             ? `[${timestamp}] INFO: ${message} | ${JSON.stringify(data)}`
@@ -42,7 +44,9 @@ class Logger {
      * Logs a warning message
      */
     warn(message: string, data?: unknown): void {
-        if (!this.enabled) return;
+        if (!this.enabled) {
+            return;
+        }
         const timestamp = new Date().toISOString();
         const logLine = data !== undefined
             ? `[${timestamp}] WARN: ${message} | ${JSON.stringify(data)}`
@@ -54,7 +58,9 @@ class Logger {
      * Logs an error message
      */
     error(message: string, data?: unknown): void {
-        if (!this.enabled) return;
+        if (!this.enabled) {
+            return;
+        }
         const timestamp = new Date().toISOString();
         const logLine = data !== undefined
             ? `[${timestamp}] ERROR: ${message} | ${JSON.stringify(data)}`
@@ -66,7 +72,9 @@ class Logger {
      * Logs tag-related operations
      */
     tag(operation: string, details: Record<string, unknown>): void {
-        if (!this.enabled) return;
+        if (!this.enabled) {
+            return;
+        }
         const timestamp = new Date().toISOString();
         const detailsStr = JSON.stringify(details);
         this.channel.appendLine(`[${timestamp}] TAG: ${operation} | ${detailsStr}`);
@@ -76,7 +84,9 @@ class Logger {
      * Logs filter operations
      */
     filter(operation: string, details: Record<string, unknown>): void {
-        if (!this.enabled) return;
+        if (!this.enabled) {
+            return;
+        }
         const timestamp = new Date().toISOString();
         const detailsStr = JSON.stringify(details);
         this.channel.appendLine(`[${timestamp}] FILTER: ${operation} | ${detailsStr}`);
@@ -86,7 +96,9 @@ class Logger {
      * Logs quick tasks operations
      */
     quick(operation: string, details: Record<string, unknown>): void {
-        if (!this.enabled) return;
+        if (!this.enabled) {
+            return;
+        }
         const timestamp = new Date().toISOString();
         const detailsStr = JSON.stringify(details);
         this.channel.appendLine(`[${timestamp}] QUICK: ${operation} | ${detailsStr}`);
@@ -100,7 +112,9 @@ class Logger {
         tags?: Record<string, unknown> | undefined;
         error?: string;
     }): void {
-        if (!this.enabled) return;
+        if (!this.enabled) {
+            return;
+        }
         const timestamp = new Date().toISOString();
         const detailsStr = JSON.stringify(details);
         this.channel.appendLine(`[${timestamp}] CONFIG: ${operation} | ${detailsStr}`);

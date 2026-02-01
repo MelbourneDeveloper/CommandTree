@@ -84,7 +84,7 @@ suite('Quick Tasks E2E Tests', () => {
         let quickProvider: QuickTasksProvider;
         let treeProvider: TaskTreeProvider;
 
-        suiteSetup(async function() {
+        suiteSetup(function() {
             this.timeout(15000);
             quickProvider = getQuickTasksProvider();
             treeProvider = getTaskTreeProvider();
@@ -1042,7 +1042,6 @@ suite('Quick Tasks E2E Tests', () => {
             assert.ok(Array.isArray(children), 'getChildren should return array after updateTasks');
             // Verify each child is a valid TaskTreeItem
             for (const child of children) {
-                assert.ok(child !== undefined, 'Each child should be defined');
                 assert.ok('label' in child, 'Each child should have a label property');
             }
         });

@@ -15,10 +15,9 @@ import {
     sleep,
     getFixturePath,
     getTaskTreeProvider,
-    getQuickTasksProvider,
-    TaskTreeItem
+    getQuickTasksProvider
 } from './helpers';
-import type { TaskTreeProvider, QuickTasksProvider } from './helpers';
+import type { TaskTreeProvider, QuickTasksProvider, TaskTreeItem } from './helpers';
 
 interface TagPattern {
     id?: string;
@@ -612,7 +611,7 @@ suite('Tag Config Integration Tests', () => {
 
             // Verify no tasks have our test tag
             let allTasks = treeProvider.getAllTasks();
-            let taggedBefore = allTasks.filter(t => t.tags.includes('manual-edit-tag'));
+            const taggedBefore = allTasks.filter(t => t.tags.includes('manual-edit-tag'));
             assert.strictEqual(taggedBefore.length, 0, 'No tasks should have tag before config edit');
 
             // MANUALLY EDIT CONFIG (simulate user editing file)

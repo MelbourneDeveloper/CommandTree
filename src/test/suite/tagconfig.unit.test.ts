@@ -27,7 +27,8 @@ suite('TagConfig Unit Tests', function () {
             return { ...base, ...overrides, description: overrides.description };
         }
 
-        const { description: _description, ...restOverrides } = overrides;
+        const restOverrides = { ...overrides };
+        delete (restOverrides as { description?: string }).description;
         return { ...base, ...restOverrides };
     }
 
