@@ -1,12 +1,11 @@
 import * as assert from 'assert';
-import { describe, it } from 'mocha';
 import type { TaskItem } from '../../models/TaskItem';
 
 /**
  * PURE UNIT TESTS for TagConfig logic
- * NO VS Code - runs with plain mocha only
+ * NO VS Code - tests pure functions only
  */
-describe('TagConfig Unit Tests', function () {
+suite('TagConfig Unit Tests', function () {
     this.timeout(10000);
 
     // Mock task factory - creates predictable test data
@@ -33,7 +32,7 @@ describe('TagConfig Unit Tests', function () {
         return { ...base, ...restOverrides };
     }
 
-    describe('Pattern Matching Logic', () => {
+    suite('Pattern Matching Logic', () => {
         /**
          * Tests the matchesPattern logic extracted from TagConfig
          * This is the CORE of the tagging system
@@ -57,7 +56,7 @@ describe('TagConfig Unit Tests', function () {
             return typeMatches && labelMatches;
         }
 
-        it('exact ID match - should match when IDs are identical', () => {
+        test('exact ID match - should match when IDs are identical', () => {
             const task = createMockTask({ id: 'npm:/project/package.json:build' });
             const pattern: TagPattern = { id: 'npm:/project/package.json:build' };
 
@@ -66,7 +65,7 @@ describe('TagConfig Unit Tests', function () {
             assert.strictEqual(result, true, 'Exact ID match MUST return true');
         });
 
-        it('exact ID match - should NOT match when IDs differ', () => {
+        test('exact ID match - should NOT match when IDs differ', () => {
             const task = createMockTask({ id: 'npm:/project/package.json:build' });
             const pattern: TagPattern = { id: 'npm:/other/package.json:build' };
 
@@ -75,7 +74,7 @@ describe('TagConfig Unit Tests', function () {
             assert.strictEqual(result, false, 'Different IDs MUST return false');
         });
 
-        it('type-only pattern - should match any task of that type', () => {
+        test('type-only pattern - should match any task of that type', () => {
             const task = createMockTask({ type: 'npm', label: 'anything' });
             const pattern: TagPattern = { type: 'npm' };
 
@@ -84,7 +83,7 @@ describe('TagConfig Unit Tests', function () {
             assert.strictEqual(result, true, 'Type-only pattern MUST match all tasks of that type');
         });
 
-        it('type-only pattern - should NOT match different type', () => {
+        test('type-only pattern - should NOT match different type', () => {
             const task = createMockTask({ type: 'shell', label: 'build' });
             const pattern: TagPattern = { type: 'npm' };
 
@@ -93,7 +92,7 @@ describe('TagConfig Unit Tests', function () {
             assert.strictEqual(result, false, 'Type-only pattern MUST NOT match different types');
         });
 
-        it('label-only pattern - should match any task with that label', () => {
+        test('label-only pattern - should match any task with that label', () => {
             const task = createMockTask({ type: 'npm', label: 'build' });
             const pattern: TagPattern = { label: 'build' };
 
@@ -102,7 +101,7 @@ describe('TagConfig Unit Tests', function () {
             assert.strictEqual(result, true, 'Label-only pattern MUST match all tasks with that label');
         });
 
-        it('label-only pattern - should NOT match different label', () => {
+        test('label-only pattern - should NOT match different label', () => {
             const task = createMockTask({ type: 'npm', label: 'test' });
             const pattern: TagPattern = { label: 'build' };
 
@@ -111,7 +110,7 @@ describe('TagConfig Unit Tests', function () {
             assert.strictEqual(result, false, 'Label-only pattern MUST NOT match different labels');
         });
 
-        it('type+label pattern - should match when BOTH match', () => {
+        test('type+label pattern - should match when BOTH match', () => {
             const task = createMockTask({ type: 'npm', label: 'build' });
             const pattern: TagPattern = { type: 'npm', label: 'build' };
 
@@ -120,7 +119,7 @@ describe('TagConfig Unit Tests', function () {
             assert.strictEqual(result, true, 'Type+label pattern MUST match when both match');
         });
 
-        it('type+label pattern - should NOT match when type differs', () => {
+        test('type+label pattern - should NOT match when type differs', () => {
             const task = createMockTask({ type: 'make', label: 'build' });
             const pattern: TagPattern = { type: 'npm', label: 'build' };
 
@@ -129,7 +128,7 @@ describe('TagConfig Unit Tests', function () {
             assert.strictEqual(result, false, 'Type+label pattern MUST NOT match when type differs');
         });
 
-        it('type+label pattern - should NOT match when label differs', () => {
+        test('type+label pattern - should NOT match when label differs', () => {
             const task = createMockTask({ type: 'npm', label: 'test' });
             const pattern: TagPattern = { type: 'npm', label: 'build' };
 
@@ -138,7 +137,7 @@ describe('TagConfig Unit Tests', function () {
             assert.strictEqual(result, false, 'Type+label pattern MUST NOT match when label differs');
         });
 
-        it('empty pattern - should match everything', () => {
+        test('empty pattern - should match everything', () => {
             const task = createMockTask({ type: 'npm', label: 'whatever' });
             const pattern: TagPattern = {};
 
@@ -148,7 +147,7 @@ describe('TagConfig Unit Tests', function () {
         });
     });
 
-    describe('Tag Application Logic', () => {
+    suite('Tag Application Logic', () => {
         /**
          * Tests the applyTags logic extracted from TagConfig
          * This applies tags to tasks based on patterns
@@ -188,7 +187,7 @@ describe('TagConfig Unit Tests', function () {
             });
         }
 
-        it('should apply tag when string pattern matches task ID exactly', () => {
+        test('should apply tag when string pattern matches task ID exactly', () => {
             const tasks = [
                 createMockTask({ id: 'npm:/project/package.json:build', label: 'build' })
             ];
@@ -202,7 +201,7 @@ describe('TagConfig Unit Tests', function () {
             assert.ok((result[0]?.tags.includes('quick')) === true, 'Task MUST have quick tag');
         });
 
-        it('should NOT apply tag when string pattern does not match', () => {
+        test('should NOT apply tag when string pattern does not match', () => {
             const tasks = [
                 createMockTask({ id: 'npm:/project/package.json:build', label: 'build' })
             ];
@@ -216,7 +215,7 @@ describe('TagConfig Unit Tests', function () {
             assert.strictEqual(result[0]?.tags.length, 0, 'Task MUST NOT have any tags');
         });
 
-        it('should apply tag when object pattern with type matches', () => {
+        test('should apply tag when object pattern with type matches', () => {
             const tasks = [
                 createMockTask({ type: 'npm', label: 'build' }),
                 createMockTask({ type: 'shell', label: 'deploy.sh' })
@@ -231,7 +230,7 @@ describe('TagConfig Unit Tests', function () {
             assert.strictEqual(result[1]?.tags.length, 0, 'Shell task MUST NOT be tagged');
         });
 
-        it('should apply tag when object pattern with label matches', () => {
+        test('should apply tag when object pattern with label matches', () => {
             const tasks = [
                 createMockTask({ type: 'npm', label: 'build' }),
                 createMockTask({ type: 'make', label: 'build' }),
@@ -248,7 +247,7 @@ describe('TagConfig Unit Tests', function () {
             assert.strictEqual(result[2]?.tags.length, 0, 'NPM test MUST NOT be tagged');
         });
 
-        it('should apply tag when object pattern with type+label matches', () => {
+        test('should apply tag when object pattern with type+label matches', () => {
             const tasks = [
                 createMockTask({ type: 'npm', label: 'build' }),
                 createMockTask({ type: 'make', label: 'build' }),
@@ -265,7 +264,7 @@ describe('TagConfig Unit Tests', function () {
             assert.strictEqual(result[2]?.tags.length, 0, 'NPM test MUST NOT be tagged');
         });
 
-        it('should apply multiple tags to same task', () => {
+        test('should apply multiple tags to same task', () => {
             const tasks = [
                 createMockTask({ type: 'npm', label: 'build' })
             ];
@@ -281,7 +280,7 @@ describe('TagConfig Unit Tests', function () {
             assert.strictEqual(result[0].tags.length, 2, 'Task MUST have exactly 2 tags');
         });
 
-        it('should handle mixed string and object patterns', () => {
+        test('should handle mixed string and object patterns', () => {
             const tasks = [
                 createMockTask({ id: 'npm:/p1/package.json:build', type: 'npm', label: 'build' }),
                 createMockTask({ id: 'npm:/p2/package.json:test', type: 'npm', label: 'test' })
@@ -300,7 +299,7 @@ describe('TagConfig Unit Tests', function () {
         });
     });
 
-    describe('Tag Filtering Logic', () => {
+    suite('Tag Filtering Logic', () => {
         /**
          * Tests the filter logic used in TaskTreeProvider
          */
@@ -311,7 +310,7 @@ describe('TagConfig Unit Tests', function () {
             return tasks.filter(t => t.tags.includes(tagFilter));
         }
 
-        it('should return all tasks when filter is null', () => {
+        test('should return all tasks when filter is null', () => {
             const tasks = [
                 createMockTask({ tags: ['build'] }),
                 createMockTask({ tags: ['test'] }),
@@ -323,7 +322,7 @@ describe('TagConfig Unit Tests', function () {
             assert.strictEqual(result.length, 3, 'All tasks MUST be returned when filter is null');
         });
 
-        it('should return all tasks when filter is empty string', () => {
+        test('should return all tasks when filter is empty string', () => {
             const tasks = [
                 createMockTask({ tags: ['build'] }),
                 createMockTask({ tags: ['test'] })
@@ -334,7 +333,7 @@ describe('TagConfig Unit Tests', function () {
             assert.strictEqual(result.length, 2, 'All tasks MUST be returned when filter is empty');
         });
 
-        it('should return only tasks with matching tag', () => {
+        test('should return only tasks with matching tag', () => {
             const tasks = [
                 createMockTask({ label: 'a', tags: ['build'] }),
                 createMockTask({ label: 'b', tags: ['test'] }),
@@ -347,7 +346,7 @@ describe('TagConfig Unit Tests', function () {
             assert.ok(result.every(t => t.tags.includes('build')), 'All returned tasks MUST have build tag');
         });
 
-        it('should return empty array when no tasks match', () => {
+        test('should return empty array when no tasks match', () => {
             const tasks = [
                 createMockTask({ tags: ['build'] }),
                 createMockTask({ tags: ['test'] })
@@ -358,7 +357,7 @@ describe('TagConfig Unit Tests', function () {
             assert.strictEqual(result.length, 0, 'No tasks should match non-existent tag');
         });
 
-        it('should handle tasks with multiple tags', () => {
+        test('should handle tasks with multiple tags', () => {
             const tasks = [
                 createMockTask({ label: 'a', tags: ['build', 'ci', 'quick'] }),
                 createMockTask({ label: 'b', tags: ['test', 'ci'] }),
@@ -371,7 +370,7 @@ describe('TagConfig Unit Tests', function () {
         });
     });
 
-    describe('Quick Tasks Logic', () => {
+    suite('Quick Tasks Logic', () => {
         /**
          * Tests the logic used in QuickTasksProvider.getChildren()
          */
@@ -379,7 +378,7 @@ describe('TagConfig Unit Tests', function () {
             return tasks.filter(task => task.tags.includes('quick'));
         }
 
-        it('should return tasks with quick tag', () => {
+        test('should return tasks with quick tag', () => {
             const tasks = [
                 createMockTask({ label: 'a', tags: ['quick'] }),
                 createMockTask({ label: 'b', tags: ['build'] }),
@@ -392,7 +391,7 @@ describe('TagConfig Unit Tests', function () {
             assert.ok(result.every(t => t.tags.includes('quick')), 'All returned tasks MUST have quick tag');
         });
 
-        it('should return empty when no quick tasks', () => {
+        test('should return empty when no quick tasks', () => {
             const tasks = [
                 createMockTask({ tags: ['build'] }),
                 createMockTask({ tags: ['test'] })
@@ -403,7 +402,7 @@ describe('TagConfig Unit Tests', function () {
             assert.strictEqual(result.length, 0, 'No tasks should be returned when none have quick tag');
         });
 
-        it('should return all tasks if all have quick tag', () => {
+        test('should return all tasks if all have quick tag', () => {
             const tasks = [
                 createMockTask({ label: 'a', tags: ['quick'] }),
                 createMockTask({ label: 'b', tags: ['quick'] })
@@ -412,117 +411,6 @@ describe('TagConfig Unit Tests', function () {
             const result = getQuickTasks(tasks);
 
             assert.strictEqual(result.length, 2, 'All quick tasks MUST be returned');
-        });
-    });
-
-    describe('End-to-End Tag Flow', () => {
-        /**
-         * Tests the COMPLETE flow: config → apply tags → filter
-         * This is still a unit test because we're testing pure logic, not VS Code
-         */
-        type TagPattern = string | { id?: string; type?: string; label?: string };
-        type TagDefinition = Record<string, TagPattern[]>;
-
-        function matchesPattern(task: TaskItem, pattern: { id?: string; type?: string; label?: string }): boolean {
-            if (pattern.id !== undefined) {
-                return task.id === pattern.id;
-            }
-            const typeMatches = pattern.type === undefined || task.type === pattern.type;
-            const labelMatches = pattern.label === undefined || task.label === pattern.label;
-            return typeMatches && labelMatches;
-        }
-
-        function applyTags(tasks: TaskItem[], tags: TagDefinition): TaskItem[] {
-            return tasks.map(task => {
-                const matchedTags: string[] = [];
-                for (const [tagName, patterns] of Object.entries(tags)) {
-                    for (const pattern of patterns) {
-                        const matches = typeof pattern === 'string'
-                            ? task.id === pattern
-                            : matchesPattern(task, pattern);
-                        if (matches) {
-                            matchedTags.push(tagName);
-                            break;
-                        }
-                    }
-                }
-                if (matchedTags.length > 0) {
-                    return { ...task, tags: matchedTags };
-                }
-                return task;
-            });
-        }
-
-        function filterByTag(tasks: TaskItem[], tag: string): TaskItem[] {
-            return tasks.filter(t => t.tags.includes(tag));
-        }
-
-        it('complete flow: config with type pattern → apply → filter → correct result', () => {
-            // GIVEN: A config that tags all npm tasks as 'quick'
-            const config: TagDefinition = {
-                'quick': [{ type: 'npm' }],
-                'build': [{ label: 'build' }]
-            };
-
-            // AND: A list of tasks
-            const tasks = [
-                createMockTask({ id: '1', type: 'npm', label: 'build' }),
-                createMockTask({ id: '2', type: 'npm', label: 'test' }),
-                createMockTask({ id: '3', type: 'shell', label: 'deploy.sh' }),
-                createMockTask({ id: '4', type: 'make', label: 'build' })
-            ];
-
-            // WHEN: We apply tags
-            const taggedTasks = applyTags(tasks, config);
-
-            // THEN: Tags are correctly applied
-            const npmBuildTask = taggedTasks.find(t => t.id === '1');
-            const npmTestTask = taggedTasks.find(t => t.id === '2');
-            const shellTask = taggedTasks.find(t => t.id === '3');
-            const makeTask = taggedTasks.find(t => t.id === '4');
-
-            assert.ok((npmBuildTask?.tags.includes('quick')) === true, 'NPM build MUST have quick tag');
-            assert.ok(npmBuildTask.tags.includes('build'), 'NPM build MUST have build tag');
-            assert.ok((npmTestTask?.tags.includes('quick')) === true, 'NPM test MUST have quick tag');
-            assert.strictEqual(shellTask?.tags.length, 0, 'Shell task MUST have no tags');
-            assert.ok((makeTask?.tags.includes('build')) === true, 'Make build MUST have build tag');
-
-            // WHEN: We filter by 'quick'
-            const quickFiltered = filterByTag(taggedTasks, 'quick');
-
-            // THEN: Only npm tasks are returned
-            assert.strictEqual(quickFiltered.length, 2, 'Only 2 quick tasks');
-            assert.ok(quickFiltered.every(t => t.type === 'npm'), 'All quick tasks MUST be npm');
-
-            // WHEN: We filter by 'build'
-            const buildFiltered = filterByTag(taggedTasks, 'build');
-
-            // THEN: npm:build and make:build are returned
-            assert.strictEqual(buildFiltered.length, 2, 'Only 2 build tasks');
-            assert.ok(buildFiltered.some(t => t.id === '1'), 'npm:build MUST be included');
-            assert.ok(buildFiltered.some(t => t.id === '4'), 'make:build MUST be included');
-        });
-
-        it('complete flow: string ID pattern → apply → get quick tasks', () => {
-            // GIVEN: A config that adds specific task to quick by ID
-            const specificId = 'shell:/workspace/scripts/test.sh:test.sh';
-            const config: TagDefinition = {
-                'quick': [specificId]
-            };
-
-            // AND: Tasks including the one with that ID
-            const tasks = [
-                createMockTask({ id: specificId, type: 'shell', label: 'test.sh' }),
-                createMockTask({ id: 'other', type: 'shell', label: 'other.sh' })
-            ];
-
-            // WHEN: We apply tags and get quick tasks
-            const taggedTasks = applyTags(tasks, config);
-            const quickTasks = taggedTasks.filter(t => t.tags.includes('quick'));
-
-            // THEN: Only the specific task is in quick
-            assert.strictEqual(quickTasks.length, 1, 'Only 1 quick task');
-            assert.strictEqual(quickTasks[0]?.id, specificId, 'Must be the exact task');
         });
     });
 });

@@ -1,0 +1,6 @@
+{
+    "ui": "tdd",
+    "timeout": 10000,
+    "color": true,
+    "spec": "out/test/unit/**/*.test.js"
+}

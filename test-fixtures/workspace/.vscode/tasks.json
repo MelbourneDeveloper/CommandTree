@@ -1,4 +1,5 @@
 {
+  // VS Code tasks configuration
   "version": "2.0.0",
   "tasks": [
     {
@@ -14,12 +15,34 @@
     {
       "label": "Deploy with Config",
       "type": "shell",
-      "command": "echo 'Deploying'"
+      "command": "echo 'Deploying with ${input:deployEnv}'"
     },
     {
       "label": "Custom Build",
       "type": "shell",
-      "command": "echo 'Custom build'"
+      "command": "echo 'Custom build with ${input:buildConfig} targeting ${input:buildTarget}'"
+    }
+  ],
+  "inputs": [
+    {
+      "id": "deployEnv",
+      "description": "Select deployment environment",
+      "type": "pickString",
+      "options": ["dev", "staging", "prod"],
+      "default": "dev"
+    },
+    {
+      "id": "buildConfig",
+      "description": "Build configuration",
+      "type": "pickString",
+      "options": ["debug", "release"],
+      "default": "debug"
+    },
+    {
+      "id": "buildTarget",
+      "description": "Build target platform",
+      "type": "promptString",
+      "default": "x64"
     }
   ]
 }
