@@ -3,6 +3,7 @@ import { TaskTreeProvider } from './TaskTreeProvider';
 import type { TaskTreeItem } from './models/TaskItem';
 import { TaskRunner } from './runners/TaskRunner';
 import { QuickTasksProvider } from './QuickTasksProvider';
+import { logger } from './utils/logger';
 
 let treeProvider: TaskTreeProvider;
 let quickTasksProvider: QuickTasksProvider;
@@ -15,7 +16,9 @@ export interface ExtensionExports {
 
 export async function activate(context: vscode.ExtensionContext): Promise<ExtensionExports | undefined> {
     const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+    logger.info('Extension activating', { workspaceRoot });
     if (workspaceRoot === undefined || workspaceRoot === '') {
+        logger.warn('No workspace root found, extension not activating');
         return;
     }
 
@@ -206,8 +209,15 @@ export async function activate(context: vscode.ExtensionContext): Promise<Extens
     );
 
     const syncQuickTasks = async (): Promise<void> => {
+        logger.info('syncQuickTasks START');
         await treeProvider.refresh();
-        await quickTasksProvider.updateTasks(treeProvider.getAllTasks());
+        const allTasks = treeProvider.getAllTasks();
+        logger.info('syncQuickTasks after refresh', {
+            taskCount: allTasks.length,
+            taskIds: allTasks.map(t => t.id)
+        });
+        await quickTasksProvider.updateTasks(allTasks);
+        logger.info('syncQuickTasks END');
     };
 
     watcher.onDidChange(syncQuickTasks);

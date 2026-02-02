@@ -20,3 +20,5 @@ Thumbs.db
 *.swo
 
 .venv/
+
+test-fixtures/workspace/.vscode/tasktree.json

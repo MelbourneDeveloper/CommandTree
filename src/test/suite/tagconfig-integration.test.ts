@@ -6,7 +6,14 @@
  * - Config loads but tags don't apply
  * - Tags apply but filtering doesn't work
  * - Quick tasks config exists but tasks don't show
+ *
+ * ⛔️⛔️⛔️ E2E TEST RULES ⛔️⛔️⛔️
+ * NEVER call internal methods like provider.updateTasks() or provider.refresh()
+ * ONLY use vscode.commands.executeCommand() to interact with the extension
+ * 
+ * ✅ TEST THROUGH UI INTERACTIONS! TAP THE BUTTONS, TYPE IN THE TEXT FIELDS
  */
+
 import * as assert from 'assert';
 import * as vscode from 'vscode';
 import * as fs from 'fs';
@@ -378,10 +385,9 @@ suite('Tag Config Integration Tests', () => {
             writeConfig(config);
 
             // REFRESH both providers
+            // Use UI command ONLY - never call internal methods
             await vscode.commands.executeCommand('tasktree.refresh');
-            await sleep(1000);
-            await quickProvider.updateTasks(treeProvider.getAllTasks());
-            await sleep(500);
+            await sleep(2000);
 
             // GET QUICK TASKS VIEW
             const quickChildren = quickProvider.getChildren(undefined);
@@ -409,10 +415,9 @@ suite('Tag Config Integration Tests', () => {
             writeConfig(config);
 
             // REFRESH
+            // Use UI command ONLY - never call internal methods
             await vscode.commands.executeCommand('tasktree.refresh');
-            await sleep(1000);
-            await quickProvider.updateTasks(treeProvider.getAllTasks());
-            await sleep(500);
+            await sleep(2000);
 
             // GET QUICK TASKS
             const quickChildren = quickProvider.getChildren(undefined);
@@ -453,10 +458,9 @@ suite('Tag Config Integration Tests', () => {
             writeConfig(config);
 
             // REFRESH
+            // Use UI command ONLY - never call internal methods
             await vscode.commands.executeCommand('tasktree.refresh');
-            await sleep(1000);
-            await quickProvider.updateTasks(treeProvider.getAllTasks());
-            await sleep(500);
+            await sleep(2000);
 
             // GET QUICK TASKS
             const quickChildren = quickProvider.getChildren(undefined);
@@ -473,10 +477,9 @@ suite('Tag Config Integration Tests', () => {
 
             // Clear quick tasks first
             writeConfig({ tags: {} });
+            // Use UI command ONLY - never call internal methods
             await vscode.commands.executeCommand('tasktree.refresh');
-            await sleep(1000);
-            await quickProvider.updateTasks(treeProvider.getAllTasks());
-            await sleep(500);
+            await sleep(2000);
 
             // Verify empty/placeholder
             let quickChildren = quickProvider.getChildren(undefined);

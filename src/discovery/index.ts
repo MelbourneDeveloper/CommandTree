@@ -17,6 +17,7 @@ import { discoverDenoTasks } from './deno';
 import { discoverRakeTasks } from './rake';
 import { discoverComposerScripts } from './composer';
 import { discoverDockerComposeServices } from './docker';
+import { logger } from '../utils/logger';
 
 export interface DiscoveryResult {
     shell: TaskItem[];
@@ -45,6 +46,8 @@ export async function discoverAllTasks(
     workspaceRoot: string,
     excludePatterns: string[]
 ): Promise<DiscoveryResult> {
+    logger.info('Discovery started', { workspaceRoot, excludePatterns });
+
     // Run all discoveries in parallel
     const [
         shell, npm, make, launch, vscodeTasks, python,
@@ -70,7 +73,7 @@ export async function discoverAllTasks(
         discoverDockerComposeServices(workspaceRoot, excludePatterns)
     ]);
 
-    return {
+    const result = {
         shell,
         npm,
         make,
@@ -89,6 +92,24 @@ export async function discoverAllTasks(
         composer,
         docker
     };
+
+    const totalCount = shell.length + npm.length + make.length + launch.length +
+        vscodeTasks.length + python.length + powershell.length + gradle.length +
+        cargo.length + maven.length + ant.length + just.length + taskfile.length +
+        deno.length + rake.length + composer.length + docker.length;
+
+    logger.info('Discovery complete', {
+        totalCount,
+        shell: shell.length,
+        npm: npm.length,
+        make: make.length,
+        launch: launch.length,
+        vscode: vscodeTasks.length,
+        python: python.length,
+        shellTaskIds: shell.map(t => t.id)
+    });
+
+    return result;
 }
 
 /**

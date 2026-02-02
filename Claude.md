@@ -28,12 +28,22 @@ You are working with many other agents. Make sure there is effective cooperation
 
 ### Testing Process
 
+**AUTOMATED TESTING IS BLACK BOX TESTING ONLY**
+Only test the UI **THROUGH the UI**. Do not run command etc. to coerce the state. You are testing the UI, not the code.
+
 - Write test that fails because of bug/missing feature
 - Run tests to verify that test fails because of this reason
 - Adjust test and repeat until you see failure for the reason above
 - Add missing feature or fix bug
 - Run tests to verify test passes.
 - Repeat and fix until test passes WITHOUT changing the test
+- Automated tests must not modify internal state or call functions that do. They must only use the extension through the UI. 
+ * - ❌ Calling internal methods like provider.updateTasks()
+ * - ❌ Calling provider.refresh() directly
+ * - ❌ Manipulating internal state directly
+ * - ❌ Using any method not exposed via VS Code commands
+ * - ❌ Using commands that should just happen as part of normal use. e.g.: `await vscode.commands.executeCommand('tasktree.refresh');`
+ * - ❌ `executeCommand('tasktree.addToQuick', item)` - TAP the item via the DOM!!!
 
 - **E2E tests ONLY** - No unit tests, no mocks
 - Tests run in actual VS Code window via `@vscode/test-electron`

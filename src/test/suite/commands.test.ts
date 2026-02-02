@@ -1,3 +1,23 @@
+/**
+ * Commands E2E Tests
+ *
+ * E2E Test Rules (from CLAUDE.md):
+ *
+ * LEGAL actions:
+ * - Verifying extension activation state (read-only observation)
+ * - Checking command registration via vscode.commands.getCommands()
+ * - Verifying package.json structure and configuration
+ * - Testing commands that open UI elements (like editTags opening an editor)
+ * - Waiting for file watcher with await sleep()
+ *
+ * ILLEGAL actions - DO NOT USE:
+ * - ❌ executeCommand('tasktree.refresh') - refresh should be AUTOMATIC via file watcher
+ * - ❌ executeCommand('tasktree.clearFilter') - filter state manipulation
+ * - ❌ provider.refresh(), provider.setTextFilter(), provider.clearFilters()
+ * - ❌ assert.ok(true, ...) - FAKE TESTS ARE ILLEGAL
+ * - ❌ Any command that manipulates internal state without UI interaction
+ */
+
 import * as assert from 'assert';
 import * as vscode from 'vscode';
 import * as fs from 'fs';
@@ -58,7 +78,8 @@ suite('Commands and UI E2E Tests', () => {
     suiteSetup(async function() {
         this.timeout(30000);
         await activateExtension();
-        await sleep(2000);
+        // Wait for initial load via file watcher - no refresh command
+        await sleep(3000);
     });
 
     suite('Extension Activation', () => {
@@ -117,31 +138,15 @@ suite('Commands and UI E2E Tests', () => {
             }
         });
 
-        test('refresh command executes without error', async function() {
-            this.timeout(10000);
+        // NOTE: Tests for executing refresh/clearFilter commands removed
+        // These commands should be triggered through UI interaction, not direct calls
+        // Testing them via executeCommand masks bugs in the file watcher auto-refresh
 
-            await vscode.commands.executeCommand('tasktree.refresh');
-            await sleep(500);
-
-            // Verify extension is still active after refresh
-            const extension = vscode.extensions.getExtension(EXTENSION_ID);
-            assert.ok(extension?.isActive === true, 'Extension should still be active after refresh');
-        });
-
-        test('clearFilter command executes without error', async function() {
-            this.timeout(10000);
-
-            await vscode.commands.executeCommand('tasktree.clearFilter');
-            await sleep(500);
-
-            // Verify extension is still active after clearFilter
-            const extension = vscode.extensions.getExtension(EXTENSION_ID);
-            assert.ok(extension?.isActive === true, 'Extension should still be active after clearFilter');
-        });
-
-        test('editTags command executes without error', async function() {
+        test('editTags command opens tasktree.json', async function() {
             this.timeout(15000);
 
+            // editTags is a user-initiated action that opens an editor
+            // This is valid because we're testing observable UI behavior
             await vscode.commands.executeCommand('tasktree.editTags');
             await sleep(1000);
 
@@ -352,44 +357,9 @@ suite('Commands and UI E2E Tests', () => {
         });
     });
 
-    suite('Tree Item Display', () => {
-        test('task items have correct context value', function() {
-            this.timeout(10000);
-            assert.ok(true, 'Task items should have task context value');
-        });
-
-        test('category items are collapsible', function() {
-            this.timeout(10000);
-            assert.ok(true, 'Categories should be collapsible');
-        });
-
-        test('leaf tasks are not collapsible', function() {
-            this.timeout(10000);
-            assert.ok(true, 'Leaf tasks should not be collapsible');
-        });
-    });
-
-    suite('Status Bar and Notifications', () => {
-        test('refresh shows information message', async function() {
-            this.timeout(10000);
-
-            await vscode.commands.executeCommand('tasktree.refresh');
-            await sleep(500);
-
-            assert.ok(true, 'Refresh should show info message');
-        });
-    });
-
-    suite('Context Management', () => {
-        test('hasFilter context is set correctly', async function() {
-            this.timeout(10000);
-
-            await vscode.commands.executeCommand('tasktree.clearFilter');
-            await sleep(500);
-
-            assert.ok(true, 'Context management should work');
-        });
-    });
+    // NOTE: Tree Item Display, Status Bar, and Context Management tests removed
+    // They had fake assertions (assert.ok(true, ...)) which is ILLEGAL per CLAUDE.md
+    // Proper tests for these behaviors would require observing actual UI state
 
     suite('Extension Package Configuration', () => {
         test('package.json has correct metadata', function() {
@@ -447,148 +417,13 @@ suite('Commands and UI E2E Tests', () => {
         });
     });
 
-    suite('Error Handling UI', () => {
-        test('handles workspace without tasks gracefully', async function() {
-            this.timeout(10000);
-
-            await vscode.commands.executeCommand('tasktree.refresh');
-            await sleep(500);
-
-            assert.ok(true, 'Should handle workspace gracefully');
-        });
-
-        test('handles rapid command execution', async function() {
-            this.timeout(15000);
-
-            const promises = [];
-            for (let i = 0; i < 5; i++) {
-                promises.push(vscode.commands.executeCommand('tasktree.refresh'));
-            }
-
-            await Promise.all(promises);
-            await sleep(1000);
-
-            assert.ok(true, 'Should handle rapid execution');
-        });
-    });
-
-    suite('Tag Commands Integration', () => {
-        test('addTag command handles undefined item gracefully', async function() {
-            this.timeout(10000);
-
-            // Should not throw when item is undefined
-            await vscode.commands.executeCommand('tasktree.addTag', undefined);
-            await sleep(500);
-
-            assert.ok(true, 'Should handle undefined item');
-        });
-
-        test('addTag command handles null task gracefully', async function() {
-            this.timeout(10000);
-
-            // Should not throw when task is null
-            await vscode.commands.executeCommand('tasktree.addTag', { task: null });
-            await sleep(500);
-
-            assert.ok(true, 'Should handle null task');
-        });
-
-        test('removeTag command handles undefined item gracefully', async function() {
-            this.timeout(10000);
-
-            await vscode.commands.executeCommand('tasktree.removeTag', undefined);
-            await sleep(500);
-
-            assert.ok(true, 'Should handle undefined item');
-        });
-
-        test('removeTag command handles null task gracefully', async function() {
-            this.timeout(10000);
-
-            await vscode.commands.executeCommand('tasktree.removeTag', { task: null });
-            await sleep(500);
-
-            assert.ok(true, 'Should handle null task');
-        });
-    });
-
-    suite('Quick Tasks Commands Integration', () => {
-        test('addToQuick command handles undefined gracefully', async function() {
-            this.timeout(10000);
-
-            await vscode.commands.executeCommand('tasktree.addToQuick', undefined);
-            await sleep(500);
-
-            assert.ok(true, 'Should handle undefined item');
-        });
-
-        test('removeFromQuick command handles undefined gracefully', async function() {
-            this.timeout(10000);
-
-            await vscode.commands.executeCommand('tasktree.removeFromQuick', undefined);
-            await sleep(500);
-
-            assert.ok(true, 'Should handle undefined item');
-        });
-
-        test('refreshQuick command executes without error', async function() {
-            this.timeout(10000);
-
-            await vscode.commands.executeCommand('tasktree.refreshQuick');
-            await sleep(500);
-
-            assert.ok(true, 'refreshQuick should execute');
-        });
-    });
-
-    suite('Run Commands Integration', () => {
-        test('run command handles null task property gracefully', async function() {
-            this.timeout(10000);
-
-            await vscode.commands.executeCommand('tasktree.run', { task: null });
-            await sleep(500);
-
-            assert.ok(true, 'Should handle null task property');
-        });
-
-        test('runInCurrentTerminal command handles null task property gracefully', async function() {
-            this.timeout(10000);
-
-            await vscode.commands.executeCommand('tasktree.runInCurrentTerminal', { task: null });
-            await sleep(500);
-
-            assert.ok(true, 'Should handle null task property');
-        });
-    });
-
-    suite('Filter Context Behavior', () => {
-        test('clearFilter resets filter state completely', async function() {
-            this.timeout(15000);
-
-            // First ensure we have a clean state
-            await vscode.commands.executeCommand('tasktree.clearFilter');
-            await sleep(500);
-
-            // Execute clearFilter command
-            await vscode.commands.executeCommand('tasktree.clearFilter');
-            await sleep(500);
-
-            // The command should execute without error
-            // In a full test environment, we would verify the context value
-            assert.ok(true, 'clearFilter should reset state');
-        });
-
-        test('multiple clearFilter calls are idempotent', async function() {
-            this.timeout(15000);
-
-            // Call clearFilter multiple times
-            await vscode.commands.executeCommand('tasktree.clearFilter');
-            await vscode.commands.executeCommand('tasktree.clearFilter');
-            await vscode.commands.executeCommand('tasktree.clearFilter');
-            await sleep(500);
-
-            // Should not cause any errors
-            assert.ok(true, 'Multiple clearFilter calls should be safe');
-        });
-    });
+    // NOTE: The following test suites were removed because they contained ILLEGAL patterns:
+    // - Error Handling UI: Called executeCommand('tasktree.refresh') and used fake assertions
+    // - Tag Commands Integration: Called commands directly with fake assertions
+    // - Quick Tasks Commands Integration: Called commands directly with fake assertions
+    // - Run Commands Integration: Called commands directly with fake assertions
+    // - Filter Context Behavior: Called executeCommand('tasktree.clearFilter') with fake assertions
+    //
+    // These behaviors should be tested through UI interaction, not direct command execution.
+    // Tests with assert.ok(true, ...) are explicitly ILLEGAL per CLAUDE.md.
 });
