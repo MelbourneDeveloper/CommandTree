@@ -720,9 +720,9 @@ suite("Task Execution E2E Tests", () => {
           "Active session should have type",
         );
       }
-      assert.strictEqual(
-        typeof vscode.debug.activeDebugSession,
-        "object",
+      const sessionType = typeof vscode.debug.activeDebugSession;
+      assert.ok(
+        sessionType === "object" || sessionType === "undefined",
         "activeDebugSession should be queryable (object or undefined)",
       );
       assert.strictEqual(
@@ -850,6 +850,12 @@ suite("Task Execution E2E Tests", () => {
 
     test("new terminal has TaskTree prefix in name", async function () {
       this.timeout(15000);
+
+      // Dispose all existing terminals to ensure clean slate
+      for (const t of vscode.window.terminals) {
+        t.dispose();
+      }
+      await sleep(500);
 
       const shellTask = createMockTaskItem({
         type: "shell",
