@@ -1,6 +1,6 @@
 /**
  * DISCOVERY E2E TESTS
- * Spec: task-discovery
+ * Spec: command-discovery
  *
  * These tests verify that task source files exist with correct structure.
  * They do NOT call internal provider methods.
@@ -23,7 +23,7 @@ suite("Task Discovery E2E Tests", () => {
     await sleep(3000);
   });
 
-  // Spec: task-discovery/shell-scripts
+  // Spec: command-discovery/shell-scripts
   suite("Shell Script Discovery", () => {
     test("discovers shell scripts in workspace", function () {
       this.timeout(10000);
@@ -73,7 +73,7 @@ suite("Task Discovery E2E Tests", () => {
     });
   });
 
-  // Spec: task-discovery/npm-scripts
+  // Spec: command-discovery/npm-scripts
   suite("NPM Script Discovery", () => {
     test("discovers npm scripts from root package.json", function () {
       this.timeout(10000);
@@ -129,7 +129,7 @@ suite("Task Discovery E2E Tests", () => {
     });
   });
 
-  // Spec: task-discovery/makefile-targets
+  // Spec: command-discovery/makefile-targets
   suite("Makefile Target Discovery", () => {
     test("discovers Makefile targets", function () {
       this.timeout(10000);
@@ -157,7 +157,7 @@ suite("Task Discovery E2E Tests", () => {
     });
   });
 
-  // Spec: task-discovery/launch-configurations
+  // Spec: command-discovery/launch-configurations
   suite("VS Code Launch Configuration Discovery", () => {
     test("discovers launch configurations from launch.json", function () {
       this.timeout(10000);
@@ -194,7 +194,7 @@ suite("Task Discovery E2E Tests", () => {
     });
   });
 
-  // Spec: task-discovery/vscode-tasks
+  // Spec: command-discovery/vscode-tasks
   suite("VS Code Tasks Discovery", () => {
     test("discovers tasks from tasks.json", function () {
       this.timeout(10000);
@@ -250,7 +250,7 @@ suite("Task Discovery E2E Tests", () => {
     });
   });
 
-  // Spec: task-discovery/python-scripts
+  // Spec: command-discovery/python-scripts
   suite("Python Script Discovery", () => {
     test("discovers Python scripts with shebang", function () {
       this.timeout(10000);

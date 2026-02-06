@@ -1,5 +1,5 @@
 /**
- * Spec: tagging/config-file, quick-tasks
+ * Spec: tagging/config-file, quick-launch
  * E2E TESTS for TagConfig -> Task Tagging -> Filtering Flow
  *
  * Tests the COMPLETE flow through VS Code:
@@ -53,7 +53,7 @@ async function findTreeItemById(
     return undefined;
 }
 
-// Spec: tagging/config-file, quick-tasks
+// Spec: tagging/config-file, quick-launch
 suite('TagConfig E2E Flow Tests', () => {
     let originalConfig: string;
     let treeProvider: CommandTreeProvider;
@@ -82,7 +82,7 @@ suite('TagConfig E2E Flow Tests', () => {
         await sleep(3000);
     });
 
-    // Spec: tagging/config-file, tagging/pattern-syntax, quick-tasks
+    // Spec: tagging/config-file, tagging/pattern-syntax, quick-launch
     suite('Complete Tag Flow', () => {
         test('E2E: type pattern config -> auto-sync -> tags applied -> filter works', async function () {
             this.timeout(30000);

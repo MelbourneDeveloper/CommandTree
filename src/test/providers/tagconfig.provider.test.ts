@@ -1,5 +1,5 @@
 /**
- * Spec: tagging/config-file, tagging/pattern-syntax, quick-tasks, user-data-storage
+ * Spec: tagging/config-file, tagging/pattern-syntax, quick-launch, user-data-storage
  * INTEGRATION TESTS: Tag Config -> Task Tagging -> View Display
  *
  * These tests verify the FULL FLOW from config file to actual view state.
@@ -53,7 +53,7 @@ function writeConfig(config: CommandTreeConfig): void {
   fs.writeFileSync(configPath, JSON.stringify(config, null, 4));
 }
 
-// Spec: tagging/config-file, tagging/pattern-syntax, quick-tasks
+// Spec: tagging/config-file, tagging/pattern-syntax, quick-launch
 suite("Tag Config Integration Tests", () => {
   let originalConfig: string;
   let treeProvider: CommandTreeProvider;
@@ -288,7 +288,7 @@ suite("Tag Config Integration Tests", () => {
    * These tests verify that writing to the "quick" tag in config
    * causes tasks to automatically appear in QuickTasksProvider.
    */
-  // Spec: quick-tasks, user-data-storage
+  // Spec: quick-launch, user-data-storage
   suite("Quick Tag -> QuickTasksProvider Display", () => {
     test('INTEGRATION: Task with "quick" tag in config APPEARS in QuickTasksProvider', async function () {
       this.timeout(30000);

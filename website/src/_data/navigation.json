@@ -1,0 +1,45 @@
+{
+  "main": [
+    {
+      "text": "Docs",
+      "url": "/docs/"
+    },
+    {
+      "text": "Blog",
+      "url": "/blog/"
+    },
+    {
+      "text": "GitHub",
+      "url": "https://github.com/melbournedeveloper/CommandTree",
+      "external": true
+    }
+  ],
+  "footer": [
+    {
+      "title": "Documentation",
+      "items": [
+        {
+          "text": "Getting Started",
+          "url": "/docs/"
+        },
+        {
+          "text": "Blog",
+          "url": "/blog/"
+        }
+      ]
+    },
+    {
+      "title": "Community",
+      "items": [
+        {
+          "text": "GitHub",
+          "url": "https://github.com/melbournedeveloper/CommandTree"
+        },
+        {
+          "text": "VS Code Marketplace",
+          "url": "https://marketplace.visualstudio.com/items?itemName=nimblesite.commandtree"
+        }
+      ]
+    }
+  ]
+}

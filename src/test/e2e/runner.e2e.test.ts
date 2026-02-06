@@ -1,5 +1,5 @@
 /**
- * Spec: task-execution
+ * Spec: command-execution
  */
 
 import * as assert from "assert";
@@ -13,7 +13,7 @@ import {
 import type { TestContext } from "../helpers/helpers";
 import type { TaskItem } from "../../models/TaskItem";
 
-// Spec: task-execution
+// Spec: command-execution
 suite("TaskRunner E2E Tests", () => {
   let context: TestContext;
 
@@ -29,7 +29,7 @@ suite("TaskRunner E2E Tests", () => {
     }
   });
 
-  // Spec: task-execution/new-terminal
+  // Spec: command-execution/new-terminal
   suite("Shell Task Execution", () => {
     test("executes shell task and creates terminal", async function () {
       this.timeout(15000);
@@ -126,7 +126,7 @@ suite("TaskRunner E2E Tests", () => {
     });
   });
 
-  // Spec: task-execution/new-terminal
+  // Spec: command-execution/new-terminal
   suite("NPM Task Execution", () => {
     test("npm task execution creates terminal", async function () {
       this.timeout(15000);
@@ -195,7 +195,7 @@ suite("TaskRunner E2E Tests", () => {
     });
   });
 
-  // Spec: task-execution/new-terminal
+  // Spec: command-execution/new-terminal
   suite("Make Task Execution", () => {
     test("make task creates terminal", async function () {
       this.timeout(15000);
@@ -264,7 +264,7 @@ suite("TaskRunner E2E Tests", () => {
     });
   });
 
-  // Spec: task-execution/new-terminal
+  // Spec: command-execution/new-terminal
   suite("Python Task Execution", () => {
     test("python task creates terminal", async function () {
       this.timeout(15000);
@@ -345,7 +345,7 @@ suite("TaskRunner E2E Tests", () => {
     });
   });
 
-  // Spec: task-execution/debug
+  // Spec: command-execution/debug
   suite("Launch Config Execution", () => {
     test("launch task does not create terminal (uses debug API)", async function () {
       this.timeout(15000);
@@ -415,7 +415,7 @@ suite("TaskRunner E2E Tests", () => {
     });
   });
 
-  // Spec: task-execution/new-terminal
+  // Spec: command-execution/new-terminal
   suite("VS Code Task Execution", () => {
     test("vscode task has correct type", function () {
       this.timeout(15000);
@@ -460,7 +460,7 @@ suite("TaskRunner E2E Tests", () => {
     });
   });
 
-  // Spec: task-execution/new-terminal
+  // Spec: command-execution/new-terminal
   suite("New Terminal Mode", () => {
     test("creates terminal with CommandTree prefix", async function () {
       this.timeout(15000);
@@ -574,7 +574,7 @@ suite("TaskRunner E2E Tests", () => {
     });
   });
 
-  // Spec: task-execution/current-terminal
+  // Spec: command-execution/current-terminal
   suite("Current Terminal Mode", () => {
     test("creates terminal if none exists", async function () {
       this.timeout(15000);
@@ -715,7 +715,7 @@ suite("TaskRunner E2E Tests", () => {
     });
   });
 
-  // Spec: parameterized-tasks
+  // Spec: parameterized-commands
   suite("Command Building", () => {
     test("command without params stays unchanged", function () {
       this.timeout(5000);
@@ -932,7 +932,7 @@ suite("TaskRunner E2E Tests", () => {
     });
   });
 
-  // Spec: task-execution
+  // Spec: command-execution
   suite("Task Type Routing", () => {
     test("shell tasks create terminal with CommandTree prefix", async function () {
       this.timeout(15000);
@@ -1073,7 +1073,7 @@ suite("TaskRunner E2E Tests", () => {
     });
   });
 
-  // Spec: task-execution
+  // Spec: command-execution
   suite("Integration Tests", () => {
     test("full workflow: run command creates terminal", async function () {
       this.timeout(20000);

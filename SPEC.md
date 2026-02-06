@@ -3,18 +3,18 @@
 ## Table of Contents
 
 - [Overview](#overview)
-- [Task Discovery](#task-discovery)
+- [Command Discovery](#command-discovery)
   - [Shell Scripts](#shell-scripts)
   - [NPM Scripts](#npm-scripts)
   - [Makefile Targets](#makefile-targets)
   - [Launch Configurations](#launch-configurations)
   - [VS Code Tasks](#vs-code-tasks)
   - [Python Scripts](#python-scripts)
-- [Task Execution](#task-execution)
+- [Command Execution](#command-execution)
   - [Run in New Terminal](#run-in-new-terminal)
   - [Run in Current Terminal](#run-in-current-terminal)
   - [Debug](#debug)
-- [Quick Tasks](#quick-tasks)
+- [Quick Launch](#quick-launch)
 - [Tagging](#tagging)
   - [Tag Configuration File](#tag-configuration-file)
   - [Pattern Syntax](#pattern-syntax)
@@ -23,7 +23,7 @@
   - [Text Filter](#text-filter)
   - [Tag Filter](#tag-filter)
   - [Clear Filter](#clear-filter)
-- [Parameterized Tasks](#parameterized-tasks)
+- [Parameterized Commands](#parameterized-commands)
 - [Settings](#settings)
   - [Exclude Patterns](#exclude-patterns)
   - [Sort Order](#sort-order)
@@ -41,67 +41,67 @@
 ## Overview
 **overview**
 
-CommandTree scans a VS Code workspace and surfaces all runnable tasks in a single tree view sidebar panel. It discovers shell scripts, npm scripts, Makefile targets, VS Code tasks, launch configurations, etc then presents them in a categorized, filterable tree.
+CommandTree scans a VS Code workspace and surfaces all runnable commands in a single tree view sidebar panel. It discovers shell scripts, npm scripts, Makefile targets, VS Code tasks, launch configurations, etc then presents them in a categorized, filterable tree.
 
-## Task Discovery
-**task-discovery**
+## Command Discovery
+**command-discovery**
 
-CommandTree recursively scans the workspace for runnable tasks grouped by type. Discovery respects exclude patterns configured in settings. It does this in the background on low priority.
+CommandTree recursively scans the workspace for runnable commands grouped by type. Discovery respects exclude patterns configured in settings. It does this in the background on low priority.
 
 ### Shell Scripts
-**task-discovery/shell-scripts**
+**command-discovery/shell-scripts**
 
 Discovers `.sh` files throughout the workspace. Supports optional `@param` and `@description` comments for metadata.
 
 ### NPM Scripts
-**task-discovery/npm-scripts**
+**command-discovery/npm-scripts**
 
 Reads `scripts` from all `package.json` files, including nested projects and subfolders.
 
 ### Makefile Targets
-**task-discovery/makefile-targets**
+**command-discovery/makefile-targets**
 
 Parses `Makefile` and `makefile` for named targets.
 
 ### Launch Configurations
-**task-discovery/launch-configurations**
+**command-discovery/launch-configurations**
 
 Reads debug configurations from `.vscode/launch.json`.
 
 ### VS Code Tasks
-**task-discovery/vscode-tasks**
+**command-discovery/vscode-tasks**
 
 Reads task definitions from `.vscode/tasks.json`, including support for `${input:*}` variable prompts.
 
 ### Python Scripts
-**task-discovery/python-scripts**
+**command-discovery/python-scripts**
 
 Discovers files with a `.py` extension.
 
-## Task Execution
-**task-execution**
+## Command Execution
+**command-execution**
 
-Tasks can be executed three ways via inline buttons or context menu.
+Commands can be executed three ways via inline buttons or context menu.
 
 ### Run in New Terminal
-**task-execution/new-terminal**
+**command-execution/new-terminal**
 
-Opens a new VS Code terminal and runs the task command. Triggered by the play button or `commandtree.run` command.
+Opens a new VS Code terminal and runs the command. Triggered by the play button or `commandtree.run` command.
 
 ### Run in Current Terminal
-**task-execution/current-terminal**
+**command-execution/current-terminal**
 
-Sends the task command to the currently active terminal. Triggered by the circle-play button or `commandtree.runInCurrentTerminal` command.
+Sends the command to the currently active terminal. Triggered by the circle-play button or `commandtree.runInCurrentTerminal` command.
 
 ### Debug
-**task-execution/debug**
+**command-execution/debug**
 
-Launches the task using the VS Code debugger. Only applicable to launch configurations. Triggered by the bug button or `commandtree.debug` command.
+Launches the command using the VS Code debugger. Only applicable to launch configurations. Triggered by the bug button or `commandtree.debug` command.
 
-## Quick Tasks
-**quick-tasks**
+## Quick Launch
+**quick-launch**
 
-Users can star tasks to pin them in a "Quick Tasks" panel at the top of the tree view. Starred task identifiers are persisted in the `quick` array inside `.vscode/commandtree.json`:
+Users can star commands to pin them in a "Quick Launch" panel at the top of the tree view. Starred command identifiers are persisted in the `quick` array inside `.vscode/commandtree.json`:
 
 ```json
 {
@@ -115,7 +115,7 @@ Users can star tasks to pin them in a "Quick Tasks" panel at the top of the tree
 ## Tagging
 **tagging**
 
-Tags group related tasks for organization and filtering.
+Tags group related commands for organization and filtering.
 
 ### Tag Configuration File
 **tagging/config-file**
@@ -132,7 +132,7 @@ Tags are defined in `.vscode/commandtree.json` under the `tags` key:
 }
 ```
 
-This file can be committed to version control to share task organization with a team.
+This file can be committed to version control to share command organization with a team.
 
 ### Pattern Syntax
 **tagging/pattern-syntax**
@@ -141,19 +141,19 @@ This file can be committed to version control to share task organization with a 
 |---------|---------|
 | `npm:build` | Exact match: npm script named "build" |
 | `npm:test*` | Wildcard: npm scripts starting with "test" |
-| `*deploy*` | Any task with "deploy" in the name |
+| `*deploy*` | Any command with "deploy" in the name |
 | `type:shell:*` | All shell scripts |
 | `type:npm:*` | All npm scripts |
 | `type:make:*` | All Makefile targets |
 | `type:launch:*` | All launch configurations |
-| `**/scripts/**` | Path matching: tasks in any `scripts` folder |
-| `shell:/full/path:name` | Exact task identifier (used internally for Quick Tasks) |
+| `**/scripts/**` | Path matching: commands in any `scripts` folder |
+| `shell:/full/path:name` | Exact command identifier (used internally for Quick Launch) |
 
 ### Managing Tags
 **tagging/management**
 
-- **Add tag to task**: Right-click a task > "Add Tag" > select existing or create new
-- **Remove tag from task**: Right-click a task > "Remove Tag"
+- **Add tag to command**: Right-click a command > "Add Tag" > select existing or create new
+- **Remove tag from command**: Right-click a command > "Remove Tag"
 - **Edit tags file directly**: Command Palette > "CommandTree: Edit Tags Configuration"
 
 ## Filtering
@@ -162,20 +162,20 @@ This file can be committed to version control to share task organization with a 
 ### Text Filter
 **filtering/text**
 
-Free-text filter via toolbar or `commandtree.filter` command. Matches against task names.
+Free-text filter via toolbar or `commandtree.filter` command. Matches against command names.
 
 ### Tag Filter
 **filtering/tag**
 
-Pick a tag from the toolbar picker (`commandtree.filterByTag`) to show only tasks matching that tag's patterns.
+Pick a tag from the toolbar picker (`commandtree.filterByTag`) to show only commands matching that tag's patterns.
 
 ### Clear Filter
 **filtering/clear**
 
 Remove all active filters via toolbar button or `commandtree.clearFilter` command.
 
-## Parameterized Tasks
-**parameterized-tasks**
+## Parameterized Commands
+**parameterized-commands**
 
 Shell scripts with parameter comments prompt the user for input before execution:
 
@@ -197,35 +197,35 @@ All settings are configured via VS Code settings (`Cmd+,` / `Ctrl+,`).
 ### Exclude Patterns
 **settings/exclude-patterns**
 
-`commandtree.excludePatterns` - Glob patterns to exclude from task discovery. Default includes `**/node_modules/**`, `**/.vscode-test/**`, and others.
+`commandtree.excludePatterns` - Glob patterns to exclude from command discovery. Default includes `**/node_modules/**`, `**/.vscode-test/**`, and others.
 
 ### Sort Order
 **settings/sort-order**
 
-`commandtree.sortOrder` - How tasks are sorted within categories:
+`commandtree.sortOrder` - How commands are sorted within categories:
 
 | Value | Description |
 |-------|-------------|
 | `folder` | Sort by folder path, then alphabetically (default) |
-| `name` | Sort alphabetically by task name |
-| `type` | Sort by task type, then alphabetically |
+| `name` | Sort alphabetically by command name |
+| `type` | Sort by command type, then alphabetically |
 
 ### Show Empty Categories
 **settings/show-empty-categories**
 
-`commandtree.showEmptyCategories` - Whether to display category nodes that contain no discovered tasks.
+`commandtree.showEmptyCategories` - Whether to display category nodes that contain no discovered commands.
 
 ## User Data Storage
 **user-data-storage**
 
-CommandTree stores workspace-specific data in `.vscode/commandtree.json`. This file is automatically created and updated as you use the extension. It holds both quick task pins and tag definitions.
+CommandTree stores workspace-specific data in `.vscode/commandtree.json`. This file is automatically created and updated as you use the extension. It holds both Quick Launch pins and tag definitions.
 
 ---
 
 ## Semantic Search (FUTURE FEATURE)
 **semantic-search**
 
-> **⏳ FUTURE FEATURE** — This section describes a planned feature that is **not currently being implemented**. It is included here for design reference only.
+> **FUTURE FEATURE** — This section describes a planned feature that is **not currently being implemented**. It is included here for design reference only.
 
 ### Overview
 **semantic-search/overview**
@@ -256,7 +256,7 @@ The summarisation interface is provider-agnostic — any model that accepts a te
 ### Database and Config Migration
 **semantic-search/database-migration**
 
-All workspace configuration currently stored in `.vscode/commandtree.json` (quick task pins, tag definitions) will migrate into a **local embedded database** (e.g. SQLite). This database also stores script summaries and vector embeddings.
+All workspace configuration currently stored in `.vscode/commandtree.json` (Quick Launch pins, tag definitions) will migrate into a **local embedded database** (e.g. SQLite). This database also stores script summaries and vector embeddings.
 
 The migration is automatic and transparent. The `.vscode/commandtree.json` file is read once during migration, and the database becomes the single source of truth going forward.
 
@@ -265,18 +265,18 @@ The migration is automatic and transparent. The `.vscode/commandtree.json` file 
 
 ```mermaid
 erDiagram
-    TaskRecord {
+    CommandRecord {
         string scriptPath PK "Absolute path to the script"
         string contentHash "Hash of script content (for change detection)"
         string scriptContent "Full script source text"
         string summary "LLM-generated plain-language summary"
         float[] embedding "Vector embedding of script + summary"
         string[] tags "User-assigned tags"
-        boolean isQuick "Pinned to Quick Tasks"
+        boolean isQuick "Pinned to Quick Launch"
         datetime lastUpdated "Last summarisation timestamp"
     }
 
-    TaskRecord ||--o{ Tag : "has"
+    CommandRecord ||--o{ Tag : "has"
     Tag {
         string name PK "Tag name"
         string[] patterns "Glob patterns for auto-tagging"
@@ -294,7 +294,7 @@ The existing filter bar (`commandtree.filter`) gains a semantic search mode:
 
 1. User types a natural-language query (e.g. *"deploy to staging"*, *"run database migrations"*, *"lint and format code"*).
 2. The query is embedded using the same model that produced the stored embeddings.
-3. Results are ranked by **cosine similarity** between the query embedding and each task's stored embedding.
-4. The tree view updates to show matching tasks, ordered by relevance.
+3. Results are ranked by **cosine similarity** between the query embedding and each command's stored embedding.
+4. The tree view updates to show matching commands, ordered by relevance.
 
 If no summaries have been generated (feature not enabled), the filter falls back to the existing text-match behaviour.

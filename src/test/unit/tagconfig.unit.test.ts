@@ -2,7 +2,7 @@ import * as assert from 'assert';
 import type { TaskItem } from '../../models/TaskItem';
 
 /**
- * Spec: tagging/pattern-syntax, filtering/tag, quick-tasks
+ * Spec: tagging/pattern-syntax, filtering/tag, quick-launch
  * PURE UNIT TESTS for TagConfig logic
  * NO VS Code - tests pure functions only
  */
@@ -375,7 +375,7 @@ suite('TagConfig Unit Tests', function () {
         });
     });
 
-    // Spec: quick-tasks
+    // Spec: quick-launch
     suite('Quick Tasks Logic', () => {
         /**
          * Tests the logic used in QuickTasksProvider.getChildren()
