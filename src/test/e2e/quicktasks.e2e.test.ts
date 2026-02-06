@@ -1,6 +1,6 @@
 /**
  * Spec: quick-launch, user-data-storage
- * E2E Tests for Quick Tasks functionality
+ * E2E Tests for Quick Launch functionality
  *
  * These tests verify config file behavior and command registration.
  * They do NOT call internal provider methods.
@@ -34,7 +34,7 @@ function writeCommandTreeConfig(config: CommandTreeConfig): void {
 }
 
 // Spec: quick-launch
-suite("Quick Tasks E2E Tests", () => {
+suite("Quick Launch E2E Tests", () => {
   let originalConfig: CommandTreeConfig;
 
   suiteSetup(async function () {
@@ -53,7 +53,7 @@ suite("Quick Tasks E2E Tests", () => {
   });
 
   // Spec: quick-launch
-  suite("Quick Tasks Commands", () => {
+  suite("Quick Launch Commands", () => {
     test("addToQuick command is registered", async function () {
       this.timeout(10000);
 
@@ -86,7 +86,7 @@ suite("Quick Tasks E2E Tests", () => {
   });
 
   // Spec: quick-launch, user-data-storage
-  suite("Quick Tasks Storage", () => {
+  suite("Quick Launch Storage", () => {
     test("quick tasks are stored in commandtree.json", function () {
       this.timeout(10000);
 
