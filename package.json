@@ -1,7 +1,7 @@
 {
   "name": "commandtree",
   "displayName": "CommandTree",
-  "description": "Unified task runner: discover shell scripts, npm scripts, Makefiles, launch configs, VS Code tasks and more in one filterable tree",
+  "description": "Unified command runner: discover shell scripts, npm scripts, Makefiles, launch configs, VS Code tasks and more in one filterable tree",
   "version": "0.1.0",
   "author": "Christian Findlay",
   "license": "MIT",
@@ -22,7 +22,7 @@
     "Testing"
   ],
   "keywords": [
-    "tasks",
+    "commands",
     "runner",
     "npm",
     "makefile",
@@ -63,12 +63,12 @@
     "commands": [
       {
         "command": "commandtree.refresh",
-        "title": "Refresh Tasks",
+        "title": "Refresh Commands",
         "icon": "$(refresh)"
       },
       {
         "command": "commandtree.run",
-        "title": "Run Task (New Terminal)",
+        "title": "Run Command (New Terminal)",
         "icon": "$(play)"
       },
       {
@@ -78,7 +78,7 @@
       },
       {
         "command": "commandtree.filter",
-        "title": "Filter Tasks",
+        "title": "Filter Commands",
         "icon": "$(search)"
       },
       {
@@ -97,17 +97,17 @@
       },
       {
         "command": "commandtree.addToQuick",
-        "title": "Add to Quick Tasks",
+        "title": "Add to Quick Launch",
         "icon": "$(star-empty)"
       },
       {
         "command": "commandtree.removeFromQuick",
-        "title": "Remove from Quick Tasks",
+        "title": "Remove from Quick Launch",
         "icon": "$(star-full)"
       },
       {
         "command": "commandtree.refreshQuick",
-        "title": "Refresh Quick Tasks",
+        "title": "Refresh Quick Launch",
         "icon": "$(refresh)"
       },
       {
@@ -336,7 +336,7 @@
             "**/.vs/**",
             "**/test/fixtures/**"
           ],
-          "description": "Glob patterns to exclude from task discovery"
+          "description": "Glob patterns to exclude from command discovery"
         },
         "commandtree.sortOrder": {
           "type": "string",
@@ -348,10 +348,10 @@
           ],
           "enumDescriptions": [
             "Sort by folder path, then alphabetically by name",
-            "Sort alphabetically by task name",
-            "Sort by task type, then alphabetically by name"
+            "Sort alphabetically by command name",
+            "Sort by command type, then alphabetically by name"
           ],
-          "description": "How to sort tasks within categories"
+          "description": "How to sort commands within categories"
         }
       }
     },

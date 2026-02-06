@@ -1,21 +1,21 @@
 # CommandTree
 
-One sidebar. Every task in your workspace.
+One sidebar. Every command in your workspace.
 
-CommandTree scans your project and surfaces all runnable tasks in a single tree view: shell scripts, npm scripts, Makefile targets, VS Code tasks, launch configurations, and Python scripts. Filter by text or tag, run in terminal or debugger.
+CommandTree scans your project and surfaces all runnable commands in a single tree view: shell scripts, npm scripts, Makefile targets, VS Code tasks, launch configurations, and Python scripts. Filter by text or tag, run in terminal or debugger.
 
 ## Features
 
 - **Auto-discovery** - Shell scripts (`.sh`, `.bash`, `.zsh`), npm scripts, Makefile targets, VS Code tasks, launch configurations, and Python scripts
-- **Quick Tasks** - Pin frequently-used tasks to a dedicated panel at the top
-- **Tagging** - Auto-tag tasks by type, label, or exact ID using pattern rules in `.vscode/commandtree.json`
+- **Quick Launch** - Pin frequently-used commands to a dedicated panel at the top
+- **Tagging** - Auto-tag commands by type, label, or exact ID using pattern rules in `.vscode/commandtree.json`
 - **Filtering** - Filter the tree by text search or by tag
 - **Run anywhere** - Execute in a new terminal, the current terminal, or launch with the debugger
-- **Folder grouping** - Tasks grouped by directory with collapsible nested hierarchy
-- **Parameterized tasks** - Prompt for arguments before execution
+- **Folder grouping** - Commands grouped by directory with collapsible nested hierarchy
+- **Parameterized commands** - Prompt for arguments before execution
 - **File watching** - Automatic refresh when scripts or config files change
 
-## Supported Task Types
+## Supported Command Types
 
 | Type | Source |
 |------|--------|
@@ -36,16 +36,16 @@ npm run package
 code --install-extension commandtree-*.vsix
 ```
 
-Open a workspace and the CommandTree panel appears in the sidebar. All discovered tasks are listed by category.
+Open a workspace and the CommandTree panel appears in the sidebar. All discovered commands are listed by category.
 
 ## Usage
 
-- **Run a task** - Click the play button or right-click > "Run Task"
+- **Run a command** - Click the play button or right-click > "Run Command"
 - **Run in current terminal** - Right-click > "Run in Current Terminal"
 - **Debug** - Launch configurations run with the VS Code debugger
-- **Star a task** - Click the star icon to pin it to Quick Tasks
+- **Star a command** - Click the star icon to pin it to Quick Launch
 - **Filter** - Use the toolbar icons to filter by text or tag
-- **Tag tasks** - Right-click > "Add Tag" to group related tasks
+- **Tag commands** - Right-click > "Add Tag" to group related commands
 - **Edit tags** - Configure auto-tagging patterns in `.vscode/commandtree.json`
 
 ## Settings
@@ -53,7 +53,7 @@ Open a workspace and the CommandTree panel appears in the sidebar. All discovere
 | Setting | Description | Default |
 |---------|-------------|---------|
 | `commandtree.excludePatterns` | Glob patterns to exclude from discovery | `**/node_modules/**`, `**/.git/**`, etc. |
-| `commandtree.sortOrder` | Sort tasks by `folder`, `name`, or `type` | `folder` |
+| `commandtree.sortOrder` | Sort commands by `folder`, `name`, or `type` | `folder` |
 
 ## Tag Configuration
 
