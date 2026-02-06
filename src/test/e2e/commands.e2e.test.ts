@@ -182,8 +182,8 @@ suite("Commands and UI E2E Tests", () => {
       assert.ok(taskTreeView, "tasktree view should be registered");
       assert.strictEqual(
         taskTreeView.name,
-        "All Tasks",
-        "View name should be All Tasks",
+        "TaskTree - All",
+        "View name should be TaskTree - All",
       );
     });
 
@@ -258,6 +258,30 @@ suite("Commands and UI E2E Tests", () => {
       assert.ok(
         runMenu.when?.includes("viewItem == task") === true,
         "Run should only show for tasks",
+      );
+
+      // Star icon: addToQuick (empty star) for non-quick tasks
+      const addToQuickMenu = itemContextMenus.find(
+        (m) =>
+          m.command === "tasktree.addToQuick" &&
+          m.when?.includes("view == tasktree") === true &&
+          m.when?.includes("viewItem == task") === true,
+      );
+      assert.ok(
+        addToQuickMenu,
+        "addToQuick (empty star) MUST show for non-quick tasks in All Tasks view",
+      );
+
+      // Star icon: removeFromQuick (filled star) for quick tasks
+      const removeFromQuickInAllView = itemContextMenus.find(
+        (m) =>
+          m.command === "tasktree.removeFromQuick" &&
+          m.when?.includes("view == tasktree") === true &&
+          m.when?.includes("viewItem == task-quick") === true,
+      );
+      assert.ok(
+        removeFromQuickInAllView,
+        "removeFromQuick (filled star) MUST show for quick tasks in All Tasks view",
       );
     });
 
@@ -420,6 +444,25 @@ suite("Commands and UI E2E Tests", () => {
       assert.ok(
         clearFilterCmd?.icon === "$(clear-all)",
         "ClearFilter should have clear-all icon",
+      );
+
+      // Star icons: empty for add, filled for remove
+      const addToQuickCmd = commands.find(
+        (c) => c.command === "tasktree.addToQuick",
+      );
+      assert.strictEqual(
+        addToQuickCmd?.icon,
+        "$(star-empty)",
+        "addToQuick MUST have star-empty icon (unfilled star)",
+      );
+
+      const removeFromQuickCmd = commands.find(
+        (c) => c.command === "tasktree.removeFromQuick",
+      );
+      assert.strictEqual(
+        removeFromQuickCmd?.icon,
+        "$(star-full)",
+        "removeFromQuick MUST have star-full icon (filled star)",
       );
     });
   });

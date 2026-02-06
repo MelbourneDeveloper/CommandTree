@@ -115,12 +115,16 @@ export async function activate(context: vscode.ExtensionContext): Promise<Extens
         vscode.commands.registerCommand('tasktree.addToQuick', async (item: TaskTreeItem | undefined) => {
             if (item !== undefined && item.task !== null) {
                 await quickTasksProvider.addToQuick(item.task);
+                await treeProvider.refresh();
+                await quickTasksProvider.updateTasks(treeProvider.getAllTasks());
             }
         }),
 
         vscode.commands.registerCommand('tasktree.removeFromQuick', async (item: TaskTreeItem | undefined) => {
             if (item !== undefined && item.task !== null) {
                 await quickTasksProvider.removeFromQuick(item.task);
+                await treeProvider.refresh();
+                await quickTasksProvider.updateTasks(treeProvider.getAllTasks());
             }
         }),
 

@@ -78,6 +78,27 @@ suite("Tag Context Menu E2E Tests", () => {
         removeTagMenu.when.includes("viewItem == task"),
         "removeTag should only show for tasks",
       );
+
+      // Tag commands must also work for quick-tagged tasks (task-quick)
+      const addTagQuickMenu = contextMenus.find(
+        (m) =>
+          m.command === "tasktree.addTag" &&
+          m.when.includes("viewItem == task-quick"),
+      );
+      assert.ok(
+        addTagQuickMenu !== undefined,
+        "addTag MUST also show for quick tasks (task-quick)",
+      );
+
+      const removeTagQuickMenu = contextMenus.find(
+        (m) =>
+          m.command === "tasktree.removeTag" &&
+          m.when.includes("viewItem == task-quick"),
+      );
+      assert.ok(
+        removeTagQuickMenu !== undefined,
+        "removeTag MUST also show for quick tasks (task-quick)",
+      );
     });
 
     test("tag commands are in 3_tagging group", function () {

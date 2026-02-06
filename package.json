@@ -41,13 +41,13 @@
       "tasktree-container": [
         {
           "id": "tasktree-quick",
-          "name": "Quick Tasks",
-          "contextualTitle": "Quick Tasks"
+          "name": "TaskTree - Quick Launch",
+          "contextualTitle": "TaskTree - Quick Launch"
         },
         {
           "id": "tasktree",
-          "name": "All Tasks",
-          "contextualTitle": "All Tasks"
+          "name": "TaskTree - All",
+          "contextualTitle": "TaskTree - All"
         }
       ]
     },
@@ -198,6 +198,46 @@
         },
         {
           "command": "tasktree.run",
+          "when": "view == tasktree && viewItem == task-quick",
+          "group": "inline@1"
+        },
+        {
+          "command": "tasktree.runInCurrentTerminal",
+          "when": "view == tasktree && viewItem == task-quick",
+          "group": "inline@3"
+        },
+        {
+          "command": "tasktree.removeFromQuick",
+          "when": "view == tasktree && viewItem == task-quick",
+          "group": "inline@4"
+        },
+        {
+          "command": "tasktree.run",
+          "when": "view == tasktree && viewItem == task-quick",
+          "group": "1_run@1"
+        },
+        {
+          "command": "tasktree.runInCurrentTerminal",
+          "when": "view == tasktree && viewItem == task-quick",
+          "group": "1_run@2"
+        },
+        {
+          "command": "tasktree.removeFromQuick",
+          "when": "view == tasktree && viewItem == task-quick",
+          "group": "2_tags@1"
+        },
+        {
+          "command": "tasktree.addTag",
+          "when": "view == tasktree && viewItem == task-quick",
+          "group": "3_tagging@1"
+        },
+        {
+          "command": "tasktree.removeTag",
+          "when": "view == tasktree && viewItem == task-quick",
+          "group": "3_tagging@2"
+        },
+        {
+          "command": "tasktree.run",
           "when": "view == tasktree-quick && viewItem == task",
           "group": "inline@1"
         },
@@ -224,6 +264,36 @@
         {
           "command": "tasktree.removeFromQuick",
           "when": "view == tasktree-quick && viewItem == task",
+          "group": "2_tags@1"
+        },
+        {
+          "command": "tasktree.run",
+          "when": "view == tasktree-quick && viewItem == task-quick",
+          "group": "inline@1"
+        },
+        {
+          "command": "tasktree.runInCurrentTerminal",
+          "when": "view == tasktree-quick && viewItem == task-quick",
+          "group": "inline@3"
+        },
+        {
+          "command": "tasktree.removeFromQuick",
+          "when": "view == tasktree-quick && viewItem == task-quick",
+          "group": "inline@4"
+        },
+        {
+          "command": "tasktree.run",
+          "when": "view == tasktree-quick && viewItem == task-quick",
+          "group": "1_run@1"
+        },
+        {
+          "command": "tasktree.runInCurrentTerminal",
+          "when": "view == tasktree-quick && viewItem == task-quick",
+          "group": "1_run@2"
+        },
+        {
+          "command": "tasktree.removeFromQuick",
+          "when": "view == tasktree-quick && viewItem == task-quick",
           "group": "2_tags@1"
         }
       ]
@@ -254,7 +324,8 @@
             "**/Pods/**",
             "**/.gradle/**",
             "**/.idea/**",
-            "**/.vs/**"
+            "**/.vs/**",
+            "**/test/fixtures/**"
           ],
           "description": "Glob patterns to exclude from task discovery"
         },

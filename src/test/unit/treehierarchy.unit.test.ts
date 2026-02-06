@@ -1,22 +1,26 @@
 import * as assert from 'assert';
+import * as path from 'path';
 import type { TaskItem } from '../../models/TaskItem';
+import { groupByFullDir, buildDirTree, needsFolderWrapper } from '../../tree/dirTree';
 
 /**
  * PURE UNIT TESTS for tree hierarchy building logic.
- * Tests the folder grouping behavior extracted from TaskTreeProvider.buildCategoryWithFolders.
+ * Tests the folder nesting behavior from src/tree/folderTree.ts.
  * NO VS Code - tests pure functions only.
  */
 suite('Tree Hierarchy Unit Tests', function () {
     this.timeout(10000);
 
+    const WORKSPACE = '/workspace';
+
     function createMockTask(overrides: Partial<TaskItem>): TaskItem {
         const base: TaskItem = {
-            id: 'shell:/project/script.sh:run',
+            id: 'shell:/workspace/script.sh:run',
             label: 'run',
             type: 'shell',
             command: './run.sh',
-            cwd: '/project',
-            filePath: '/project/script.sh',
+            cwd: '/workspace',
+            filePath: '/workspace/script.sh',
             category: 'Root',
             tags: []
         };
@@ -30,158 +34,156 @@ suite('Tree Hierarchy Unit Tests', function () {
         return { ...base, ...restOverrides };
     }
 
-    /**
-     * Represents a built tree node (mirrors TaskTreeItem structure without VS Code dependency).
-     */
-    interface TreeNode {
-        readonly label: string;
-        readonly isFolder: boolean;
-        readonly children: TreeNode[];
-        readonly task: TaskItem | null;
-    }
-
-    /**
-     * Pure logic extracted from TaskTreeProvider.buildCategoryWithFolders.
-     * Groups tasks by category and builds a tree hierarchy.
-     */
-    function buildCategoryWithFolders(tasks: TaskItem[]): TreeNode {
-        const grouped = new Map<string, TaskItem[]>();
-        for (const task of tasks) {
-            const existing = grouped.get(task.category) ?? [];
-            existing.push(task);
-            grouped.set(task.category, existing);
-        }
-
-        const sortedEntries = Array.from(grouped.entries())
-            .sort((a, b) => a[0].localeCompare(b[0]));
-
-        const children: TreeNode[] = [];
-        const hasManyFolders = sortedEntries.length > 1;
-
-        for (const [folder, folderTasks] of sortedEntries) {
-            const firstTask = folderTasks[0];
-            if (folderTasks.length === 1 && !hasManyFolders && firstTask) {
-                // Single task in single folder - no folder node needed
-                children.push({
-                    label: firstTask.label,
-                    isFolder: false,
-                    children: [],
-                    task: firstTask
-                });
-            } else {
-                // Wrap in folder node so all children are at the same tree level
-                const taskNodes = folderTasks.map(t => ({
-                    label: t.label,
-                    isFolder: false,
-                    children: [],
-                    task: t
-                }));
-                children.push({
-                    label: folder,
-                    isFolder: true,
-                    children: taskNodes,
-                    task: null
-                });
-            }
-        }
-
-        return {
-            label: `Shell Scripts (${tasks.length})`,
-            isFolder: true,
-            children,
-            task: null
-        };
-    }
-
     suite('Folder grouping', () => {
         test('single task in single folder should NOT create folder node', () => {
             const tasks = [
-                createMockTask({ label: 'start.sh', category: 'Samples' })
+                createMockTask({
+                    label: 'start.sh',
+                    filePath: path.join(WORKSPACE, 'Samples', 'start.sh')
+                })
             ];
 
-            const root = buildCategoryWithFolders(tasks);
+            const groups = groupByFullDir(tasks, WORKSPACE);
+            const tree = buildDirTree(groups);
 
-            assert.strictEqual(root.children.length, 1, 'Should have exactly 1 child');
-            assert.strictEqual(root.children[0]?.isFolder, false, 'Single task in single folder should be a task node, not a folder');
-            assert.strictEqual(root.children[0]?.label, 'start.sh', 'Child should be the task itself');
+            assert.strictEqual(tree.length, 1, 'Should have 1 root node');
+            const node = tree[0];
+            assert.ok(node !== undefined);
+            assert.strictEqual(needsFolderWrapper(node, 1), false,
+                'Single task in single folder should not need folder wrapper');
         });
 
         test('multiple tasks in single folder should create folder node', () => {
             const tasks = [
-                createMockTask({ id: 'a', label: 'start.sh', category: 'Samples/.../Dependencies' }),
-                createMockTask({ id: 'b', label: 'stop.sh', category: 'Samples/.../Dependencies' })
+                createMockTask({
+                    id: 'a',
+                    label: 'start.sh',
+                    filePath: path.join(WORKSPACE, 'Samples', 'deps', 'start.sh')
+                }),
+                createMockTask({
+                    id: 'b',
+                    label: 'stop.sh',
+                    filePath: path.join(WORKSPACE, 'Samples', 'deps', 'stop.sh')
+                })
             ];
 
-            const root = buildCategoryWithFolders(tasks);
+            const groups = groupByFullDir(tasks, WORKSPACE);
+            const tree = buildDirTree(groups);
 
-            assert.strictEqual(root.children.length, 1, 'Should have 1 folder child');
-            assert.strictEqual(root.children[0]?.isFolder, true, 'Child should be a folder node');
-            assert.strictEqual(root.children[0]?.children.length, 2, 'Folder should contain 2 tasks');
+            assert.strictEqual(tree.length, 1, 'Should have 1 root node');
+            const node = tree[0];
+            assert.ok(node !== undefined);
+            assert.strictEqual(node.tasks.length, 2, 'Folder should contain 2 tasks');
+            assert.strictEqual(needsFolderWrapper(node, 1), true,
+                'Multiple tasks should need folder wrapper');
         });
 
-        test('single-task folder alongside multi-task folder MUST be wrapped in folder node', () => {
+        test('parent/child directories should be properly nested', () => {
             // This is the exact bug scenario:
-            // import.sh is alone in Samples/.../CreateDb
-            // start.sh + stop.sh are in Samples/.../Dependencies
-            // Without fix: import.sh renders bare, Dependencies folder looks nested under it
+            // import.sh is in Samples/ICD10/scripts/CreateDb
+            // start.sh + stop.sh are in Samples/ICD10/scripts/CreateDb/Dependencies
+            // BUG: they were flat siblings. FIX: Dependencies nests inside CreateDb
             const tasks = [
                 createMockTask({
                     id: 'shell:import',
                     label: 'import.sh',
-                    category: 'Samples/.../CreateDb'
+                    filePath: path.join(WORKSPACE, 'Samples', 'ICD10', 'scripts', 'CreateDb', 'import.sh')
                 }),
                 createMockTask({
                     id: 'shell:start',
                     label: 'start.sh',
-                    category: 'Samples/.../Dependencies'
+                    filePath: path.join(WORKSPACE, 'Samples', 'ICD10', 'scripts', 'CreateDb', 'Dependencies', 'start.sh')
                 }),
                 createMockTask({
                     id: 'shell:stop',
                     label: 'stop.sh',
-                    category: 'Samples/.../Dependencies'
+                    filePath: path.join(WORKSPACE, 'Samples', 'ICD10', 'scripts', 'CreateDb', 'Dependencies', 'stop.sh')
                 })
             ];
 
-            const root = buildCategoryWithFolders(tasks);
+            const groups = groupByFullDir(tasks, WORKSPACE);
+            const tree = buildDirTree(groups);
 
-            // ALL children of the category MUST be folder nodes
-            assert.strictEqual(root.children.length, 2, 'Should have 2 folder children');
+            // CreateDb should be the only root node
+            assert.strictEqual(tree.length, 1, 'Should have 1 root node (CreateDb)');
+            const createDb = tree[0];
+            assert.ok(createDb !== undefined);
+            assert.ok(createDb.dir.endsWith('CreateDb'), `Root dir should be CreateDb, got: ${createDb.dir}`);
+            assert.strictEqual(createDb.tasks.length, 1, 'CreateDb should have import.sh');
+            assert.strictEqual(createDb.tasks[0]?.label, 'import.sh');
 
-            const createDbFolder = root.children[0];
-            const dependenciesFolder = root.children[1];
-
-            // The single-task folder MUST still be a folder node
-            assert.strictEqual(
-                createDbFolder?.isFolder, true,
-                'Single-task folder MUST be wrapped in a folder node when other folders exist'
-            );
-            assert.strictEqual(createDbFolder?.label, 'Samples/.../CreateDb');
-            assert.strictEqual(createDbFolder?.children.length, 1, 'CreateDb folder should have 1 task');
-            assert.strictEqual(createDbFolder?.children[0]?.label, 'import.sh');
-
-            // The multi-task folder should also be a folder node
-            assert.strictEqual(dependenciesFolder?.isFolder, true, 'Multi-task folder MUST be a folder node');
-            assert.strictEqual(dependenciesFolder?.label, 'Samples/.../Dependencies');
-            assert.strictEqual(dependenciesFolder?.children.length, 2, 'Dependencies folder should have 2 tasks');
+            // Dependencies should be a CHILD of CreateDb, not a sibling
+            assert.strictEqual(createDb.subdirs.length, 1, 'CreateDb should have 1 subdir');
+            const deps = createDb.subdirs[0];
+            assert.ok(deps !== undefined);
+            assert.ok(deps.dir.endsWith('Dependencies'), `Subdir should be Dependencies, got: ${deps.dir}`);
+            assert.strictEqual(deps.tasks.length, 2, 'Dependencies should have 2 tasks');
         });
 
-        test('multiple single-task folders should all be wrapped in folder nodes', () => {
+        test('unrelated directories should remain flat siblings', () => {
             const tasks = [
-                createMockTask({ id: 'a', label: 'build.sh', category: 'Samples/build' }),
-                createMockTask({ id: 'b', label: 'deploy.sh', category: 'Samples/deploy' }),
-                createMockTask({ id: 'c', label: 'test.sh', category: 'Samples/test' })
+                createMockTask({
+                    id: 'a',
+                    label: 'build.sh',
+                    filePath: path.join(WORKSPACE, 'Samples', 'build', 'build.sh')
+                }),
+                createMockTask({
+                    id: 'b',
+                    label: 'deploy.sh',
+                    filePath: path.join(WORKSPACE, 'Samples', 'deploy', 'deploy.sh')
+                }),
+                createMockTask({
+                    id: 'c',
+                    label: 'test.sh',
+                    filePath: path.join(WORKSPACE, 'Other', 'test', 'test.sh')
+                })
             ];
 
-            const root = buildCategoryWithFolders(tasks);
+            const groups = groupByFullDir(tasks, WORKSPACE);
+            const tree = buildDirTree(groups);
 
-            assert.strictEqual(root.children.length, 3, 'Should have 3 folder children');
-            for (const child of root.children) {
-                assert.strictEqual(
-                    child.isFolder, true,
-                    `"${child.label}" MUST be a folder node when multiple folders exist`
-                );
-                assert.strictEqual(child.children.length, 1, 'Each folder should have 1 task');
+            // All in different unrelated dirs, should be 3 root nodes
+            assert.strictEqual(tree.length, 3, 'Should have 3 root nodes for unrelated dirs');
+            for (const node of tree) {
+                assert.strictEqual(node.subdirs.length, 0, 'Unrelated dirs should have no subdirs');
             }
+        });
+
+        test('deep nesting with intermediate tasks is handled correctly', () => {
+            const tasks = [
+                createMockTask({
+                    id: 'root',
+                    label: 'root.sh',
+                    filePath: path.join(WORKSPACE, 'src', 'root.sh')
+                }),
+                createMockTask({
+                    id: 'mid',
+                    label: 'mid.sh',
+                    filePath: path.join(WORKSPACE, 'src', 'lib', 'mid.sh')
+                }),
+                createMockTask({
+                    id: 'deep',
+                    label: 'deep.sh',
+                    filePath: path.join(WORKSPACE, 'src', 'lib', 'utils', 'deep.sh')
+                })
+            ];
+
+            const groups = groupByFullDir(tasks, WORKSPACE);
+            const tree = buildDirTree(groups);
+
+            // src is root, lib is child, utils is grandchild
+            assert.strictEqual(tree.length, 1, 'Should have 1 root (src)');
+            const src = tree[0];
+            assert.ok(src !== undefined);
+            assert.strictEqual(src.tasks.length, 1, 'src should have root.sh');
+
+            const lib = src.subdirs[0];
+            assert.ok(lib !== undefined);
+            assert.strictEqual(lib.tasks.length, 1, 'lib should have mid.sh');
+
+            const utils = lib.subdirs[0];
+            assert.ok(utils !== undefined);
+            assert.strictEqual(utils.tasks.length, 1, 'utils should have deep.sh');
         });
     });
 });

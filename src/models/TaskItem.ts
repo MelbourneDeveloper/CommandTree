@@ -131,15 +131,15 @@ export class TaskTreeItem extends vscode.TreeItem {
         // Set unique id for proper tree rendering and indentation
         if (task !== null) {
             this.id = task.id;
-            this.contextValue = 'task';
+            this.contextValue = task.tags.includes('quick') ? 'task-quick' : 'task';
             this.tooltip = this.buildTooltip(task);
             this.iconPath = this.getIcon(task.type);
             const tagStr = task.tags.length > 0 ? ` [${task.tags.join(', ')}]` : '';
             this.description = `${task.category}${tagStr}`;
             this.command = {
-                command: 'tasktree.run',
-                title: 'Run Task',
-                arguments: [this]
+                command: 'vscode.open',
+                title: 'Open File',
+                arguments: [vscode.Uri.file(task.filePath)]
             };
         } else if (categoryLabel !== null && categoryLabel !== '') {
             this.id = parentId !== undefined ? `${parentId}/${categoryLabel}` : categoryLabel;
