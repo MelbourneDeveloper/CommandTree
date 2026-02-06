@@ -376,7 +376,7 @@ suite('TagConfig Unit Tests', function () {
     });
 
     // Spec: quick-launch
-    suite('Quick Tasks Logic', () => {
+    suite('Quick Launch Logic', () => {
         /**
          * Tests the logic used in QuickTasksProvider.getChildren()
          */
@@ -397,7 +397,7 @@ suite('TagConfig Unit Tests', function () {
             assert.ok(result.every(t => t.tags.includes('quick')), 'All returned tasks MUST have quick tag');
         });
 
-        test('should return empty when no quick tasks', () => {
+        test('should return empty when no quick commands', () => {
             const tasks = [
                 createMockTask({ tags: ['build'] }),
                 createMockTask({ tags: ['test'] })
@@ -416,7 +416,7 @@ suite('TagConfig Unit Tests', function () {
 
             const result = getQuickTasks(tasks);
 
-            assert.strictEqual(result.length, 2, 'All quick tasks MUST be returned');
+            assert.strictEqual(result.length, 2, 'All quick commands MUST be returned');
         });
     });
 });

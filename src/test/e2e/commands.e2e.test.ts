@@ -264,7 +264,7 @@ suite("Commands and UI E2E Tests", () => {
         "Run should only show for tasks",
       );
 
-      // Star icon: addToQuick (empty star) for non-quick tasks
+      // Star icon: addToQuick (empty star) for non-quick commands
       const addToQuickMenu = itemContextMenus.find(
         (m) =>
           m.command === "commandtree.addToQuick" &&
@@ -273,10 +273,10 @@ suite("Commands and UI E2E Tests", () => {
       );
       assert.ok(
         addToQuickMenu,
-        "addToQuick (empty star) MUST show for non-quick tasks in All Tasks view",
+        "addToQuick (empty star) MUST show for non-quick commands in All Commands view",
       );
 
-      // Star icon: removeFromQuick (filled star) for quick tasks
+      // Star icon: removeFromQuick (filled star) for quick commands
       const removeFromQuickInAllView = itemContextMenus.find(
         (m) =>
           m.command === "commandtree.removeFromQuick" &&
@@ -285,7 +285,7 @@ suite("Commands and UI E2E Tests", () => {
       );
       assert.ok(
         removeFromQuickInAllView,
-        "removeFromQuick (filled star) MUST show for quick tasks in All Tasks view",
+        "removeFromQuick (filled star) MUST show for quick commands in All Commands view",
       );
     });
 
@@ -553,7 +553,7 @@ suite("Commands and UI E2E Tests", () => {
   // NOTE: The following test suites were removed because they contained ILLEGAL patterns:
   // - Error Handling UI: Called executeCommand('commandtree.refresh') and used fake assertions
   // - Tag Commands Integration: Called commands directly with fake assertions
-  // - Quick Tasks Commands Integration: Called commands directly with fake assertions
+  // - Quick Launch Commands Integration: Called commands directly with fake assertions
   // - Run Commands Integration: Called commands directly with fake assertions
   // - Filter Context Behavior: Called executeCommand('commandtree.clearFilter') with fake assertions
   //

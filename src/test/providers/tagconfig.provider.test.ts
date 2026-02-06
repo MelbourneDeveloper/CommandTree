@@ -6,7 +6,7 @@
  * They catch bugs where:
  * - Config loads but tags don't apply
  * - Tags apply but filtering doesn't work
- * - Quick tasks config exists but tasks don't show
+ * - Quick Launch config exists but commands don't show
  *
  * ⛔️⛔️⛔️ E2E TEST RULES ⛔️⛔️⛔️
  *
@@ -283,10 +283,10 @@ suite("Tag Config Integration Tests", () => {
   });
 
   /**
-   * INTEGRATION: Quick Tag -> QuickTasksProvider Display
+   * INTEGRATION: Quick Tag -> Quick Launch Display
    *
    * These tests verify that writing to the "quick" tag in config
-   * causes tasks to automatically appear in QuickTasksProvider.
+   * causes commands to automatically appear in Quick Launch.
    */
   // Spec: quick-launch, user-data-storage
   suite("Quick Tag -> QuickTasksProvider Display", () => {
@@ -311,7 +311,7 @@ suite("Tag Config Integration Tests", () => {
       // WAIT: File watcher should auto-sync BOTH providers
       await sleep(3000);
 
-      // GET QUICK TASKS VIEW (observation only)
+      // GET QUICK LAUNCH VIEW (observation only)
       const quickChildren = quickProvider.getChildren(undefined);
 
       // CRITICAL: Task must appear in quick tasks

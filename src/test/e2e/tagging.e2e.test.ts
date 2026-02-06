@@ -91,7 +91,7 @@ suite("Tag Context Menu E2E Tests", () => {
       );
       assert.ok(
         addTagQuickMenu !== undefined,
-        "addTag MUST also show for quick tasks (task-quick)",
+        "addTag MUST also show for quick commands (task-quick)",
       );
 
       const removeTagQuickMenu = contextMenus.find(
@@ -101,7 +101,7 @@ suite("Tag Context Menu E2E Tests", () => {
       );
       assert.ok(
         removeTagQuickMenu !== undefined,
-        "removeTag MUST also show for quick tasks (task-quick)",
+        "removeTag MUST also show for quick commands (task-quick)",
       );
     });
 

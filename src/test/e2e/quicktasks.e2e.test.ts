@@ -169,7 +169,7 @@ suite("Quick Launch E2E Tests", () => {
 
   // Spec: quick-launch
   suite("Quick Launch Deterministic Ordering", () => {
-    test("quick tasks maintain insertion order", function () {
+    test("quick commands maintain insertion order", function () {
       this.timeout(15000);
 
       writeCommandTreeConfig({
@@ -278,7 +278,7 @@ suite("Quick Launch E2E Tests", () => {
   });
 
   // Spec: quick-launch
-  suite("Quick Tasks Integration", () => {
+  suite("Quick Launch Integration", () => {
     test("config persistence works", function () {
       this.timeout(15000);
 
@@ -289,7 +289,7 @@ suite("Quick Launch E2E Tests", () => {
       assert.ok(quickTags.includes("build"), "Config should have build");
     });
 
-    test("main tree and quick tasks sync on config change", async function () {
+    test("main tree and Quick Launch sync on config change", async function () {
       this.timeout(15000);
 
       writeCommandTreeConfig({ tags: { quick: ["sync-test-task"] } });
@@ -302,7 +302,7 @@ suite("Quick Launch E2E Tests", () => {
   });
 
   // Spec: quick-launch, user-data-storage
-  suite("Quick Tasks File Watching", () => {
+  suite("Quick Launch File Watching", () => {
     test("commandtree.json changes trigger refresh", async function () {
       this.timeout(15000);
 

@@ -1,7 +1,8 @@
 {
   "tags": {
     "quick": [
-      "npm:/Users/christianfindlay/Documents/Code/TaskTree/package.json:build-and-install"
+      "npm:/Users/christianfindlay/Documents/Code/TaskTree/package.json:build-and-install",
+      "npm:/Users/christianfindlay/Documents/Code/TaskTree/website/package.json:dev"
     ],
     "build": [
       "npm:/Users/christianfindlay/Documents/Code/TaskTree/package.json:build-and-install"
