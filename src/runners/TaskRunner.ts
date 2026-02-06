@@ -179,6 +179,8 @@ export class TaskRunner {
             return;
         }
 
+        let fallbackTimer: ReturnType<typeof setTimeout>;
+
         const listener = vscode.window.onDidChangeTerminalShellIntegration(
             ({ terminal: t, shellIntegration }) => {
                 if (t === terminal) {
@@ -189,7 +191,7 @@ export class TaskRunner {
             }
         );
 
-        const fallbackTimer = setTimeout(() => {
+        fallbackTimer = setTimeout(() => {
             listener.dispose();
             terminal.sendText(command);
         }, SHELL_INTEGRATION_TIMEOUT_MS);

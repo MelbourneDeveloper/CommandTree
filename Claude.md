@@ -15,6 +15,7 @@ You are working with many other agents. Make sure there is effective cooperation
 - **No suppressing warnings** - Fix them properly
 - **No REGEX** It is absolutely ⛔️ illegal
 - **Ignoring lints = ⛔️ illegal** - Fix violations immediately
+- **Don't run long runnings tasks** like docker builds, tests. Ask the user to do it!!
 - **No throwing** - Only return `Result<T,E>`
 - **Expressions over assignments** - Prefer const and immutable patterns
 - **Named parameters** - Use object params for functions with 3+ args

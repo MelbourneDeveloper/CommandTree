@@ -1073,6 +1073,81 @@ suite("Command Runner E2E Tests", () => {
     });
   });
 
+  // Spec: command-execution/process-lifecycle
+  suite("Terminal Process Lifecycle", () => {
+    test("long-running command stays alive in terminal", async function () {
+      this.timeout(20000);
+
+      // Close all terminals for clean state
+      for (const t of vscode.window.terminals) {
+        t.dispose();
+      }
+      await sleep(500);
+
+      const task = createMockTaskItem({
+        type: "shell",
+        label: "Long Running Test",
+        command: "sleep 10",
+        cwd: context.workspaceRoot,
+        filePath: path.join(context.workspaceRoot, "scripts/test.sh"),
+      });
+
+      await vscode.commands.executeCommand("commandtree.run", { task });
+      await sleep(4000);
+
+      const terminal = vscode.window.terminals.find((t) =>
+        t.name.includes("Long Running Test"),
+      );
+      assert.ok(
+        terminal !== undefined,
+        "Terminal should exist for long-running command",
+      );
+      assert.strictEqual(
+        terminal.exitStatus,
+        undefined,
+        "Terminal process should still be running (exitStatus must be undefined)",
+      );
+    });
+
+    test("long-running command stays alive in current terminal mode", async function () {
+      this.timeout(20000);
+
+      // Close all terminals for clean state
+      for (const t of vscode.window.terminals) {
+        t.dispose();
+      }
+      await sleep(500);
+
+      const task = createMockTaskItem({
+        type: "shell",
+        label: "Long Running Current Test",
+        command: "sleep 10",
+        cwd: context.workspaceRoot,
+        filePath: path.join(context.workspaceRoot, "scripts/test.sh"),
+      });
+
+      await vscode.commands.executeCommand("commandtree.runInCurrentTerminal", {
+        task,
+      });
+      await sleep(4000);
+
+      assert.ok(
+        vscode.window.terminals.length > 0,
+        "Terminal should exist after running command",
+      );
+      const activeTerminal = vscode.window.activeTerminal;
+      assert.ok(
+        activeTerminal !== undefined,
+        "Should have active terminal",
+      );
+      assert.strictEqual(
+        activeTerminal.exitStatus,
+        undefined,
+        "Terminal process should still be running in current terminal mode",
+      );
+    });
+  });
+
   // Spec: command-execution
   suite("Integration Tests", () => {
     test("full workflow: run command creates terminal", async function () {
