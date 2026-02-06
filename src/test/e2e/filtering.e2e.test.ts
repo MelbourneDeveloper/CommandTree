@@ -86,6 +86,26 @@ suite("Task Filtering E2E Tests", () => {
   });
 
   suite("Tag Configuration File Structure", () => {
+    // Set up expected config at start of this suite to avoid state leakage from other tests
+    const expectedConfig: TagConfig = {
+      tags: {
+        build: [{ label: "build" }, { type: "npm" }],
+        test: [{ label: "test" }, { type: "npm" }],
+        deploy: [{ label: "deploy" }],
+        debug: [{ type: "launch" }],
+        scripts: [{ type: "shell" }],
+        ci: [
+          { type: "npm", label: "lint" },
+          { type: "npm", label: "test" },
+          { type: "npm", label: "build" },
+        ],
+      },
+    };
+
+    suiteSetup(function () {
+      fs.writeFileSync(tagConfigPath, JSON.stringify(expectedConfig, null, 4));
+    });
+
     test("tag configuration file exists in fixtures", function () {
       this.timeout(10000);
 
