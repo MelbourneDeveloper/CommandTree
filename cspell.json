@@ -8,7 +8,8 @@
         "*.vsix",
         ".vscode-test",
         "src/test/fixtures",
-        "package-lock.json"
+        "package-lock.json",
+        "scripts"
     ],
     "words": [
         "tasktree",
@@ -32,7 +33,26 @@
         "cargo",
         "composer",
         "rakefile",
+        "rakefiles",
         "justfile",
-        "dockercompose"
+        "justfiles",
+        "dockercompose",
+        "akefile",
+        "clippy",
+        "findlay",
+        "gradlew",
+        "makefiles",
+        "ollama",
+        "pycache",
+        "quicktask",
+        "quicktasks",
+        "subdirs",
+        "subfolders",
+        "summarise",
+        "summarisation",
+        "venv",
+        "visioncortex",
+        "behaviour",
+        "docstrings"
     ]
 }
