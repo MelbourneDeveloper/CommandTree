@@ -53,6 +53,7 @@
         "venv",
         "visioncortex",
         "behaviour",
-        "docstrings"
+        "docstrings",
+        "subproject"
     ]
 }
