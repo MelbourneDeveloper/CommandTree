@@ -87,7 +87,7 @@ suite("Quick Launch E2E Tests", () => {
 
   // Spec: quick-launch, user-data-storage
   suite("Quick Launch Storage", () => {
-    test("quick tasks are stored in commandtree.json", function () {
+    test("quick commands are stored in commandtree.json", function () {
       this.timeout(10000);
 
       const config: CommandTreeConfig = {
@@ -100,10 +100,10 @@ suite("Quick Launch E2E Tests", () => {
       const savedConfig = readCommandTreeConfig();
       const quickTags = savedConfig.tags?.["quick"];
       assert.ok(quickTags !== undefined, "Should have quick tag");
-      assert.strictEqual(quickTags.length, 2, "Should have 2 quick tasks");
+      assert.strictEqual(quickTags.length, 2, "Should have 2 quick commands");
     });
 
-    test("quick tasks order is preserved", function () {
+    test("quick commands order is preserved", function () {
       this.timeout(10000);
 
       const config: CommandTreeConfig = {
