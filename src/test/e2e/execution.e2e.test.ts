@@ -23,7 +23,7 @@ interface PackageJson {
 }
 
 // Spec: command-execution
-suite("Task Execution E2E Tests", () => {
+suite("Command Execution E2E Tests", () => {
   let context: TestContext;
 
   suiteSetup(async function () {
@@ -423,7 +423,7 @@ suite("Task Execution E2E Tests", () => {
   });
 
   // TODO: No corresponding section in spec
-  suite("Task Execution Error Handling", () => {
+  suite("Command Execution Error Handling", () => {
     test("handles task cancellation gracefully", function () {
       this.timeout(10000);
 
@@ -494,7 +494,7 @@ suite("Task Execution E2E Tests", () => {
   });
 
   // Spec: command-execution/new-terminal
-  suite("Run Task (New Terminal)", () => {
+  suite("Run Command (New Terminal)", () => {
     test("commandtree.run creates a new terminal", async function () {
       this.timeout(15000);
 

@@ -29,7 +29,7 @@ export class CommandTreeProvider implements vscode.TreeDataProvider<CommandTreeI
     }
 
     /**
-     * Refreshes all tasks.
+     * Refreshes all commands.
      */
     async refresh(): Promise<void> {
         await this.tagConfig.load();
@@ -97,7 +97,7 @@ export class CommandTreeProvider implements vscode.TreeDataProvider<CommandTreeI
     }
 
     /**
-     * Adds a task to a tag.
+     * Adds a command to a tag.
      */
     async addTaskToTag(task: TaskItem, tagName: string): Promise<Result<void, string>> {
         const result = await this.tagConfig.addTaskToTag(task, tagName);
@@ -108,7 +108,7 @@ export class CommandTreeProvider implements vscode.TreeDataProvider<CommandTreeI
     }
 
     /**
-     * Removes a task from a tag.
+     * Removes a command from a tag.
      */
     async removeTaskFromTag(task: TaskItem, tagName: string): Promise<Result<void, string>> {
         const result = await this.tagConfig.removeTaskFromTag(task, tagName);
@@ -119,7 +119,7 @@ export class CommandTreeProvider implements vscode.TreeDataProvider<CommandTreeI
     }
 
     /**
-     * Gets all discovered tasks (without filters applied).
+     * Gets all discovered commands (without filters applied).
      */
     getAllTasks(): TaskItem[] {
         return this.tasks;
@@ -256,7 +256,7 @@ export class CommandTreeProvider implements vscode.TreeDataProvider<CommandTreeI
     }
 
     /**
-     * Builds a category with tasks grouped into nested folder hierarchy.
+     * Builds a category with commands grouped into nested folder hierarchy.
      */
     private buildCategoryWithFolders(name: string, tasks: TaskItem[]): CommandTreeItem {
         const children = buildNestedFolderItems({
@@ -288,7 +288,7 @@ export class CommandTreeProvider implements vscode.TreeDataProvider<CommandTreeI
     }
 
     /**
-     * Sorts tasks based on the configured sort order.
+     * Sorts commands based on the configured sort order.
      */
     private sortTasks(tasks: TaskItem[]): TaskItem[] {
         const sortOrder = this.getSortOrder();

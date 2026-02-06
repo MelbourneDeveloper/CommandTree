@@ -485,11 +485,11 @@ suite("Tag Config Integration Tests", () => {
   });
 
   /**
-   * INTEGRATION: Multiple Tags on Same Task
+   * INTEGRATION: Multiple Tags on Same Command
    */
   // Spec: tagging/pattern-syntax
-  suite("Multiple Tags on Same Task", () => {
-    test("INTEGRATION: Task can have multiple tags from different patterns", async function () {
+  suite("Multiple Tags on Same Command", () => {
+    test("INTEGRATION: Command can have multiple tags from different patterns", async function () {
       this.timeout(30000);
 
       // SETUP: Write config with multiple patterns that match the same task

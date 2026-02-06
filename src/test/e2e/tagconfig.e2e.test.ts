@@ -1,11 +1,11 @@
 /**
  * Spec: tagging/config-file, quick-launch
- * E2E TESTS for TagConfig -> Task Tagging -> Filtering Flow
+ * E2E TESTS for TagConfig -> Command Tagging -> Filtering Flow
  *
  * Tests the COMPLETE flow through VS Code:
  * - Write config file
  * - File watcher auto-syncs
- * - Tags applied to tasks
+ * - Tags applied to commands
  * - Filtering works correctly
  */
 

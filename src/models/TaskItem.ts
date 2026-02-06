@@ -38,7 +38,7 @@ export function err<E>(error: E): Err<E> {
 }
 
 /**
- * Task type identifiers.
+ * Command type identifiers.
  */
 export type TaskType =
     | 'shell'
@@ -60,7 +60,7 @@ export type TaskType =
     | 'docker';
 
 /**
- * Parameter definition for tasks requiring input.
+ * Parameter definition for commands requiring input.
  */
 export interface ParamDef {
     readonly name: string;
@@ -80,7 +80,7 @@ export interface MutableParamDef {
 }
 
 /**
- * Represents a discovered task.
+ * Represents a discovered command.
  */
 export interface TaskItem {
     readonly id: string;
@@ -96,7 +96,7 @@ export interface TaskItem {
 }
 
 /**
- * Mutable task item for building during discovery.
+ * Mutable command item for building during discovery.
  */
 export interface MutableTaskItem {
     id: string;
@@ -297,7 +297,7 @@ export function simplifyPath(filePath: string, workspaceRoot: string): string {
 }
 
 /**
- * Generates a unique ID for a task.
+ * Generates a unique ID for a command.
  */
 export function generateTaskId(type: TaskType, filePath: string, name: string): string {
     return `${type}:${filePath}:${name}`;

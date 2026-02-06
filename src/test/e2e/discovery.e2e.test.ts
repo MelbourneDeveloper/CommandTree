@@ -2,7 +2,7 @@
  * DISCOVERY E2E TESTS
  * Spec: command-discovery
  *
- * These tests verify that task source files exist with correct structure.
+ * These tests verify that command source files exist with correct structure.
  * They do NOT call internal provider methods.
  *
  * For unit tests that test provider internals, see discovery.unit.test.ts
@@ -16,7 +16,7 @@ interface PackageJson {
   scripts?: Record<string, string>;
 }
 
-suite("Task Discovery E2E Tests", () => {
+suite("Command Discovery E2E Tests", () => {
   suiteSetup(async function () {
     this.timeout(30000);
     await activateExtension();

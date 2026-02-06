@@ -7,7 +7,7 @@ import { logger } from '../utils/logger';
 type TagDefinition = Record<string, Array<string | TagPattern>>;
 
 /**
- * Structured tag pattern for matching tasks.
+ * Structured tag pattern for matching commands.
  */
 interface TagPattern {
     id?: string;
@@ -20,7 +20,7 @@ interface CommandTreeConfig {
 }
 
 /**
- * Manages task tags from .vscode/commandtree.json
+ * Manages command tags from .vscode/commandtree.json
  */
 export class TagConfig {
     private config: CommandTreeConfig = {};
@@ -54,7 +54,7 @@ export class TagConfig {
     }
 
     /**
-     * Applies tags to a list of tasks based on glob patterns.
+     * Applies tags to a list of commands based on patterns.
      */
     applyTags(tasks: TaskItem[]): TaskItem[] {
         logger.tag('applyTags called', { taskCount: tasks.length });
@@ -140,13 +140,13 @@ export class TagConfig {
     }
 
     /**
-     * Adds a task to a specific tag by adding its full task ID.
-     * Uses the full ID (type:filePath:name) to uniquely identify the task.
+     * Adds a command to a specific tag by adding its full ID.
+     * Uses the full ID (type:filePath:name) to uniquely identify the command.
      */
     async addTaskToTag(task: TaskItem, tagName: string): Promise<Result<void, string>> {
         this.config.tags ??= {};
 
-        // Use the full task ID for unique identification
+        // Use the full command ID for unique identification
         const pattern = task.id;
         const existingPatterns = this.config.tags[tagName] ?? [];
 
@@ -158,15 +158,15 @@ export class TagConfig {
     }
 
     /**
-     * Removes a task from a specific tag.
-     * Uses the full task ID for precise matching.
+     * Removes a command from a specific tag.
+     * Uses the full command ID for precise matching.
      */
     async removeTaskFromTag(task: TaskItem, tagName: string): Promise<Result<void, string>> {
         if (this.config.tags?.[tagName] === undefined) {
             return ok(undefined);
         }
 
-        // Use the full task ID for precise removal
+        // Use the full command ID for precise removal
         const pattern = task.id;
         const patterns = this.config.tags[tagName];
         const filtered = patterns.filter(p => p !== pattern);
@@ -191,15 +191,15 @@ export class TagConfig {
     }
 
     /**
-     * Moves a task to a new position within a tag's pattern list.
-     * Uses the full task ID for precise matching.
+     * Moves a command to a new position within a tag's pattern list.
+     * Uses the full command ID for precise matching.
      */
     async moveTaskInTag(task: TaskItem, tagName: string, newIndex: number): Promise<Result<void, string>> {
         if (this.config.tags?.[tagName] === undefined) {
             return ok(undefined);
         }
 
-        // Use the full task ID for precise matching
+        // Use the full command ID for precise matching
         const pattern = task.id;
         const patterns = [...this.config.tags[tagName]];
         const currentIndex = patterns.findIndex(p => p === pattern);
@@ -235,7 +235,7 @@ export class TagConfig {
     }
 
     /**
-     * Checks if a task matches a string pattern.
+     * Checks if a command matches a string pattern.
      * Supports exact ID match or type:label format.
      */
     private matchesStringPattern(task: TaskItem, pattern: string): boolean {
@@ -256,7 +256,7 @@ export class TagConfig {
     }
 
     /**
-     * Checks if a task matches a structured pattern object.
+     * Checks if a command matches a structured pattern object.
      */
     private matchesPattern(task: TaskItem, pattern: TagPattern): boolean {
         // Match by exact ID if specified

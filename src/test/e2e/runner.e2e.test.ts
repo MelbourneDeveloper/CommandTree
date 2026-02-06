@@ -14,7 +14,7 @@ import type { TestContext } from "../helpers/helpers";
 import type { TaskItem } from "../../models/TaskItem";
 
 // Spec: command-execution
-suite("TaskRunner E2E Tests", () => {
+suite("Command Runner E2E Tests", () => {
   let context: TestContext;
 
   suiteSetup(async function () {
@@ -30,7 +30,7 @@ suite("TaskRunner E2E Tests", () => {
   });
 
   // Spec: command-execution/new-terminal
-  suite("Shell Task Execution", () => {
+  suite("Shell Command Execution", () => {
     test("executes shell task and creates terminal", async function () {
       this.timeout(15000);
 
@@ -127,7 +127,7 @@ suite("TaskRunner E2E Tests", () => {
   });
 
   // Spec: command-execution/new-terminal
-  suite("NPM Task Execution", () => {
+  suite("NPM Command Execution", () => {
     test("npm task execution creates terminal", async function () {
       this.timeout(15000);
 
@@ -196,7 +196,7 @@ suite("TaskRunner E2E Tests", () => {
   });
 
   // Spec: command-execution/new-terminal
-  suite("Make Task Execution", () => {
+  suite("Make Command Execution", () => {
     test("make task creates terminal", async function () {
       this.timeout(15000);
 
@@ -265,7 +265,7 @@ suite("TaskRunner E2E Tests", () => {
   });
 
   // Spec: command-execution/new-terminal
-  suite("Python Task Execution", () => {
+  suite("Python Command Execution", () => {
     test("python task creates terminal", async function () {
       this.timeout(15000);
 
@@ -933,7 +933,7 @@ suite("TaskRunner E2E Tests", () => {
   });
 
   // Spec: command-execution
-  suite("Task Type Routing", () => {
+  suite("Command Type Routing", () => {
     test("shell tasks create terminal with CommandTree prefix", async function () {
       this.timeout(15000);
 

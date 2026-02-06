@@ -12,16 +12,18 @@ function showError(message: string): void {
 }
 
 /**
- * Execution mode for tasks.
+ * Execution mode for commands.
  */
 export type RunMode = 'newTerminal' | 'currentTerminal';
 
+const SHELL_INTEGRATION_TIMEOUT_MS = 3000;
+
 /**
- * Executes tasks based on their type.
+ * Executes commands based on their type.
  */
 export class TaskRunner {
     /**
-     * Runs a task, prompting for parameters if needed.
+     * Runs a command, prompting for parameters if needed.
      */
     async run(task: TaskItem, mode: RunMode = 'newTerminal'): Promise<void> {
         const params = await this.collectParams(task.params);
@@ -120,12 +122,12 @@ export class TaskRunner {
         if (matchingTask !== undefined) {
             await vscode.tasks.executeTask(matchingTask);
         } else {
-            showError(`Task not found: ${task.label}`);
+            showError(`Command not found: ${task.label}`);
         }
     }
 
     /**
-     * Runs a task in a new terminal.
+     * Runs a command in a new terminal.
      */
     private runInNewTerminal(task: TaskItem, params: Map<string, string>): void {
         const command = this.buildCommand(task, params);
@@ -137,11 +139,11 @@ export class TaskRunner {
         }
         const terminal = vscode.window.createTerminal(terminalOptions);
         terminal.show();
-        terminal.sendText(command);
+        this.executeInTerminal(terminal, command);
     }
 
     /**
-     * Runs a task in the current (active) terminal.
+     * Runs a command in the current (active) terminal.
      */
     private runInCurrentTerminal(task: TaskItem, params: Map<string, string>): void {
         const command = this.buildCommand(task, params);
@@ -159,11 +161,38 @@ export class TaskRunner {
 
         terminal.show();
 
-        if (task.cwd !== undefined && task.cwd !== '') {
-            terminal.sendText(`cd "${task.cwd}"`);
+        const fullCommand = task.cwd !== undefined && task.cwd !== ''
+            ? `cd "${task.cwd}" && ${command}`
+            : command;
+
+        this.executeInTerminal(terminal, fullCommand);
+    }
+
+    /**
+     * Executes a command in a terminal using shell integration when available.
+     * Waits for shell integration to activate on new terminals, falling back
+     * to sendText if it doesn't become available within the timeout.
+     */
+    private executeInTerminal(terminal: vscode.Terminal, command: string): void {
+        if (terminal.shellIntegration !== undefined) {
+            terminal.shellIntegration.executeCommand(command);
+            return;
         }
 
-        terminal.sendText(command);
+        const listener = vscode.window.onDidChangeTerminalShellIntegration(
+            ({ terminal: t, shellIntegration }) => {
+                if (t === terminal) {
+                    clearTimeout(fallbackTimer);
+                    listener.dispose();
+                    shellIntegration.executeCommand(command);
+                }
+            }
+        );
+
+        const fallbackTimer = setTimeout(() => {
+            listener.dispose();
+            terminal.sendText(command);
+        }, SHELL_INTEGRATION_TIMEOUT_MS);
     }
 
     /**

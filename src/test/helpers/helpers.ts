@@ -204,12 +204,12 @@ export function createMockTaskItem(overrides: Partial<{
 }> = {}): TaskItem {
     const base = {
         id: overrides.id ?? 'test-task-id',
-        label: overrides.label ?? 'Test Task',
+        label: overrides.label ?? 'Test Command',
         type: overrides.type ?? 'shell',
         command: overrides.command ?? 'echo test',
         filePath: overrides.filePath ?? '/tmp/test.sh',
         category: overrides.category ?? 'Test Category',
-        description: overrides.description ?? 'A test task',
+        description: overrides.description ?? 'A test command',
         params: overrides.params ?? [],
         tags: overrides.tags ?? []
     };

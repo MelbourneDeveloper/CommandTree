@@ -24,7 +24,7 @@ interface TagConfig {
 }
 
 // Spec: filtering
-suite("Task Filtering E2E Tests", () => {
+suite("Command Filtering E2E Tests", () => {
   let originalConfig: string;
   const tagConfigPath = getFixturePath(".vscode/commandtree.json");
 
