@@ -133,7 +133,7 @@ suite("Quick Launch E2E Tests", () => {
       );
     });
 
-    test("empty quick tasks array is valid", function () {
+    test("empty quick commands array is valid", function () {
       this.timeout(10000);
 
       const config: CommandTreeConfig = {
@@ -146,7 +146,7 @@ suite("Quick Launch E2E Tests", () => {
       const savedConfig = readCommandTreeConfig();
       const quickTags = savedConfig.tags?.["quick"];
       assert.ok(Array.isArray(quickTags), "quick should be an array");
-      assert.strictEqual(quickTags.length, 0, "Should have 0 quick tasks");
+      assert.strictEqual(quickTags.length, 0, "Should have 0 quick commands");
     });
 
     test("missing quick tag is handled gracefully", function () {
@@ -168,7 +168,7 @@ suite("Quick Launch E2E Tests", () => {
   });
 
   // Spec: quick-launch
-  suite("Quick Tasks Deterministic Ordering", () => {
+  suite("Quick Launch Deterministic Ordering", () => {
     test("quick tasks maintain insertion order", function () {
       this.timeout(15000);
 
