@@ -24,6 +24,57 @@ export async function selectCopilotModel(): Promise<Result<vscode.LanguageModelC
 }
 
 /**
+ * Collects all streamed text chunks into a single string.
+ */
+async function collectStreamedText(response: vscode.LanguageModelChatResponse): Promise<string> {
+    const chunks: string[] = [];
+    for await (const chunk of response.text) {
+        chunks.push(chunk);
+    }
+    return chunks.join('').trim();
+}
+
+/**
+ * Sends a single user message to the model and returns the full response.
+ */
+async function sendChatRequest(
+    model: vscode.LanguageModelChat,
+    prompt: string
+): Promise<Result<string, string>> {
+    try {
+        const messages = [vscode.LanguageModelChatMessage.User(prompt)];
+        const response = await model.sendRequest(messages, {}, new vscode.CancellationTokenSource().token);
+        return ok(await collectStreamedText(response));
+    } catch (e) {
+        const message = e instanceof Error ? e.message : 'LLM request failed';
+        return err(message);
+    }
+}
+
+/**
+ * Builds the prompt for script summarisation.
+ */
+function buildSummaryPrompt(params: {
+    readonly type: string;
+    readonly label: string;
+    readonly command: string;
+    readonly content: string;
+}): string {
+    const truncated = params.content.length > MAX_CONTENT_LENGTH
+        ? params.content.substring(0, MAX_CONTENT_LENGTH)
+        : params.content;
+
+    return [
+        `Summarise this ${params.type} command in 1-2 sentences.`,
+        `Name: ${params.label}`,
+        `Command: ${params.command}`,
+        '',
+        'Script content:',
+        truncated
+    ].join('\n');
+}
+
+/**
  * Generates a plain-language summary for a script.
  */
 export async function summariseScript(params: {
@@ -33,52 +84,47 @@ export async function summariseScript(params: {
     readonly command: string;
     readonly content: string;
 }): Promise<Result<string, string>> {
-    const truncated = params.content.length > MAX_CONTENT_LENGTH
-        ? params.content.substring(0, MAX_CONTENT_LENGTH)
-        : params.content;
+    const prompt = buildSummaryPrompt(params);
+    const result = await sendChatRequest(params.model, prompt);
 
-    const prompt = [
-        `Summarise this ${params.type} command in 1-2 sentences.`,
-        `Name: ${params.label}`,
-        `Command: ${params.command}`,
-        '',
-        'Script content:',
-        truncated
-    ].join('\n');
-
-    const messages = [
-        vscode.LanguageModelChatMessage.User(prompt)
-    ];
-
-    try {
-        const response = await params.model.sendRequest(
-            messages,
-            {},
-            new vscode.CancellationTokenSource().token
-        );
-
-        const chunks: string[] = [];
-        for await (const chunk of response.text) {
-            chunks.push(chunk);
-        }
-        const summary = chunks.join('').trim();
-
-        if (summary === '') {
-            return err('Empty summary returned');
-        }
-
-        logger.info('Generated summary', { label: params.label, summary });
-        return ok(summary);
-    } catch (e) {
-        const message = e instanceof Error ? e.message : 'Failed to generate summary';
-        logger.error('Summarisation failed', { label: params.label, error: message });
-        return err(message);
+    if (!result.ok) {
+        logger.error('Summarisation failed', { label: params.label, error: result.error });
+        return result;
     }
+    if (result.value === '') {
+        return err('Empty summary returned');
+    }
+
+    logger.info('Generated summary', { label: params.label, summary: result.value });
+    return result;
 }
 
 /**
- * Uses the LLM to rank commands by relevance to a natural language query.
- * Returns command IDs sorted by relevance (most relevant first).
+ * Builds the prompt for relevance ranking.
+ */
+function buildRankingPrompt(
+    query: string,
+    candidates: ReadonlyArray<{ readonly id: string; readonly summary: string }>
+): string {
+    const candidateList = candidates
+        .map((c, i) => `[${i}] ${c.summary}`)
+        .join('\n');
+
+    return [
+        'Given this search query and list of command summaries,',
+        'return ONLY the indices of relevant matches, most relevant first.',
+        'Return just comma-separated numbers, nothing else.',
+        'If nothing matches, return "none".',
+        '',
+        `Query: "${query}"`,
+        '',
+        'Commands:',
+        candidateList
+    ].join('\n');
+}
+
+/**
+ * Uses the LLM to rank commands by relevance to a query.
  */
 export async function rankByRelevance(params: {
     readonly model: vscode.LanguageModelChat;
@@ -89,50 +135,18 @@ export async function rankByRelevance(params: {
         return ok([]);
     }
 
-    const candidateList = params.candidates
-        .map((c, i) => `[${i}] ${c.summary}`)
-        .join('\n');
+    const prompt = buildRankingPrompt(params.query, params.candidates);
+    const result = await sendChatRequest(params.model, prompt);
 
-    const prompt = [
-        'Given this search query and list of command summaries,',
-        'return ONLY the indices of relevant matches, most relevant first.',
-        'Return just comma-separated numbers, nothing else.',
-        'If nothing matches, return "none".',
-        '',
-        `Query: "${params.query}"`,
-        '',
-        'Commands:',
-        candidateList
-    ].join('\n');
-
-    const messages = [
-        vscode.LanguageModelChatMessage.User(prompt)
-    ];
-
-    try {
-        const response = await params.model.sendRequest(
-            messages,
-            {},
-            new vscode.CancellationTokenSource().token
-        );
-
-        const chunks: string[] = [];
-        for await (const chunk of response.text) {
-            chunks.push(chunk);
-        }
-        const result = chunks.join('').trim();
-
-        if (result === 'none' || result === '') {
-            return ok([]);
-        }
-
-        const ids = parseRankedIndices(result, params.candidates);
-        return ok(ids);
-    } catch (e) {
-        const message = e instanceof Error ? e.message : 'Failed to rank results';
-        logger.error('Ranking failed', { query: params.query, error: message });
-        return err(message);
+    if (!result.ok) {
+        logger.error('Ranking failed', { query: params.query, error: result.error });
+        return result;
     }
+    if (result.value === 'none' || result.value === '') {
+        return ok([]);
+    }
+
+    return ok(parseRankedIndices(result.value, params.candidates));
 }
 
 /**
@@ -146,8 +160,7 @@ function parseRankedIndices(
     const parts = response.split(',');
 
     for (const part of parts) {
-        const trimmed = part.trim();
-        const index = parseInt(trimmed, 10);
+        const index = parseInt(part.trim(), 10);
         if (!isNaN(index) && index >= 0 && index < candidates.length) {
             const candidate = candidates[index];
             if (candidate !== undefined) {

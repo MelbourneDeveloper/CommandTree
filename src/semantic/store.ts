@@ -41,7 +41,7 @@ export function needsUpdate(
     record: SummaryRecord | undefined,
     currentHash: string
 ): boolean {
-    return record === undefined || record.contentHash !== currentHash;
+    return record?.contentHash !== currentHash;
 }
 
 /**

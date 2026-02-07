@@ -93,6 +93,7 @@ export interface TaskItem {
     readonly tags: readonly string[];
     readonly params?: readonly ParamDef[];
     readonly description?: string;
+    readonly summary?: string;
 }
 
 /**
@@ -109,6 +110,7 @@ export interface MutableTaskItem {
     tags: string[];
     params?: ParamDef[];
     description?: string;
+    summary?: string;
 }
 
 /**
@@ -151,6 +153,10 @@ export class CommandTreeItem extends vscode.TreeItem {
     private buildTooltip(task: TaskItem): vscode.MarkdownString {
         const md = new vscode.MarkdownString();
         md.appendMarkdown(`**${task.label}**\n\n`);
+        if (task.summary !== undefined && task.summary !== '') {
+            md.appendMarkdown(`> ${task.summary}\n\n`);
+            md.appendMarkdown(`---\n\n`);
+        }
         md.appendMarkdown(`Type: \`${task.type}\`\n\n`);
         md.appendMarkdown(`Command: \`${task.command}\`\n\n`);
         if (task.cwd !== undefined && task.cwd !== '') {

@@ -222,10 +222,8 @@ CommandTree stores workspace-specific data in `.vscode/commandtree.json`. This f
 
 ---
 
-## Semantic Search (FUTURE FEATURE)
+## Semantic Search
 **semantic-search**
-
-> **FUTURE FEATURE** — This section describes a planned feature that is **not currently being implemented**. It is included here for design reference only.
 
 ### Overview
 **semantic-search/overview**

@@ -4,7 +4,7 @@ import type { CommandTreeItem } from './models/TaskItem';
 import { TaskRunner } from './runners/TaskRunner';
 import { QuickTasksProvider } from './QuickTasksProvider';
 import { logger } from './utils/logger';
-import { promptOptIn, isAiEnabled, summariseAllTasks, semanticSearch } from './semantic';
+import { isAiEnabled, summariseAllTasks, semanticSearch } from './semantic';
 
 let treeProvider: CommandTreeProvider;
 let quickTasksProvider: QuickTasksProvider;
@@ -222,6 +222,13 @@ export async function activate(context: vscode.ExtensionContext): Promise<Extens
         });
         await quickTasksProvider.updateTasks(allTasks);
         logger.info('syncQuickTasks END');
+
+        // Re-summarise if AI summaries enabled
+        if (isAiEnabled()) {
+            runSummarisation(workspaceRoot).catch((e: unknown) => {
+                logger.error('Re-summarisation failed', { error: e instanceof Error ? e.message : 'Unknown' });
+            });
+        }
     };
 
     watcher.onDidChange(syncQuickTasks);
@@ -268,21 +275,15 @@ async function pickOrCreateTag(existingTags: string[], taskLabel: string): Promi
     });
 }
 
-function initAiSummaries(context: vscode.ExtensionContext, workspaceRoot: string): void {
-    promptOptIn(context).then(async (enabled) => {
-        if (!enabled) {
-            return;
-        }
-        await vscode.commands.executeCommand('setContext', 'commandtree.aiSummariesEnabled', true);
-        await runSummarisation(workspaceRoot);
-    }, (e: unknown) => {
-        logger.error('AI summaries init failed', { error: e instanceof Error ? e.message : 'Unknown' });
-    });
-
-    // Also set context if already enabled (no prompt needed)
-    if (isAiEnabled()) {
-        vscode.commands.executeCommand('setContext', 'commandtree.aiSummariesEnabled', true);
+function initAiSummaries(_context: vscode.ExtensionContext, workspaceRoot: string): void {
+    if (!isAiEnabled()) {
+        return;
     }
+
+    vscode.commands.executeCommand('setContext', 'commandtree.aiSummariesEnabled', true);
+    runSummarisation(workspaceRoot).catch((e: unknown) => {
+        logger.error('AI summarisation failed', { error: e instanceof Error ? e.message : 'Unknown' });
+    });
 }
 
 async function runSummarisation(workspaceRoot: string): Promise<void> {

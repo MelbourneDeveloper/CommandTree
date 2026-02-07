@@ -6,6 +6,8 @@ import { discoverAllTasks, flattenTasks, getExcludePatterns } from './discovery'
 import { TagConfig } from './config/TagConfig';
 import { logger } from './utils/logger';
 import { buildNestedFolderItems } from './tree/folderTree';
+import { readSummaryStore, getAllRecords } from './semantic/store';
+import type { SummaryRecord } from './semantic/store';
 
 type SortOrder = 'folder' | 'name' | 'type';
 
@@ -21,6 +23,7 @@ export class CommandTreeProvider implements vscode.TreeDataProvider<CommandTreeI
     private textFilter = '';
     private tagFilter: string | null = null;
     private semanticFilter: string[] | null = null;
+    private summaries: ReadonlyMap<string, SummaryRecord> = new Map();
     private readonly tagConfig: TagConfig;
     private readonly workspaceRoot: string;
 
@@ -37,7 +40,40 @@ export class CommandTreeProvider implements vscode.TreeDataProvider<CommandTreeI
         const excludePatterns = getExcludePatterns();
         this.discoveryResult = await discoverAllTasks(this.workspaceRoot, excludePatterns);
         this.tasks = this.tagConfig.applyTags(flattenTasks(this.discoveryResult));
+        await this.loadSummaries();
+        this.tasks = this.attachSummaries(this.tasks);
         this._onDidChangeTreeData.fire(undefined);
+    }
+
+    /**
+     * Loads summaries from the store file into memory.
+     */
+    private async loadSummaries(): Promise<void> {
+        const result = await readSummaryStore(this.workspaceRoot);
+        if (!result.ok) {
+            return;
+        }
+        const map = new Map<string, SummaryRecord>();
+        for (const record of getAllRecords(result.value)) {
+            map.set(record.commandId, record);
+        }
+        this.summaries = map;
+    }
+
+    /**
+     * Attaches loaded summaries to task items for tooltip display.
+     */
+    private attachSummaries(tasks: TaskItem[]): TaskItem[] {
+        if (this.summaries.size === 0) {
+            return tasks;
+        }
+        return tasks.map(task => {
+            const record = this.summaries.get(task.id);
+            if (record === undefined) {
+                return task;
+            }
+            return { ...task, summary: record.summary };
+        });
     }
 
     /**
