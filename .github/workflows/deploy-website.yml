@@ -34,8 +34,6 @@ jobs:
       - name: Build site
         run: npm run build
         working-directory: website
-        env:
-          PATH_PREFIX: /CommandTree/
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
