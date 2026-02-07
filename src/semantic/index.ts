@@ -202,8 +202,8 @@ async function findPending(tasks: readonly TaskItem[]): Promise<PendingItem[]> {
         const content = await readTaskContent(task);
         const hash = computeContentHash(content);
         const existing = getRow({ handle: dbResult.value, commandId: task.id });
-        const needsWork = !existing.ok || existing.value === undefined
-            || existing.value.contentHash !== hash
+        const needsWork = !existing.ok
+            || existing.value?.contentHash !== hash
             || existing.value.embedding === null;
         if (needsWork) {
             pending.push({ task, content, hash });

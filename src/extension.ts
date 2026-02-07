@@ -195,8 +195,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<Extens
             await quickTasksProvider.updateTasks(treeProvider.getAllTasks());
         }),
 
-        vscode.commands.registerCommand('commandtree.semanticSearch', async () => {
-            const query = await vscode.window.showInputBox({
+        vscode.commands.registerCommand('commandtree.semanticSearch', async (queryArg?: string) => {
+            const query = queryArg ?? await vscode.window.showInputBox({
                 prompt: 'Describe what you are looking for',
                 placeHolder: 'e.g. "deploy to staging", "run tests"'
             });

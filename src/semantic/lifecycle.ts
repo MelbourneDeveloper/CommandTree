@@ -25,22 +25,22 @@ let embedderHandle: EmbedderHandle | null = null;
 async function doInitDb(workspaceRoot: string): Promise<Result<DbHandle, string>> {
     const dbPath = path.join(workspaceRoot, COMMANDTREE_DIR, DB_FILENAME);
     const openResult = await openDatabase(dbPath);
-    if (!openResult.ok) {
-        dbPromise = null;
-        return openResult;
-    }
+    if (!openResult.ok) { return openResult; }
 
     const opened = openResult.value;
     const schemaResult = initSchema(opened);
     if (!schemaResult.ok) {
         closeDatabase(opened);
-        dbPromise = null;
         return err(schemaResult.error);
     }
 
-    dbHandle = opened;
     logger.info('SQLite database initialised', { path: dbPath });
     return ok(opened);
+}
+
+function applyDbResult(result: Result<DbHandle, string>): Result<DbHandle, string> {
+    if (result.ok) { dbHandle = result.value; } else { dbPromise = null; }
+    return result;
 }
 
 /**
@@ -50,8 +50,8 @@ export async function initDb(workspaceRoot: string): Promise<Result<DbHandle, st
     if (dbHandle !== null) {
         return ok(dbHandle);
     }
-    dbPromise ??= doInitDb(workspaceRoot);
-    return dbPromise;
+    dbPromise ??= doInitDb(workspaceRoot).then(applyDbResult);
+    return await dbPromise;
 }
 
 /**
@@ -71,30 +71,26 @@ async function doCreateEmbedder(params: {
     const embedderParams = params.onProgress !== undefined
         ? { modelCacheDir: modelDir, onProgress: params.onProgress }
         : { modelCacheDir: modelDir };
-    const result = await createEmbedder(embedderParams);
+    return await createEmbedder(embedderParams);
+}
 
-    if (result.ok) {
-        embedderHandle = result.value;
-    } else {
-        embedderPromise = null;
-    }
+function applyEmbedderResult(result: Result<EmbedderHandle, string>): Result<EmbedderHandle, string> {
+    if (result.ok) { embedderHandle = result.value; } else { embedderPromise = null; }
     return result;
 }
 
 /**
  * Gets or creates the embedder singleton.
  */
-export function getOrCreateEmbedder(params: {
+export async function getOrCreateEmbedder(params: {
     readonly workspaceRoot: string;
     readonly onProgress?: (progress: unknown) => void;
 }): Promise<Result<EmbedderHandle, string>> {
     if (embedderHandle !== null) {
-        return Promise.resolve(ok(embedderHandle));
+        return ok(embedderHandle);
     }
-    if (embedderPromise === null) {
-        embedderPromise = doCreateEmbedder(params);
-    }
-    return embedderPromise;
+    embedderPromise ??= doCreateEmbedder(params).then(applyEmbedderResult);
+    return await embedderPromise;
 }
 
 /**
