@@ -230,7 +230,11 @@ CommandTree stores workspace-specific data in `.vscode/commandtree.json`. This f
 ### Overview
 **semantic-search/overview**
 
-CommandTree will use an LLM to generate a plain-language summary of what each discovered script does. These summaries, along with vector embeddings of the script content and summary, are stored in a local database. This enables **semantic search**: users can describe what they want in natural language and find the right script without knowing its exact name or path.
+CommandTree will use the agent to generate a plain-language summary of what each discovered script does. These summaries, along with vector embeddings of the script content and summary, are stored in a local database. This enables **semantic search**: users can describe what they want in natural language and find the right script without knowing its exact name or path.
+
+More importantly, hovering over any script in the tree displays the summary prominantly
+
+Summaries get updated whenever the script changes. This is triggered through a file watch. When updates occur, the user must be notified of the agent usage
 
 ### LLM Integration
 **semantic-search/llm-integration**
@@ -239,12 +243,16 @@ The preferred integration path is **GitHub Copilot** via the VS Code Language Mo
 
 **Opt-in flow:**
 
+⛔️ IGNORE FOR NOW. Will implement later.
+
 1. On first workspace load (or when the user enables the feature), CommandTree shows a simple prompt:
    > *"Would you like to use GitHub Copilot to summarise scripts in your workspace?"*
 2. If the user accepts, CommandTree uses `vscode.lm.selectChatModels({ vendor: 'copilot' })` to access a lightweight model (e.g. `gpt-4o-mini`) for summarisation. The VS Code API handles Copilot authentication and consent automatically.
 3. If the user declines, the feature remains **dormant**. No summaries are generated, and the extension behaves as before. The user can enable it later via settings.
 
 **Alternative providers:**
+
+⛔️ IGNORE FOR NOW. Will implement later.
 
 If the user chooses not to use GitHub copilot, or it is not available (no subscription, offline environment, user preference), the user can configure an alternative LLM provider at any time.
 

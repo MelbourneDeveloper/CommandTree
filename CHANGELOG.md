@@ -2,6 +2,13 @@
 
 ## 0.4.0
 
+### Added
+
+- Semantic search: LLM-powered summaries of discovered scripts via GitHub Copilot
+- Opt-in prompt on first load to enable AI-powered command summarisation
+- Natural-language search in the filter bar using script summaries
+- Summary persistence in `.vscode/commandtree.json` with content-hash change detection
+
 ### Fixed
 
 - Corrected homepage link to commandtree.dev in package.json and README

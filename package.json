@@ -119,6 +119,15 @@
         "command": "commandtree.removeTag",
         "title": "Remove Tag",
         "icon": "$(close)"
+      },
+      {
+        "command": "commandtree.semanticSearch",
+        "title": "Semantic Search",
+        "icon": "$(sparkle)"
+      },
+      {
+        "command": "commandtree.generateSummaries",
+        "title": "Generate AI Summaries"
       }
     ],
     "menus": {
@@ -139,9 +148,14 @@
           "group": "navigation@3"
         },
         {
+          "command": "commandtree.semanticSearch",
+          "when": "view == commandtree && commandtree.aiSummariesEnabled",
+          "group": "navigation@4"
+        },
+        {
           "command": "commandtree.refresh",
           "when": "view == commandtree",
-          "group": "navigation@4"
+          "group": "navigation@5"
         },
         {
           "command": "commandtree.filter",
@@ -352,6 +366,11 @@
             "Sort by command type, then alphabetically by name"
           ],
           "description": "How to sort commands within categories"
+        },
+        "commandtree.enableAiSummaries": {
+          "type": "boolean",
+          "default": false,
+          "description": "Use GitHub Copilot to generate plain-language summaries of scripts, enabling semantic search"
         }
       }
     },

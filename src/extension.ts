@@ -4,6 +4,7 @@ import type { CommandTreeItem } from './models/TaskItem';
 import { TaskRunner } from './runners/TaskRunner';
 import { QuickTasksProvider } from './QuickTasksProvider';
 import { logger } from './utils/logger';
+import { promptOptIn, isAiEnabled, summariseAllTasks, semanticSearch } from './semantic';
 
 let treeProvider: CommandTreeProvider;
 let quickTasksProvider: QuickTasksProvider;
@@ -174,6 +175,35 @@ export async function activate(context: vscode.ExtensionContext): Promise<Extens
 
             await treeProvider.removeTaskFromTag(task, selected.tag);
             await quickTasksProvider.updateTasks(treeProvider.getAllTasks());
+        }),
+
+        vscode.commands.registerCommand('commandtree.semanticSearch', async () => {
+            const query = await vscode.window.showInputBox({
+                prompt: 'Describe what you are looking for',
+                placeHolder: 'e.g. "deploy to staging", "run tests"'
+            });
+
+            if (query === undefined || query === '') {
+                return;
+            }
+
+            const result = await semanticSearch({ query, workspaceRoot });
+            if (!result.ok) {
+                vscode.window.showErrorMessage(`Semantic search failed: ${result.error}`);
+                return;
+            }
+
+            if (result.value.length === 0) {
+                vscode.window.showInformationMessage('No matching commands found');
+                return;
+            }
+
+            treeProvider.setSemanticFilter(result.value);
+            updateFilterContext();
+        }),
+
+        vscode.commands.registerCommand('commandtree.generateSummaries', async () => {
+            await runSummarisation(workspaceRoot);
         })
     );
 
@@ -201,6 +231,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<Extens
 
     // Initial load
     await syncQuickTasks();
+
+    // AI summaries: opt-in prompt and background summarisation
+    initAiSummaries(context, workspaceRoot);
 
     // Export for testing
     return {
@@ -233,6 +266,46 @@ async function pickOrCreateTag(existingTags: string[], taskLabel: string): Promi
         qp.onDidHide(() => { finish(undefined); });
         qp.show();
     });
+}
+
+function initAiSummaries(context: vscode.ExtensionContext, workspaceRoot: string): void {
+    promptOptIn(context).then(async (enabled) => {
+        if (!enabled) {
+            return;
+        }
+        await vscode.commands.executeCommand('setContext', 'commandtree.aiSummariesEnabled', true);
+        await runSummarisation(workspaceRoot);
+    }, (e: unknown) => {
+        logger.error('AI summaries init failed', { error: e instanceof Error ? e.message : 'Unknown' });
+    });
+
+    // Also set context if already enabled (no prompt needed)
+    if (isAiEnabled()) {
+        vscode.commands.executeCommand('setContext', 'commandtree.aiSummariesEnabled', true);
+    }
+}
+
+async function runSummarisation(workspaceRoot: string): Promise<void> {
+    const tasks = treeProvider.getAllTasks();
+    if (tasks.length === 0) {
+        return;
+    }
+
+    logger.info('Starting AI summarisation', { taskCount: tasks.length });
+
+    const result = await summariseAllTasks({
+        tasks,
+        workspaceRoot,
+        onProgress: (done, total) => {
+            logger.info('Summarisation progress', { done, total });
+        }
+    });
+
+    if (result.ok) {
+        vscode.window.showInformationMessage(`CommandTree: Summarised ${tasks.length} commands`);
+    } else {
+        logger.error('Summarisation failed', { error: result.error });
+    }
 }
 
 function updateFilterContext(): void {

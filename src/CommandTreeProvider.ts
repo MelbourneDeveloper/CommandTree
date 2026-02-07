@@ -20,6 +20,7 @@ export class CommandTreeProvider implements vscode.TreeDataProvider<CommandTreeI
     private discoveryResult: DiscoveryResult | null = null;
     private textFilter = '';
     private tagFilter: string | null = null;
+    private semanticFilter: string[] | null = null;
     private readonly tagConfig: TagConfig;
     private readonly workspaceRoot: string;
 
@@ -57,11 +58,20 @@ export class CommandTreeProvider implements vscode.TreeDataProvider<CommandTreeI
     }
 
     /**
+     * Sets semantic filter with ordered command IDs from search.
+     */
+    setSemanticFilter(commandIds: string[]): void {
+        this.semanticFilter = commandIds;
+        this._onDidChangeTreeData.fire(undefined);
+    }
+
+    /**
      * Clears all filters.
      */
     clearFilters(): void {
         this.textFilter = '';
         this.tagFilter = null;
+        this.semanticFilter = null;
         this._onDidChangeTreeData.fire(undefined);
     }
 
@@ -69,7 +79,7 @@ export class CommandTreeProvider implements vscode.TreeDataProvider<CommandTreeI
      * Returns whether any filter is active.
      */
     hasFilter(): boolean {
-        return this.textFilter.length > 0 || this.tagFilter !== null;
+        return this.textFilter.length > 0 || this.tagFilter !== null || this.semanticFilter !== null;
     }
 
     /**
@@ -361,6 +371,13 @@ export class CommandTreeProvider implements vscode.TreeDataProvider<CommandTreeI
                 outputCount: result.length,
                 matchedTasks: result.map(t => ({ id: t.id, label: t.label, tags: t.tags }))
             });
+        }
+
+        // Apply semantic filter
+        if (this.semanticFilter !== null) {
+            const allowedIds = this.semanticFilter;
+            result = result.filter(t => allowedIds.includes(t.id));
+            logger.filter('After semantic filter', { outputCount: result.length });
         }
 
         logger.filter('applyFilters END', { outputCount: result.length });
