@@ -26,7 +26,8 @@ import type { TaskItem } from '../../models/TaskItem';
 
 const COMMANDTREE_DIR = '.commandtree';
 const DB_FILENAME = 'commandtree.sqlite3';
-const MIN_DB_SIZE_BYTES = 8192;
+const MINILM_EMBEDDING_DIM = 384;
+const EMBEDDING_BLOB_BYTES = MINILM_EMBEDDING_DIM * 4;
 const SEARCH_SETTLE_MS = 2000;
 const SHORT_SETTLE_MS = 1000;
 const INPUT_BOX_RENDER_MS = 1000;
@@ -92,6 +93,37 @@ function getTooltipText(item: CommandTreeItem): string {
     return '';
 }
 
+type SqlRow = Record<string, number | bigint | string | Uint8Array | null>;
+
+/**
+ * Opens the SQLite DB artifact directly and checks for REAL embedding BLOBs.
+ * This is black-box: we inspect the file the extension wrote, not internal APIs.
+ */
+async function queryEmbeddingStats(dbPath: string): Promise<{
+    readonly rowCount: number;
+    readonly embeddedCount: number;
+    readonly sampleBlobLength: number;
+}> {
+    const mod = await import('node-sqlite3-wasm');
+    const db = new mod.default.Database(dbPath);
+    try {
+        const total = db.get('SELECT COUNT(*) as cnt FROM embeddings') as SqlRow | null;
+        const embedded = db.get(
+            'SELECT COUNT(*) as cnt FROM embeddings WHERE embedding IS NOT NULL'
+        ) as SqlRow | null;
+        const sample = db.get(
+            'SELECT embedding FROM embeddings WHERE embedding IS NOT NULL LIMIT 1'
+        ) as SqlRow | null;
+        return {
+            rowCount: Number(total?.['cnt'] ?? 0),
+            embeddedCount: Number(embedded?.['cnt'] ?? 0),
+            sampleBlobLength: (sample?.['embedding'] as Uint8Array | undefined)?.length ?? 0
+        };
+    } finally {
+        db.close();
+    }
+}
+
 suite('Vector Embedding Search E2E', () => {
     let provider: CommandTreeProvider;
     let totalTaskCount: number;
@@ -114,6 +146,14 @@ suite('Vector Embedding Search E2E', () => {
         // Trigger the REAL pipeline: Copilot summaries → MiniLM embeddings → SQLite
         await vscode.commands.executeCommand('commandtree.generateSummaries');
         await sleep(5000);
+
+        // Gate: REAL embeddings must exist — fallback-only = suite FAILS
+        const dbPath = getFixturePath(path.join(COMMANDTREE_DIR, DB_FILENAME));
+        const embStats = await queryEmbeddingStats(dbPath);
+        assert.ok(
+            embStats.embeddedCount > 0,
+            `SETUP FAILED: No real embedding BLOBs (${embStats.embeddedCount}/${embStats.rowCount} rows). Fallback is NOT acceptable.`
+        );
     });
 
     suiteTeardown(async function () {
@@ -129,16 +169,21 @@ suite('Vector Embedding Search E2E', () => {
         }
     });
 
-    test('generateSummaries creates SQLite database with embeddings', function () {
-        this.timeout(10000);
+    test('generateSummaries stores REAL embedding BLOBs in SQLite', async function () {
+        this.timeout(15000);
         const dbPath = getFixturePath(path.join(COMMANDTREE_DIR, DB_FILENAME));
-        assert.ok(fs.existsSync(dbPath), 'SQLite database should exist');
+        assert.ok(fs.existsSync(dbPath), 'SQLite database must exist');
 
-        const stats = fs.statSync(dbPath);
-        assert.ok(stats.size > 0, 'SQLite database should not be empty');
+        const stats = await queryEmbeddingStats(dbPath);
+        assert.ok(stats.rowCount > 0, `DB must have rows, got ${stats.rowCount}`);
         assert.ok(
-            stats.size >= MIN_DB_SIZE_BYTES,
-            `SQLite DB should contain real data (${stats.size} bytes, need >=${MIN_DB_SIZE_BYTES})`
+            stats.embeddedCount > 0,
+            `Rows must have REAL embedding BLOBs (not null), got 0/${stats.rowCount}`
+        );
+        assert.strictEqual(
+            stats.sampleBlobLength,
+            EMBEDDING_BLOB_BYTES,
+            `Embedding must be ${MINILM_EMBEDDING_DIM}-dim (${EMBEDDING_BLOB_BYTES} bytes), got ${stats.sampleBlobLength}`
         );
     });
 

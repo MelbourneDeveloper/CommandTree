@@ -4,7 +4,6 @@ import { ok, err } from '../models/TaskItem';
 import { logger } from '../utils/logger';
 
 const MAX_CONTENT_LENGTH = 4000;
-const FALLBACK_DETAIL_LENGTH = 100;
 const MODEL_RETRY_COUNT = 10;
 const MODEL_RETRY_DELAY_MS = 2000;
 
@@ -122,20 +121,9 @@ export async function summariseScript(params: {
 }
 
 /**
- * Generates a basic summary from script metadata when Copilot is unavailable.
+ * NO FALLBACK SUMMARIES.
+ * Every summary MUST come from a real LLM (Copilot).
+ * Fake metadata strings let tests pass without exercising the real pipeline.
+ * If Copilot is unavailable, summarisation MUST fail — not silently degrade.
  */
-export function buildFallbackSummary(params: {
-    readonly label: string;
-    readonly type: string;
-    readonly command: string;
-    readonly content: string;
-}): string {
-    const lines = params.content.split('\n');
-    const first = lines.find(
-        l => l.trim().length > 0 && !l.startsWith('#!')
-    ) ?? '';
-    const detail = first.trim().substring(0, FALLBACK_DETAIL_LENGTH);
-    const base = `${params.type} command "${params.label}": ${params.command}`;
-    return detail.length > 0 ? `${base}. ${detail}` : base;
-}
 

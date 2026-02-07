@@ -21,10 +21,8 @@ export class QuickTasksProvider implements vscode.TreeDataProvider<CommandTreeIt
     private readonly tagConfig: TagConfig;
     private allTasks: TaskItem[] = [];
 
-    constructor(
-        workspaceRoot: string
-    ) {
-        this.tagConfig = new TagConfig(workspaceRoot);
+    constructor() {
+        this.tagConfig = new TagConfig();
     }
 
     /**

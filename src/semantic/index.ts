@@ -9,7 +9,7 @@ import { ok, err } from '../models/TaskItem';
 import { logger } from '../utils/logger';
 import { readFile } from '../utils/fileUtils';
 import { computeContentHash } from './store';
-import { selectCopilotModel, summariseScript, buildFallbackSummary } from './summariser';
+import { selectCopilotModel, summariseScript } from './summariser';
 import { initDb, getDb, getOrCreateEmbedder, disposeSemantic } from './lifecycle';
 import { getAllRows, upsertRow, getRow, importFromJsonStore } from './db';
 import type { EmbeddingRow } from './db';
@@ -88,21 +88,15 @@ async function readTaskContent(task: TaskItem): Promise<string> {
 }
 
 /**
- * Gets a summary for a task, using Copilot if available, else fallback.
+ * Gets a summary for a task via Copilot.
+ * NO FALLBACK. If Copilot is unavailable, callers MUST NOT reach here.
+ * Fake metadata summaries let tests pass without real AI — that is fraud.
  */
 async function getSummary(params: {
-    readonly model: vscode.LanguageModelChat | null;
+    readonly model: vscode.LanguageModelChat;
     readonly task: TaskItem;
     readonly content: string;
 }): Promise<string | null> {
-    if (params.model === null) {
-        return buildFallbackSummary({
-            label: params.task.label,
-            type: params.task.type,
-            command: params.task.command,
-            content: params.content
-        });
-    }
     const result = await summariseScript({
         model: params.model,
         label: params.task.label,
@@ -115,9 +109,11 @@ async function getSummary(params: {
 
 /**
  * Summarises and embeds a single task, storing in SQLite.
+ * NO FALLBACK: model must be real Copilot, embedding must succeed.
+ * Storing null embeddings lets tests pass via fallbackTextSearch — that is fraud.
  */
 async function processOneTask(params: {
-    readonly model: vscode.LanguageModelChat | null;
+    readonly model: vscode.LanguageModelChat;
     readonly task: TaskItem;
     readonly content: string;
     readonly hash: string;
@@ -126,7 +122,9 @@ async function processOneTask(params: {
     const summary = await getSummary(params);
     if (summary === null) { return ok(undefined); }
 
-    const embedding = await tryEmbed({ text: summary, workspaceRoot: params.workspaceRoot });
+    const embedding = await embedOrFail({ text: summary, workspaceRoot: params.workspaceRoot });
+    if (!embedding.ok) { return err(embedding.error); }
+
     const dbResult = getDb();
     if (!dbResult.ok) { return err(dbResult.error); }
 
@@ -136,33 +134,36 @@ async function processOneTask(params: {
             commandId: params.task.id,
             contentHash: params.hash,
             summary,
-            embedding,
+            embedding: embedding.value,
             lastUpdated: new Date().toISOString()
         }
     });
 }
 
 /**
- * Attempts to embed text, returning null on failure.
+ * Embeds text into a vector. Returns error on failure — NEVER null.
+ * Silently returning null lets rows get stored without embeddings,
+ * which lets search fall to dumb text matching. That is fraud.
  */
-async function tryEmbed(params: {
+async function embedOrFail(params: {
     readonly text: string;
     readonly workspaceRoot: string;
-}): Promise<Float32Array | null> {
+}): Promise<Result<Float32Array, string>> {
     const embedderResult = await getOrCreateEmbedder({
         workspaceRoot: params.workspaceRoot
     });
-    if (!embedderResult.ok) { return null; }
+    if (!embedderResult.ok) { return err(embedderResult.error); }
 
-    const result = await embedText({
+    return await embedText({
         handle: embedderResult.value,
         text: params.text
     });
-    return result.ok ? result.value : null;
 }
 
 /**
  * Summarises all tasks that are new or have changed.
+ * NO FALLBACK: requires real Copilot model. Without it, returns error.
+ * Silently degrading to metadata strings lets tests pass without AI — fraud.
  */
 export async function summariseAllTasks(params: {
     readonly tasks: readonly TaskItem[];
@@ -170,8 +171,7 @@ export async function summariseAllTasks(params: {
     readonly onProgress?: (done: number, total: number) => void;
 }): Promise<Result<number, string>> {
     const modelResult = await selectCopilotModel();
-    const model = modelResult.ok ? modelResult.value : null;
-    if (model === null) { logger.info('Copilot unavailable, using fallback summaries'); }
+    if (!modelResult.ok) { return err(modelResult.error); }
 
     const dbResult = getDb();
     if (!dbResult.ok) { return err(dbResult.error); }
@@ -187,7 +187,7 @@ export async function summariseAllTasks(params: {
 
     for (const item of pending) {
         await processOneTask({
-            model,
+            model: modelResult.value,
             task: item.task,
             content: item.content,
             hash: item.hash,
@@ -230,6 +230,8 @@ async function findPending(tasks: readonly TaskItem[]): Promise<PendingItem[]> {
 
 /**
  * Performs semantic search using cosine similarity on stored embeddings.
+ * NO FALLBACK: if embedder fails, returns error. No dumb text matching.
+ * fallbackTextSearch was string.includes() on metadata — pure fraud.
  */
 export async function semanticSearch(params: {
     readonly query: string;
@@ -243,14 +245,11 @@ export async function semanticSearch(params: {
 
     if (rowsResult.value.length === 0) { return ok([]); }
 
-    const queryEmbedding = await tryEmbed({
+    const embResult = await embedOrFail({
         text: params.query,
         workspaceRoot: params.workspaceRoot
     });
-
-    if (queryEmbedding === null) {
-        return fallbackTextSearch(rowsResult.value, params.query);
-    }
+    if (!embResult.ok) { return err(embResult.error); }
 
     const candidates = rowsResult.value.map(r => ({
         id: r.commandId,
@@ -258,36 +257,13 @@ export async function semanticSearch(params: {
     }));
 
     const ranked = rankBySimilarity({
-        query: queryEmbedding,
+        query: embResult.value,
         candidates,
         topK: SEARCH_TOP_K,
         threshold: SEARCH_SIMILARITY_THRESHOLD
     });
 
-    if (ranked.length === 0) {
-        return fallbackTextSearch(rowsResult.value, params.query);
-    }
-
     return ok(ranked.map(r => r.id));
-}
-
-/**
- * Text search fallback when embedder is unavailable.
- * Matches rows where ALL query words appear in the summary.
- */
-function fallbackTextSearch(
-    rows: readonly EmbeddingRow[],
-    query: string
-): Result<string[], string> {
-    const words = query.toLowerCase().split(' ').filter(w => w.length > 0);
-    if (words.length === 0) { return ok([]); }
-    const matched = rows
-        .filter(r => {
-            const summary = r.summary.toLowerCase();
-            return words.every(w => summary.includes(w));
-        })
-        .map(r => r.commandId);
-    return ok(matched);
 }
 
 /**
@@ -298,3 +274,4 @@ export function getAllEmbeddingRows(): Result<EmbeddingRow[], string> {
     if (!dbResult.ok) { return err(dbResult.error); }
     return getAllRows(dbResult.value);
 }
+

@@ -31,7 +31,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<Extens
     }
     await initSemanticSubsystem(workspaceRoot);
     treeProvider = new CommandTreeProvider(workspaceRoot);
-    quickTasksProvider = new QuickTasksProvider(workspaceRoot);
+    quickTasksProvider = new QuickTasksProvider();
     taskRunner = new TaskRunner();
     registerTreeViews(context);
     registerCommands(context, workspaceRoot);

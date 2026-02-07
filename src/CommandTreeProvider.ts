@@ -55,7 +55,7 @@ export class CommandTreeProvider implements vscode.TreeDataProvider<CommandTreeI
 
     constructor(workspaceRoot: string) {
         this.workspaceRoot = workspaceRoot;
-        this.tagConfig = new TagConfig(workspaceRoot);
+        this.tagConfig = new TagConfig();
     }
 
     /**
@@ -165,7 +165,16 @@ export class CommandTreeProvider implements vscode.TreeDataProvider<CommandTreeI
      * Opens the tag config file.
      */
     async editTags(): Promise<void> {
-        await this.tagConfig.openConfig();
+        const configUri = vscode.Uri.joinPath(
+            vscode.Uri.file(this.workspaceRoot), '.vscode', 'commandtree.json'
+        );
+        try {
+            await vscode.workspace.fs.stat(configUri);
+        } catch {
+            const template = Buffer.from(JSON.stringify({ tags: {} }, null, 4));
+            await vscode.workspace.fs.writeFile(configUri, template);
+        }
+        await vscode.window.showTextDocument(configUri);
     }
 
     /**

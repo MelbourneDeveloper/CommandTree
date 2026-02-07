@@ -3,6 +3,7 @@
   "mochaExplorer.ui": "tdd",
   "mochaExplorer.require": [],
   "typescript.tsserver.experimental.enableProjectDiagnostics": true,
+  "typescript.preferences.reportStyleChecksAsWarnings": false,
   "eslint.lintTask.enable": true,
   "eslint.run": "onType",
   "eslint.probe": ["typescript"],
