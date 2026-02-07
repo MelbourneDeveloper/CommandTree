@@ -2,6 +2,8 @@
 
 **One sidebar. Every command in your workspace.**
 
+**[commandtree.dev](https://commandtree.dev/)**
+
 <p align="center">
   <img src="website/src/assets/images/CommandTree.gif" alt="CommandTree in action" width="780">
 </p>
