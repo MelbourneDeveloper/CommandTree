@@ -4,7 +4,14 @@ import type { CommandTreeItem } from './models/TaskItem';
 import { TaskRunner } from './runners/TaskRunner';
 import { QuickTasksProvider } from './QuickTasksProvider';
 import { logger } from './utils/logger';
-import { isAiEnabled, summariseAllTasks, semanticSearch } from './semantic';
+import {
+    isAiEnabled,
+    summariseAllTasks,
+    semanticSearch,
+    initSemanticStore,
+    disposeSemanticStore,
+    migrateIfNeeded
+} from './semantic';
 
 let treeProvider: CommandTreeProvider;
 let quickTasksProvider: QuickTasksProvider;
@@ -22,6 +29,17 @@ export async function activate(context: vscode.ExtensionContext): Promise<Extens
         logger.warn('No workspace root found, extension not activating');
         return;
     }
+
+    // Initialize semantic search SQLite database in .commandtree/
+    const storeResult = initSemanticStore(workspaceRoot);
+    if (!storeResult.ok) {
+        logger.warn('SQLite init failed, semantic search unavailable', { error: storeResult.error });
+    }
+
+    // Migrate legacy JSON store if present
+    migrateIfNeeded({ workspaceRoot }).catch((e: unknown) => {
+        logger.warn('Migration failed', { error: e instanceof Error ? e.message : 'Unknown' });
+    });
 
     // Initialize providers
     treeProvider = new CommandTreeProvider(workspaceRoot);
@@ -303,7 +321,7 @@ async function runSummarisation(workspaceRoot: string): Promise<void> {
     });
 
     if (result.ok) {
-        vscode.window.showInformationMessage(`CommandTree: Summarised ${tasks.length} commands`);
+        vscode.window.showInformationMessage(`CommandTree: Summarised ${result.value} commands`);
     } else {
         logger.error('Summarisation failed', { error: result.error });
     }
@@ -317,6 +335,6 @@ function updateFilterContext(): void {
     );
 }
 
-export function deactivate(): void {
-    // Cleanup handled by disposables
+export async function deactivate(): Promise<void> {
+    await disposeSemanticStore();
 }

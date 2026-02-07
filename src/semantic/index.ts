@@ -1,25 +1,25 @@
+/**
+ * Semantic search orchestration.
+ * Coordinates LLM summarisation, embedding generation, and SQLite storage.
+ */
+
 import * as vscode from 'vscode';
 import type { TaskItem, Result } from '../models/TaskItem';
 import { ok, err } from '../models/TaskItem';
 import { logger } from '../utils/logger';
 import { readFile } from '../utils/fileUtils';
+import { computeContentHash } from './store';
+import { selectCopilotModel, summariseScript } from './summariser';
+import { initDb, getDb, getOrCreateEmbedder, disposeSemantic } from './lifecycle';
+import { getAllRows, upsertRow, getRow, importFromJsonStore } from './db';
+import type { EmbeddingRow } from './db';
+import { embedText } from './embedder';
+import { rankBySimilarity } from './similarity';
 import {
+    legacyStoreExists,
     readSummaryStore,
-    writeSummaryStore,
-    computeContentHash,
-    needsUpdate,
-    getRecord,
-    upsertRecord,
-    getAllRecords
+    deleteLegacyJsonStore
 } from './store';
-import type { SummaryStoreData, SummaryRecord } from './store';
-import { selectCopilotModel, summariseScript, rankByRelevance } from './summariser';
-
-interface PendingTask {
-    readonly task: TaskItem;
-    readonly content: string;
-    readonly hash: string;
-}
 
 /**
  * Checks if the user has enabled AI summaries.
@@ -31,7 +31,52 @@ export function isAiEnabled(): boolean {
 }
 
 /**
- * Reads script content for a task, returning the file content.
+ * Initialises the semantic search subsystem.
+ */
+export function initSemanticStore(workspaceRoot: string): Result<void, string> {
+    const result = initDb(workspaceRoot);
+    return result.ok ? ok(undefined) : err(result.error);
+}
+
+/**
+ * Disposes all semantic search resources.
+ */
+export async function disposeSemanticStore(): Promise<void> {
+    await disposeSemantic();
+}
+
+/**
+ * Migrates legacy JSON store to SQLite if needed.
+ */
+export async function migrateIfNeeded(params: {
+    readonly workspaceRoot: string;
+}): Promise<Result<void, string>> {
+    const exists = await legacyStoreExists(params.workspaceRoot);
+    if (!exists) { return ok(undefined); }
+
+    const dbResult = getDb();
+    if (!dbResult.ok) { return err(dbResult.error); }
+
+    const storeResult = await readSummaryStore(params.workspaceRoot);
+    if (!storeResult.ok) { return ok(undefined); }
+
+    const importResult = importFromJsonStore({
+        handle: dbResult.value,
+        jsonData: storeResult.value
+    });
+
+    if (!importResult.ok) { return err(importResult.error); }
+
+    logger.info('Migrated JSON store to SQLite', { count: importResult.value });
+    const deleteResult = await deleteLegacyJsonStore(params.workspaceRoot);
+    if (!deleteResult.ok) {
+        logger.warn('Could not delete legacy store', { error: deleteResult.error });
+    }
+    return ok(undefined);
+}
+
+/**
+ * Reads script content for a task.
  */
 async function readTaskContent(task: TaskItem): Promise<string> {
     const uri = vscode.Uri.file(task.filePath);
@@ -40,70 +85,65 @@ async function readTaskContent(task: TaskItem): Promise<string> {
 }
 
 /**
- * Finds tasks that need new or updated summaries.
+ * Summarises and embeds a single task, storing in SQLite.
  */
-async function findTasksToSummarise(
-    tasks: readonly TaskItem[],
-    store: SummaryStoreData
-): Promise<PendingTask[]> {
-    const pending: PendingTask[] = [];
-    for (const task of tasks) {
-        const content = await readTaskContent(task);
-        const hash = computeContentHash(content);
-        if (needsUpdate(getRecord(store, task.id), hash)) {
-            pending.push({ task, content, hash });
-        }
-    }
-    return pending;
-}
-
-/**
- * Summarises a single task and upserts the result into the store.
- */
-async function summariseOne(
-    model: vscode.LanguageModelChat,
-    pending: PendingTask,
-    store: SummaryStoreData
-): Promise<SummaryStoreData> {
-    const result = await summariseScript({
-        model,
-        label: pending.task.label,
-        type: pending.task.type,
-        command: pending.task.command,
-        content: pending.content
+async function processOneTask(params: {
+    readonly model: vscode.LanguageModelChat;
+    readonly task: TaskItem;
+    readonly content: string;
+    readonly hash: string;
+    readonly workspaceRoot: string;
+}): Promise<Result<void, string>> {
+    const summaryResult = await summariseScript({
+        model: params.model,
+        label: params.task.label,
+        type: params.task.type,
+        command: params.task.command,
+        content: params.content
     });
 
-    if (!result.ok) {
-        logger.warn('Skipping task summary', { id: pending.task.id, error: result.error });
-        return store;
+    if (!summaryResult.ok) {
+        logger.warn('Skipping summary', { id: params.task.id });
+        return ok(undefined);
     }
 
-    const record: SummaryRecord = {
-        commandId: pending.task.id,
-        contentHash: pending.hash,
-        summary: result.value,
-        lastUpdated: new Date().toISOString()
-    };
-    return upsertRecord(store, record);
+    const embedding = await tryEmbed({
+        text: summaryResult.value,
+        workspaceRoot: params.workspaceRoot
+    });
+
+    const dbResult = getDb();
+    if (!dbResult.ok) { return err(dbResult.error); }
+
+    return upsertRow({
+        handle: dbResult.value,
+        row: {
+            commandId: params.task.id,
+            contentHash: params.hash,
+            summary: summaryResult.value,
+            embedding,
+            lastUpdated: new Date().toISOString()
+        }
+    });
 }
 
 /**
- * Processes all pending tasks through the LLM, reporting progress.
+ * Attempts to embed text, returning null on failure.
  */
-async function processPending(params: {
-    readonly model: vscode.LanguageModelChat;
-    readonly pending: readonly PendingTask[];
-    readonly store: SummaryStoreData;
-    readonly onProgress?: ((done: number, total: number) => void) | undefined;
-}): Promise<SummaryStoreData> {
-    let store = params.store;
-    let done = 0;
-    for (const item of params.pending) {
-        store = await summariseOne(params.model, item, store);
-        done++;
-        params.onProgress?.(done, params.pending.length);
-    }
-    return store;
+async function tryEmbed(params: {
+    readonly text: string;
+    readonly workspaceRoot: string;
+}): Promise<Float32Array | null> {
+    const embedderResult = await getOrCreateEmbedder({
+        workspaceRoot: params.workspaceRoot
+    });
+    if (!embedderResult.ok) { return null; }
+
+    const result = await embedText({
+        handle: embedderResult.value,
+        text: params.text
+    });
+    return result.ok ? result.value : null;
 }
 
 /**
@@ -113,65 +153,123 @@ export async function summariseAllTasks(params: {
     readonly tasks: readonly TaskItem[];
     readonly workspaceRoot: string;
     readonly onProgress?: (done: number, total: number) => void;
-}): Promise<Result<SummaryStoreData, string>> {
+}): Promise<Result<number, string>> {
     const modelResult = await selectCopilotModel();
     if (!modelResult.ok) { return modelResult; }
 
-    const storeResult = await readSummaryStore(params.workspaceRoot);
-    if (!storeResult.ok) { return storeResult; }
+    const dbResult = getDb();
+    if (!dbResult.ok) { return err(dbResult.error); }
 
-    const pending = await findTasksToSummarise(params.tasks, storeResult.value);
+    const pending = await findPending(params.tasks);
     if (pending.length === 0) {
         logger.info('All summaries up to date');
-        return ok(storeResult.value);
+        return ok(0);
     }
 
     logger.info('Summarising tasks', { count: pending.length });
-    const store = await processPending({
-        model: modelResult.value, pending, store: storeResult.value, onProgress: params.onProgress
-    });
+    let done = 0;
 
-    const writeResult = await writeSummaryStore(params.workspaceRoot, store);
-    if (!writeResult.ok) { return err(writeResult.error); }
-    return ok(store);
+    for (const item of pending) {
+        await processOneTask({
+            model: modelResult.value,
+            task: item.task,
+            content: item.content,
+            hash: item.hash,
+            workspaceRoot: params.workspaceRoot
+        });
+        done++;
+        params.onProgress?.(done, pending.length);
+    }
+
+    return ok(done);
+}
+
+interface PendingItem {
+    readonly task: TaskItem;
+    readonly content: string;
+    readonly hash: string;
 }
 
 /**
- * Performs semantic search using LLM-based relevance ranking.
+ * Finds tasks that need summarisation (new or changed).
+ */
+async function findPending(tasks: readonly TaskItem[]): Promise<PendingItem[]> {
+    const dbResult = getDb();
+    if (!dbResult.ok) { return []; }
+
+    const pending: PendingItem[] = [];
+    for (const task of tasks) {
+        const content = await readTaskContent(task);
+        const hash = computeContentHash(content);
+        const existing = getRow({ handle: dbResult.value, commandId: task.id });
+        const needsWork = !existing.ok || existing.value === undefined
+            || existing.value.contentHash !== hash
+            || existing.value.embedding === null;
+        if (needsWork) {
+            pending.push({ task, content, hash });
+        }
+    }
+    return pending;
+}
+
+/**
+ * Performs semantic search using cosine similarity on stored embeddings.
  */
 export async function semanticSearch(params: {
     readonly query: string;
     readonly workspaceRoot: string;
 }): Promise<Result<string[], string>> {
-    const storeResult = await readSummaryStore(params.workspaceRoot);
-    if (!storeResult.ok) {
-        return storeResult;
+    const dbResult = getDb();
+    if (!dbResult.ok) { return err(dbResult.error); }
+
+    const rowsResult = getAllRows(dbResult.value);
+    if (!rowsResult.ok) { return err(rowsResult.error); }
+
+    if (rowsResult.value.length === 0) { return ok([]); }
+
+    const queryEmbedding = await tryEmbed({
+        text: params.query,
+        workspaceRoot: params.workspaceRoot
+    });
+
+    if (queryEmbedding === null) {
+        return fallbackTextSearch(rowsResult.value, params.query);
     }
 
-    const records = getAllRecords(storeResult.value);
-    if (records.length === 0) {
-        return ok([]);
-    }
+    const candidates = rowsResult.value.map(r => ({
+        id: r.commandId,
+        embedding: r.embedding
+    }));
 
-    const modelResult = await selectCopilotModel();
-    if (!modelResult.ok) {
-        return fallbackTextSearch(records, params.query);
-    }
+    const ranked = rankBySimilarity({
+        query: queryEmbedding,
+        candidates,
+        topK: 20,
+        threshold: 0.3
+    });
 
-    const candidates = records.map(r => ({ id: r.commandId, summary: r.summary }));
-    return await rankByRelevance({ model: modelResult.value, query: params.query, candidates });
+    return ok(ranked.map(r => r.id));
 }
 
 /**
- * Simple text search fallback on summaries when LLM is unavailable.
+ * Text search fallback when embedder is unavailable.
  */
 function fallbackTextSearch(
-    records: readonly SummaryRecord[],
+    rows: readonly EmbeddingRow[],
     query: string
 ): Result<string[], string> {
     const lower = query.toLowerCase();
-    const matched = records
+    const matched = rows
         .filter(r => r.summary.toLowerCase().includes(lower))
         .map(r => r.commandId);
     return ok(matched);
+}
+
+/**
+ * Gets all embedding rows for the CommandTreeProvider to read summaries.
+ */
+export function getAllEmbeddingRows(): Result<EmbeddingRow[], string> {
+    const dbResult = getDb();
+    if (!dbResult.ok) { return err(dbResult.error); }
+    return getAllRows(dbResult.value);
 }

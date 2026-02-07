@@ -10,6 +10,7 @@ You are working with many other agents. Make sure there is effective cooperation
 ## Coding Rules
 
 - **Zero duplication - TOP PRIORITY** - Always search for existing code before adding. Move; don't copy files. Add assertions to tests rather than duplicating tests. AIM FOR LESS CODE!
+- **No string literals** - Named constants only, and it ONE location
 - **Functional style** - Prefer pure functions, avoid classes where possible
 - **No suppressing warnings** - Fix them properly
 - **No REGEX** It is absolutely ⛔️ illegal

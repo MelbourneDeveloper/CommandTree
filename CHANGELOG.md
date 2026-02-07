@@ -5,9 +5,12 @@
 ### Added
 
 - Semantic search: LLM-powered summaries of discovered scripts via GitHub Copilot
-- Opt-in prompt on first load to enable AI-powered command summarisation
-- Natural-language search in the filter bar using script summaries
-- Summary persistence in `.vscode/commandtree-summaries.json` with content-hash change detection
+- Local 384-dimensional vector embeddings via `all-MiniLM-L6-v2` (`@huggingface/transformers`)
+- Cosine similarity ranking for natural-language search in the filter bar
+- SQLite storage for summaries and embeddings via `node-sqlite3-wasm`
+- Automatic migration from legacy JSON store to SQLite on activation
+- Summary persistence with content-hash change detection
+- File watcher re-summarises scripts when they change, with user notification
 
 ### Fixed
 

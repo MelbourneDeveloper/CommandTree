@@ -117,3 +117,58 @@ export function getRecord(
 export function getAllRecords(store: SummaryStoreData): SummaryRecord[] {
     return Object.values(store.records);
 }
+
+/**
+ * Reads the legacy JSON store for migration to SQLite.
+ * Returns empty array if the file does not exist.
+ */
+export async function readLegacyJsonStore(
+    workspaceRoot: string
+): Promise<SummaryRecord[]> {
+    const storePath = path.join(workspaceRoot, '.vscode', STORE_FILENAME);
+    const uri = vscode.Uri.file(storePath);
+
+    try {
+        const bytes = await vscode.workspace.fs.readFile(uri);
+        const content = new TextDecoder().decode(bytes);
+        const parsed = JSON.parse(content) as SummaryStoreData;
+        return Object.values(parsed.records);
+    } catch {
+        return [];
+    }
+}
+
+/**
+ * Deletes the legacy JSON store after successful migration.
+ */
+export async function deleteLegacyJsonStore(
+    workspaceRoot: string
+): Promise<Result<void, string>> {
+    const storePath = path.join(workspaceRoot, '.vscode', STORE_FILENAME);
+    const uri = vscode.Uri.file(storePath);
+
+    try {
+        await vscode.workspace.fs.delete(uri);
+        return ok(undefined);
+    } catch (e) {
+        const msg = e instanceof Error ? e.message : 'Failed to delete legacy store';
+        return err(msg);
+    }
+}
+
+/**
+ * Checks whether the legacy JSON store file exists.
+ */
+export async function legacyStoreExists(
+    workspaceRoot: string
+): Promise<boolean> {
+    const storePath = path.join(workspaceRoot, '.vscode', STORE_FILENAME);
+    const uri = vscode.Uri.file(storePath);
+
+    try {
+        await vscode.workspace.fs.stat(uri);
+        return true;
+    } catch {
+        return false;
+    }
+}

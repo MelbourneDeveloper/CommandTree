@@ -6,8 +6,8 @@ import { discoverAllTasks, flattenTasks, getExcludePatterns } from './discovery'
 import { TagConfig } from './config/TagConfig';
 import { logger } from './utils/logger';
 import { buildNestedFolderItems } from './tree/folderTree';
-import { readSummaryStore, getAllRecords } from './semantic/store';
-import type { SummaryRecord } from './semantic/store';
+import { getAllEmbeddingRows } from './semantic';
+import type { EmbeddingRow } from './semantic/db';
 
 type SortOrder = 'folder' | 'name' | 'type';
 
@@ -23,7 +23,7 @@ export class CommandTreeProvider implements vscode.TreeDataProvider<CommandTreeI
     private textFilter = '';
     private tagFilter: string | null = null;
     private semanticFilter: string[] | null = null;
-    private summaries: ReadonlyMap<string, SummaryRecord> = new Map();
+    private summaries: ReadonlyMap<string, EmbeddingRow> = new Map();
     private readonly tagConfig: TagConfig;
     private readonly workspaceRoot: string;
 
@@ -40,22 +40,22 @@ export class CommandTreeProvider implements vscode.TreeDataProvider<CommandTreeI
         const excludePatterns = getExcludePatterns();
         this.discoveryResult = await discoverAllTasks(this.workspaceRoot, excludePatterns);
         this.tasks = this.tagConfig.applyTags(flattenTasks(this.discoveryResult));
-        await this.loadSummaries();
+        this.loadSummaries();
         this.tasks = this.attachSummaries(this.tasks);
         this._onDidChangeTreeData.fire(undefined);
     }
 
     /**
-     * Loads summaries from the store file into memory.
+     * Loads summaries from SQLite into memory.
      */
-    private async loadSummaries(): Promise<void> {
-        const result = await readSummaryStore(this.workspaceRoot);
+    private loadSummaries(): void {
+        const result = getAllEmbeddingRows();
         if (!result.ok) {
             return;
         }
-        const map = new Map<string, SummaryRecord>();
-        for (const record of getAllRecords(result.value)) {
-            map.set(record.commandId, record);
+        const map = new Map<string, EmbeddingRow>();
+        for (const row of result.value) {
+            map.set(row.commandId, row);
         }
         this.summaries = map;
     }
