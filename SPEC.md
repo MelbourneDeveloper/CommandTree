@@ -16,7 +16,6 @@
   - [Debug](#debug)
 - [Quick Launch](#quick-launch)
 - [Tagging](#tagging)
-  - [Tag Configuration File](#tag-configuration-file)
   - [Pattern Syntax](#pattern-syntax)
   - [Managing Tags](#managing-tags)
 - [Filtering](#filtering)
@@ -29,14 +28,11 @@
   - [Sort Order](#sort-order)
   - [Show Empty Categories](#show-empty-categories)
 - [User Data Storage](#user-data-storage)
-- [Semantic Search](#semantic-search)
-  - [Overview](#overview-1)
-  - [LLM Integration](#llm-integration)
-  - [Embedding Model](#embedding-model)
-  - [Database](#database)
-  - [Migration](#migration)
-  - [Data Structure](#data-structure)
-  - [Search UX](#search-ux)
+- [AI Summaries and Semantic Search](#ai-summaries-and-semantic-search)
+  - [Summary Generation](#summary-generation)
+  - [Embedding Generation](#embedding-generation)
+  - [Database Schema](#database-schema)
+  - [Search Implementation](#search-implementation)
 
 ---
 
@@ -103,38 +99,12 @@ Launches the command using the VS Code debugger. Only applicable to launch confi
 ## Quick Launch
 **quick-launch**
 
-Users can star commands to pin them in a "Quick Launch" panel at the top of the tree view. Starred command identifiers are persisted in the `quick` array inside `.vscode/commandtree.json`:
-
-```json
-{
-  "quick": [
-    "npm:build",
-    "shell:/path/to/project/scripts/deploy.sh:deploy.sh"
-  ]
-}
-```
+Users can star commands to pin them in a "Quick Launch" panel at the top of the tree view. Starred command identifiers are persisted in the as `quick` tags in the db.
 
 ## Tagging
 **tagging**
 
 Tags group related commands for organization and filtering.
-
-### Tag Configuration File
-**tagging/config-file**
-
-Tags are defined in `.vscode/commandtree.json` under the `tags` key:
-
-```json
-{
-  "tags": {
-    "build": ["npm:build", "npm:compile", "make:build"],
-    "test": ["npm:test*", "Test:*"],
-    "ci": ["npm:lint", "npm:test", "npm:build"]
-  }
-}
-```
-
-This file can be committed to version control to share command organization with a team.
 
 ### Pattern Syntax
 **tagging/pattern-syntax**
@@ -156,7 +126,8 @@ This file can be committed to version control to share command organization with
 
 - **Add tag to command**: Right-click a command > "Add Tag" > select existing or create new
 - **Remove tag from command**: Right-click a command > "Remove Tag"
-- **Edit tags file directly**: Command Palette > "CommandTree: Edit Tags Configuration"
+
+All tag assignments are stored in the SQLite database (`tags` table).
 
 ## Filtering
 **filtering**
@@ -217,64 +188,49 @@ All settings are configured via VS Code settings (`Cmd+,` / `Ctrl+,`).
 
 `commandtree.showEmptyCategories` - Whether to display category nodes that contain no discovered commands.
 
+---
+
 ## User Data Storage
 **user-data-storage**
 
-CommandTree stores workspace-specific data in `.vscode/commandtree.json`. This file is automatically created and updated as you use the extension. It holds both Quick Launch pins and tag definitions.
+All workspace-specific data is stored in a local SQLite database at `{workspaceFolder}/.commandtree/commandtree.sqlite3`. This includes Quick Launch pins, tag definitions, AI-generated summaries, and embedding vectors.
 
 ---
 
-## Semantic Search
-**semantic-search**
+## AI Summaries and Semantic Search
+**ai-semantic-search**
 
-### Overview
-**semantic-search/overview**
+GitHub Copilot generates plain-language summaries for each discovered command. Summaries are embedded into 384-dimensional vectors using `all-MiniLM-L6-v2` and stored in SQLite. Users search commands using natural language queries ranked by cosine similarity.
 
-CommandTree uses GitHub Copilot to generate a plain-language summary of what each discovered script does. These summaries are then embedded into 384-dimensional vectors using `all-MiniLM-L6-v2` (via `@huggingface/transformers`) and stored in a local SQLite database (via `node-sqlite3-wasm`). This enables **semantic search**: users can describe what they want in natural language and find the right script without knowing its exact name or path.
+### Summary Generation
+**ai-summary-generation**
 
-Hovering over any script in the tree displays the summary prominently in the tooltip.
+- **LLM**: GitHub Copilot via `vscode.lm` API (stable since VS Code 1.90)
+- **Trigger**: File watch on command files (debounced)
+- **Storage**: Markdown in SQLite `{workspaceFolder}/.commandtree/commandtree.sqlite3`
+- **Display**: Tooltip on hover, includes ⚠️ warning for security issues
+- **Requirement**: GitHub Copilot installed and authenticated
 
-Summaries get updated whenever the script changes. This is triggered through a file watch. When updates occur, the user is notified of the agent usage.
+### Embedding Generation
+**ai-embedding-generation**
 
-- File watch has a decent debounce window because multiple edits could happen rapidly. Some latency on updates is tolerable
-- Summaries are created and stored as markdown
-- Display is native VScode DOM
-- If security warnings in scripts are discovered display a CRITICAL WARNING ⚠️
+- **Model**: `all-MiniLM-L6-v2` via `@huggingface/transformers`
+- **Dimensions**: 384 (Float32)
+- **Size**: ~23 MB, downloaded to `{workspaceFolder}/.commandtree/models/`
+- **Performance**: ~10ms per embedding
+- **Runtime**: Pure JS/WASM, no native binaries
+- **Scope**: Embeds summaries and search queries for consistent vector space
 
-### LLM Integration
-**semantic-search/llm-integration**
+### Database Schema
+**ai-database-schema**
 
-The preferred integration path is **GitHub Copilot** via the VS Code Language Model API (`vscode.lm`), which is stable since VS Code 1.90. Copilot generates plain-language summaries only. It does NOT generate embeddings or perform search ranking.
-
-**Opt-in flow:**
-
-⛔️ IGNORE FOR NOW. Will implement later.
-
-**Alternative providers:**
-
-⛔️ IGNORE FOR NOW. Will implement later.
-
-### Embedding Model
-**semantic-search/embedding-model**
-
-Embeddings are generated locally using `@huggingface/transformers` with the `all-MiniLM-L6-v2` model:
-
-- **384 dimensions** per embedding vector
-- **~23 MB** model, downloaded on first use to `{workspaceFolder}/.commandtree/models/`
-- **~10ms** per embedding on modern hardware
-- **Pure JS/WASM** — no native binaries, works cross-platform
-- Same model embeds both stored summaries and search queries for consistent vector space
-
-VS Code has no stable embedding API (`vscode.lm.computeEmbeddings` is proposed-only and cannot be used in published extensions).
-
-### Database
-**semantic-search/database**
-
-Summary records and vector embeddings are stored in a local SQLite database via `node-sqlite3-wasm`:
-
+**Implementation**: SQLite via `node-sqlite3-wasm`
 - **Location**: `{workspaceFolder}/.commandtree/commandtree.sqlite3`
-- **Pure WASM** — no native compilation, ~1.3 MB, auto file persistence
-- **Synchronous API** — no async overhead for reads
+- **Runtime**: Pure WASM, no native compilation (~1.3 MB)
+- **API**: Synchronous, no async overhead for reads
+- **Persistence**: Automatic file-based storage
+
+**Tables**:
 
 ```sql
 CREATE TABLE IF NOT EXISTS embeddings (
@@ -284,43 +240,31 @@ CREATE TABLE IF NOT EXISTS embeddings (
     embedding BLOB,
     last_updated TEXT NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS tags (
+    tag_name TEXT NOT NULL,
+    command_pattern TEXT NOT NULL,
+    PRIMARY KEY (tag_name, command_pattern)
+);
 ```
 
-The `embedding` column stores 384 Float32 values as a 1536-byte BLOB. It is nullable to support migrated records that haven't been embedded yet.
+**`embeddings` columns**:
+- **`command_id`**: Unique command identifier
+- **`content_hash`**: SHA-256 hash for change detection
+- **`summary`**: Plain-language description (1-3 sentences)
+- **`embedding`**: 384 Float32 values (1536 bytes), nullable
+- **`last_updated`**: ISO 8601 timestamp
 
-### Migration
-**semantic-search/migration**
+**`tags` columns**:
+- **`tag_name`**: Tag identifier (e.g., "quick", "deploy", "test")
+- **`command_pattern`**: Pattern matching commands (e.g., "npm:build", "type:shell:*")
 
-On activation, if a legacy `.vscode/commandtree-summaries.json` file exists, all records are imported into SQLite (with `embedding = NULL`). The JSON file is deleted after successful import. The next summarisation run detects NULL embeddings and generates them.
+### Search Implementation
+**ai-search-implementation**
 
-Quick Launch pins and tag definitions remain in `.vscode/commandtree.json` (migration to SQLite deferred to future work).
+1. User types natural-language query in filter bar (`commandtree.filter`)
+2. Query embedded using `all-MiniLM-L6-v2` (~10ms)
+3. Results ranked by cosine similarity against stored embeddings
+4. Tree view updates with ordered results
 
-### Data Structure
-**semantic-search/data-structure**
-
-```mermaid
-erDiagram
-    EmbeddingRecord {
-        string command_id PK "Unique command identifier"
-        string content_hash "SHA-256 hash for change detection"
-        string summary "LLM-generated plain-language summary"
-        blob embedding "384 x Float32 = 1536 bytes (nullable)"
-        string last_updated "ISO 8601 timestamp"
-    }
-```
-
-- **`content_hash`** — When a script file changes, the hash no longer matches and the summary + embedding are regenerated.
-- **`embedding`** — A 384-dimensional Float32 vector produced by `all-MiniLM-L6-v2`. Stored as a BLOB. Used for cosine similarity search.
-- **`summary`** — A short (1-3 sentence) description of what the script does, generated by GitHub Copilot.
-
-### Search UX
-**semantic-search/search-ux**
-
-The existing filter bar (`commandtree.filter`) gains a semantic search mode:
-
-1. User types a natural-language query (e.g. *"deploy to staging"*, *"run database migrations"*, *"lint and format code"*).
-2. The query is embedded locally using `all-MiniLM-L6-v2` (~10ms).
-3. Results are ranked by **cosine similarity** between the query embedding and each command's stored embedding.
-4. The tree view updates to show matching commands, ordered by relevance score.
-
-If no summaries have been generated (feature not enabled), the filter falls back to the existing text-match behaviour. If the embedding model is unavailable, a text-match fallback on summaries is used.
+**Fallback**: Text-match on summaries if embeddings unavailable, text-match on command names if no summaries exist.

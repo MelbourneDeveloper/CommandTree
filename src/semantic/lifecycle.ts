@@ -59,22 +59,35 @@ function applyDbResult(result: Result<DbHandle, string>): Result<DbHandle, strin
 
 /**
  * Initialises the SQLite database singleton.
+ * Re-creates if the DB file was deleted externally.
  */
 export async function initDb(workspaceRoot: string): Promise<Result<DbHandle, string>> {
-    if (dbHandle !== null) {
+    if (dbHandle !== null && fs.existsSync(dbHandle.path)) {
         return ok(dbHandle);
     }
+    resetStaleHandle();
     dbPromise ??= doInitDb(workspaceRoot).then(applyDbResult);
     return await dbPromise;
 }
 
 /**
  * Returns the current database handle.
+ * Invalidates a stale handle if the DB file was deleted.
  */
 export function getDb(): Result<DbHandle, string> {
-    return dbHandle !== null
-        ? ok(dbHandle)
-        : err('Database not initialised. Call initDb first.');
+    if (dbHandle !== null && fs.existsSync(dbHandle.path)) {
+        return ok(dbHandle);
+    }
+    resetStaleHandle();
+    return err('Database not initialised. Call initDb first.');
+}
+
+function resetStaleHandle(): void {
+    if (dbHandle !== null) {
+        closeDatabase(dbHandle);
+        dbHandle = null;
+        dbPromise = null;
+    }
 }
 
 async function doCreateEmbedder(params: {

@@ -120,7 +120,7 @@ async function processOneTask(params: {
     readonly workspaceRoot: string;
 }): Promise<Result<void, string>> {
     const summary = await getSummary(params);
-    if (summary === null) { return ok(undefined); }
+    if (summary === null) { return err('Copilot summary failed — no embedding stored'); }
 
     const embedding = await embedOrFail({ text: summary, workspaceRoot: params.workspaceRoot });
     if (!embedding.ok) { return err(embedding.error); }
@@ -173,8 +173,8 @@ export async function summariseAllTasks(params: {
     const modelResult = await selectCopilotModel();
     if (!modelResult.ok) { return err(modelResult.error); }
 
-    const dbResult = getDb();
-    if (!dbResult.ok) { return err(dbResult.error); }
+    const dbInit = await initDb(params.workspaceRoot);
+    if (!dbInit.ok) { return err(dbInit.error); }
 
     const pending = await findPending(params.tasks);
     if (pending.length === 0) {
@@ -183,21 +183,25 @@ export async function summariseAllTasks(params: {
     }
 
     logger.info('Summarising tasks', { count: pending.length });
-    let done = 0;
+    let succeeded = 0;
+    let failed = 0;
 
     for (const item of pending) {
-        await processOneTask({
+        const result = await processOneTask({
             model: modelResult.value,
             task: item.task,
             content: item.content,
             hash: item.hash,
             workspaceRoot: params.workspaceRoot
         });
-        done++;
-        params.onProgress?.(done, pending.length);
+        if (result.ok) { succeeded++; } else { failed++; }
+        params.onProgress?.(succeeded + failed, pending.length);
     }
 
-    return ok(done);
+    if (succeeded === 0 && failed > 0) {
+        return err(`All ${failed} tasks failed to embed`);
+    }
+    return ok(succeeded);
 }
 
 interface PendingItem {
@@ -237,10 +241,10 @@ export async function semanticSearch(params: {
     readonly query: string;
     readonly workspaceRoot: string;
 }): Promise<Result<string[], string>> {
-    const dbResult = getDb();
-    if (!dbResult.ok) { return err(dbResult.error); }
+    const dbInit = await initDb(params.workspaceRoot);
+    if (!dbInit.ok) { return err(dbInit.error); }
 
-    const rowsResult = getAllRows(dbResult.value);
+    const rowsResult = getAllRows(dbInit.value);
     if (!rowsResult.ok) { return err(rowsResult.error); }
 
     if (rowsResult.value.length === 0) { return ok([]); }
@@ -274,4 +278,3 @@ export function getAllEmbeddingRows(): Result<EmbeddingRow[], string> {
     if (!dbResult.ok) { return err(dbResult.error); }
     return getAllRows(dbResult.value);
 }
-

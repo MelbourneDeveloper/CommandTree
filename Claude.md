@@ -97,7 +97,11 @@ assert.ok(true, 'Command ran');
 ## Critical Docs
 
 [VSCode Extension API](https://code.visualstudio.com/api/)
-[SCode Extension Testing API](https://code.visualstudio.com/api/extension-guides/testing)
+[VSCode Extension Testing API](https://code.visualstudio.com/api/extension-guides/testing)
+[VSCODE Language Model API](https://code.visualstudio.com/api/extension-guides/ai/language-model)
+[Language Model Tool API](https://code.visualstudio.com/api/extension-guides/ai/tools)
+[AI extensibility in VS Cod](https://code.visualstudio.com/api/extension-guides/ai/ai-extensibility-overview)
+[AI language models in VS Code](https://code.visualstudio.com/docs/copilot/customization/language-models)
 
 ## Project Structure
 
