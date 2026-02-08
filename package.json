@@ -128,6 +128,11 @@
       {
         "command": "commandtree.generateSummaries",
         "title": "Generate AI Summaries"
+      },
+      {
+        "command": "commandtree.openPreview",
+        "title": "Open Preview",
+        "icon": "$(open-preview)"
       }
     ],
     "menus": {
@@ -179,6 +184,11 @@
         }
       ],
       "view/item/context": [
+        {
+          "command": "commandtree.openPreview",
+          "when": "view == commandtree && viewItem =~ /task-markdown.*/",
+          "group": "inline@1"
+        },
         {
           "command": "commandtree.run",
           "when": "view == commandtree && viewItem == task",

@@ -32,6 +32,7 @@ export class TaskRunner {
         if (params === null) { return; }
         if (task.type === 'launch') { await this.runLaunch(task); return; }
         if (task.type === 'vscode') { await this.runVsCodeTask(task); return; }
+        if (task.type === 'markdown') { await this.runMarkdownPreview(task); return; }
         if (mode === 'currentTerminal') {
             this.runInCurrentTerminal(task, params);
         } else {
@@ -104,6 +105,13 @@ export class TaskRunner {
         } else {
             showError(`Command not found: ${task.label}`);
         }
+    }
+
+    /**
+     * Opens a markdown file in preview mode.
+     */
+    private async runMarkdownPreview(task: TaskItem): Promise<void> {
+        await vscode.commands.executeCommand('markdown.showPreview', vscode.Uri.file(task.filePath));
     }
 
     /**

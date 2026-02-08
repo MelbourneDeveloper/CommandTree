@@ -185,5 +185,4 @@ vscode.commands.executeCommand('setContext', 'commandtree.hasFilter', true);
 
 Settings defined in `package.json` under `contributes.configuration`:
 - `commandtree.excludePatterns` - Glob patterns to exclude
-- `commandtree.showEmptyCategories` - Show empty category nodes
 - `commandtree.sortOrder` - Task sort order (folder/name/type)

@@ -18,6 +18,7 @@ import { discoverRakeTasks } from './rake';
 import { discoverComposerScripts } from './composer';
 import { discoverDockerComposeServices } from './docker';
 import { discoverDotnetProjects } from './dotnet';
+import { discoverMarkdownFiles } from './markdown';
 import { logger } from '../utils/logger';
 
 export interface DiscoveryResult {
@@ -39,6 +40,7 @@ export interface DiscoveryResult {
     composer: TaskItem[];
     docker: TaskItem[];
     dotnet: TaskItem[];
+    markdown: TaskItem[];
 }
 
 /**
@@ -54,7 +56,7 @@ export async function discoverAllTasks(
     const [
         shell, npm, make, launch, vscodeTasks, python,
         powershell, gradle, cargo, maven, ant, just,
-        taskfile, deno, rake, composer, docker, dotnet
+        taskfile, deno, rake, composer, docker, dotnet, markdown
     ] = await Promise.all([
         discoverShellScripts(workspaceRoot, excludePatterns),
         discoverNpmScripts(workspaceRoot, excludePatterns),
@@ -73,7 +75,8 @@ export async function discoverAllTasks(
         discoverRakeTasks(workspaceRoot, excludePatterns),
         discoverComposerScripts(workspaceRoot, excludePatterns),
         discoverDockerComposeServices(workspaceRoot, excludePatterns),
-        discoverDotnetProjects(workspaceRoot, excludePatterns)
+        discoverDotnetProjects(workspaceRoot, excludePatterns),
+        discoverMarkdownFiles(workspaceRoot, excludePatterns)
     ]);
 
     const result = {
@@ -94,13 +97,15 @@ export async function discoverAllTasks(
         rake,
         composer,
         docker,
-        dotnet
+        dotnet,
+        markdown
     };
 
     const totalCount = shell.length + npm.length + make.length + launch.length +
         vscodeTasks.length + python.length + powershell.length + gradle.length +
         cargo.length + maven.length + ant.length + just.length + taskfile.length +
-        deno.length + rake.length + composer.length + docker.length + dotnet.length;
+        deno.length + rake.length + composer.length + docker.length + dotnet.length +
+        markdown.length;
 
     logger.info('Discovery complete', {
         totalCount,
@@ -139,7 +144,8 @@ export function flattenTasks(result: DiscoveryResult): TaskItem[] {
         ...result.rake,
         ...result.composer,
         ...result.docker,
-        ...result.dotnet
+        ...result.dotnet,
+        ...result.markdown
     ];
 }
 

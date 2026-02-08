@@ -803,11 +803,13 @@ li::marker { color: var(--color-primary); }
   .nav-links.open {
     display: flex !important;
     position: fixed !important;
-    top: 64px !important;
+    top: var(--header-height, 64px) !important;
     left: 0 !important;
     right: 0 !important;
+    bottom: auto !important;
     width: 100vw !important;
-    height: auto !important;
+    max-height: calc(100vh - var(--header-height, 64px)) !important;
+    overflow-y: auto !important;
     flex-direction: column !important;
     background: #0c1a17 !important; /* Solid dark background */
     border-bottom: 2px solid #1e3a33 !important;
@@ -816,6 +818,7 @@ li::marker { color: var(--color-primary); }
     z-index: 99999 !important;
     margin: 0 !important;
     gap: 0.5rem !important;
+    transform: translateZ(0) !important; /* Force hardware acceleration and new stacking context */
   }
 
   [data-theme="light"] .nav-links.open {

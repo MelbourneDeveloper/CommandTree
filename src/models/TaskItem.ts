@@ -24,7 +24,8 @@ export type TaskType =
     | 'rake'
     | 'composer'
     | 'docker'
-    | 'dotnet';
+    | 'dotnet'
+    | 'markdown';
 
 /**
  * Parameter format types for flexible argument handling across different tools.
@@ -119,7 +120,11 @@ export class CommandTreeItem extends vscode.TreeItem {
         // Set unique id for proper tree rendering and indentation
         if (task !== null) {
             this.id = task.id;
-            this.contextValue = task.tags.includes('quick') ? 'task-quick' : 'task';
+            const isQuick = task.tags.includes('quick');
+            const isMarkdown = task.type === 'markdown';
+            this.contextValue = isMarkdown
+                ? (isQuick ? 'task-markdown-quick' : 'task-markdown')
+                : (isQuick ? 'task-quick' : 'task');
             this.tooltip = this.buildTooltip(task);
             this.iconPath = this.getIcon(task.type);
             const tagStr = task.tags.length > 0 ? ` [${task.tags.join(', ')}]` : '';
@@ -219,6 +224,9 @@ export class CommandTreeItem extends vscode.TreeItem {
             case 'dotnet': {
                 return new vscode.ThemeIcon('circuit-board', new vscode.ThemeColor('terminal.ansiMagenta'));
             }
+            case 'markdown': {
+                return new vscode.ThemeIcon('markdown', new vscode.ThemeColor('terminal.ansiCyan'));
+            }
             default: {
                 const exhaustiveCheck: never = type;
                 return exhaustiveCheck;
@@ -281,6 +289,9 @@ export class CommandTreeItem extends vscode.TreeItem {
         }
         if (lower.includes('dotnet') || lower.includes('.net') || lower.includes('csharp') || lower.includes('fsharp')) {
             return new vscode.ThemeIcon('circuit-board', new vscode.ThemeColor('terminal.ansiMagenta'));
+        }
+        if (lower.includes('markdown') || lower.includes('docs')) {
+            return new vscode.ThemeIcon('markdown', new vscode.ThemeColor('terminal.ansiCyan'));
         }
         return new vscode.ThemeIcon('folder');
     }

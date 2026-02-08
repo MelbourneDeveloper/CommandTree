@@ -93,6 +93,11 @@ function registerCoreCommands(context: vscode.ExtensionContext): void {
             if (item !== undefined && item.task !== null) {
                 await taskRunner.run(item.task, 'currentTerminal');
             }
+        }),
+        vscode.commands.registerCommand('commandtree.openPreview', async (item: CommandTreeItem | undefined) => {
+            if (item !== undefined && item.task !== null && item.task.type === 'markdown') {
+                await vscode.commands.executeCommand('markdown.showPreview', vscode.Uri.file(item.task.filePath));
+            }
         })
     );
 }
