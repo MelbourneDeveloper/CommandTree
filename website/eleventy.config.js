@@ -5,7 +5,7 @@ export default function(eleventyConfig) {
     site: {
       name: "CommandTree",
       url: "https://commandtree.dev",
-      description: "One sidebar. Every command in your workspace.",
+      description: "One sidebar. Every command in your workspace, one click away.",
       stylesheet: "/assets/css/styles.css",
     },
     features: {
@@ -52,6 +52,49 @@ export default function(eleventyConfig) {
     const original = `&copy; ${year} CommandTree`;
     const replacement = `&copy; ${year} <a href="https://www.nimblesite.co">Nimblesite Pty Ltd</a>`;
     return content.replace(original, replacement);
+  });
+
+  const blogHeroBanner = [
+    '<div class="blog-hero-banner">',
+    '  <div class="blog-hero-glow"></div>',
+    '  <img src="/assets/images/logo.png" alt="CommandTree logo" class="blog-hero-logo">',
+    '  <div class="blog-hero-branches">',
+    '    <span class="branch branch-1"></span>',
+    '    <span class="branch branch-2"></span>',
+    '    <span class="branch branch-3"></span>',
+    '  </div>',
+    '</div>',
+  ].join("\n");
+
+  eleventyConfig.addTransform("blogHero", function(content) {
+    if (!this.page.outputPath?.endsWith(".html")) {
+      return content;
+    }
+    if (!this.page.url?.startsWith("/blog/")) {
+      return content;
+    }
+    if (this.page.url === "/blog/") {
+      return content.replaceAll(
+        '<article class="blog-post">',
+        '<article class="blog-post">\n' + blogHeroBanner
+      );
+    }
+    return content.replace(
+      '<div class="blog-post-content">',
+      '<div class="blog-post-content">\n' + blogHeroBanner
+    );
+  });
+
+  eleventyConfig.addTransform("llmsTxt", function(content) {
+    if (!this.page.outputPath?.endsWith("llms.txt")) {
+      return content;
+    }
+    const apiLine = "- API Reference: https://commandtree.dev/api/";
+    const extras = [
+      "- GitHub: https://github.com/melbournedeveloper/CommandTree",
+      "- VS Code Marketplace: https://marketplace.visualstudio.com/items?itemName=nimblesite.commandtree",
+    ].join("\n");
+    return content.replace(apiLine, extras);
   });
 
   eleventyConfig.addTransform("customScripts", function(content) {

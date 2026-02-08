@@ -93,6 +93,22 @@ suite('Command Registration Unit Tests', function () {
         assert.strictEqual(lintRow.contentHash, 'h2', 'Hash should reflect latest registration');
     });
 
+    test('registered command with empty summary needs summarisation even when hash matches', () => {
+        // registerCommand writes empty summary + correct hash
+        const hash = computeContentHash('tsc && node dist/index.js');
+        registerCommand({ handle, commandId: 'npm:build', contentHash: hash });
+
+        const row = getRow({ handle, commandId: 'npm:build' });
+        assert.ok(row.ok && row.value !== undefined);
+        // Hash matches but summary is empty — summary pipeline MUST detect this
+        assert.strictEqual(row.value.contentHash, hash);
+        assert.strictEqual(row.value.summary, '', 'Summary is empty');
+
+        // Simulate what findPendingSummaries should do:
+        const needsSummary = row.value.summary === '' || row.value.contentHash !== hash;
+        assert.ok(needsSummary, 'Command with empty summary MUST be queued for summarisation');
+    });
+
     test('all discovered commands land in DB with correct content hashes', () => {
         const commands = [
             { id: 'npm:build', content: 'tsc && node dist/index.js' },

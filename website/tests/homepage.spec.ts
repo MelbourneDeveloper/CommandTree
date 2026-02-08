@@ -76,7 +76,7 @@ test.describe('Homepage', () => {
       'Markdown Files',
     ];
     for (const name of expectedTypes) {
-      await expect(page.locator('.command-type', { hasText: name })).toBeVisible();
+      await expect(page.getByRole('heading', { name, exact: true, level: 4 })).toBeVisible();
     }
   });
 

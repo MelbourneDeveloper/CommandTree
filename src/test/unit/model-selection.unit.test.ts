@@ -18,11 +18,11 @@ const ALL_WITH_AUTO: readonly ModelRef[] = [AUTO, OPUS, HAIKU];
 
 function makeDeps(overrides: Partial<ModelSelectionDeps>): ModelSelectionDeps {
     return {
-        getSavedId: () => '',
-        fetchById: async () => [],
-        fetchAll: async () => ALL_MODELS,
-        promptUser: async () => undefined,
-        saveId: async () => { /* noop */ },
+        getSavedId: (): string => '',
+        fetchById: async (): Promise<readonly ModelRef[]> => { await Promise.resolve(); return []; },
+        fetchAll: async (): Promise<readonly ModelRef[]> => { await Promise.resolve(); return ALL_MODELS; },
+        promptUser: async (): Promise<ModelRef | undefined> => { await Promise.resolve(); return undefined; },
+        saveId: async (): Promise<void> => { await Promise.resolve(); },
         ...overrides
     };
 }
@@ -31,8 +31,8 @@ suite('Model Selection (resolveModel)', () => {
 
     test('returns saved model when setting matches', async () => {
         const deps = makeDeps({
-            getSavedId: () => HAIKU.id,
-            fetchById: async (id) => id === HAIKU.id ? [HAIKU] : []
+            getSavedId: (): string => HAIKU.id,
+            fetchById: async (id: string): Promise<readonly ModelRef[]> => { await Promise.resolve(); return id === HAIKU.id ? [HAIKU] : []; }
         });
 
         const result = await resolveModel(deps);
@@ -45,9 +45,9 @@ suite('Model Selection (resolveModel)', () => {
     test('does NOT call fetchAll when saved model found', async () => {
         let fetchAllCalled = false;
         const deps = makeDeps({
-            getSavedId: () => HAIKU.id,
-            fetchById: async () => [HAIKU],
-            fetchAll: async () => { fetchAllCalled = true; return ALL_MODELS; }
+            getSavedId: (): string => HAIKU.id,
+            fetchById: async (): Promise<readonly ModelRef[]> => { await Promise.resolve(); return [HAIKU]; },
+            fetchAll: async (): Promise<readonly ModelRef[]> => { await Promise.resolve(); fetchAllCalled = true; return ALL_MODELS; }
         });
 
         await resolveModel(deps);
@@ -58,9 +58,9 @@ suite('Model Selection (resolveModel)', () => {
     test('does NOT call promptUser when saved model found', async () => {
         let promptCalled = false;
         const deps = makeDeps({
-            getSavedId: () => HAIKU.id,
-            fetchById: async () => [HAIKU],
-            promptUser: async () => { promptCalled = true; return HAIKU; }
+            getSavedId: (): string => HAIKU.id,
+            fetchById: async (): Promise<readonly ModelRef[]> => { await Promise.resolve(); return [HAIKU]; },
+            promptUser: async (): Promise<ModelRef | undefined> => { await Promise.resolve(); promptCalled = true; return HAIKU; }
         });
 
         await resolveModel(deps);
@@ -71,10 +71,10 @@ suite('Model Selection (resolveModel)', () => {
     test('prompts user when no saved setting', async () => {
         let promptedModels: readonly ModelRef[] = [];
         const deps = makeDeps({
-            getSavedId: () => '',
-            fetchAll: async () => ALL_MODELS,
-            promptUser: async (models) => { promptedModels = models; return HAIKU; },
-            saveId: async () => { /* noop */ }
+            getSavedId: (): string => '',
+            fetchAll: async (): Promise<readonly ModelRef[]> => { await Promise.resolve(); return ALL_MODELS; },
+            promptUser: async (models: readonly ModelRef[]): Promise<ModelRef | undefined> => { await Promise.resolve(); promptedModels = models; return HAIKU; },
+            saveId: async (): Promise<void> => { await Promise.resolve(); }
         });
 
         const result = await resolveModel(deps);
@@ -87,10 +87,10 @@ suite('Model Selection (resolveModel)', () => {
     test('saves picked model ID to settings', async () => {
         let savedId = '';
         const deps = makeDeps({
-            getSavedId: () => '',
-            fetchAll: async () => ALL_MODELS,
-            promptUser: async () => HAIKU,
-            saveId: async (id) => { savedId = id; }
+            getSavedId: (): string => '',
+            fetchAll: async (): Promise<readonly ModelRef[]> => { await Promise.resolve(); return ALL_MODELS; },
+            promptUser: async (): Promise<ModelRef | undefined> => { await Promise.resolve(); return HAIKU; },
+            saveId: async (id: string): Promise<void> => { await Promise.resolve(); savedId = id; }
         });
 
         await resolveModel(deps);
@@ -100,8 +100,8 @@ suite('Model Selection (resolveModel)', () => {
 
     test('returns error when no models available', async () => {
         const deps = makeDeps({
-            getSavedId: () => '',
-            fetchAll: async () => []
+            getSavedId: (): string => '',
+            fetchAll: async (): Promise<readonly ModelRef[]> => { await Promise.resolve(); return []; }
         });
 
         const result = await resolveModel(deps);
@@ -111,9 +111,9 @@ suite('Model Selection (resolveModel)', () => {
 
     test('returns error when user cancels quickpick', async () => {
         const deps = makeDeps({
-            getSavedId: () => '',
-            fetchAll: async () => ALL_MODELS,
-            promptUser: async () => undefined
+            getSavedId: (): string => '',
+            fetchAll: async (): Promise<readonly ModelRef[]> => { await Promise.resolve(); return ALL_MODELS; },
+            promptUser: async (): Promise<ModelRef | undefined> => { await Promise.resolve(); return undefined; }
         });
 
         const result = await resolveModel(deps);
@@ -124,11 +124,11 @@ suite('Model Selection (resolveModel)', () => {
     test('falls back to prompt when saved model ID not found', async () => {
         let promptCalled = false;
         const deps = makeDeps({
-            getSavedId: () => 'nonexistent-model',
-            fetchById: async () => [],
-            fetchAll: async () => ALL_MODELS,
-            promptUser: async () => { promptCalled = true; return HAIKU; },
-            saveId: async () => { /* noop */ }
+            getSavedId: (): string => 'nonexistent-model',
+            fetchById: async (): Promise<readonly ModelRef[]> => { await Promise.resolve(); return []; },
+            fetchAll: async (): Promise<readonly ModelRef[]> => { await Promise.resolve(); return ALL_MODELS; },
+            promptUser: async (): Promise<ModelRef | undefined> => { await Promise.resolve(); promptCalled = true; return HAIKU; },
+            saveId: async (): Promise<void> => { await Promise.resolve(); }
         });
 
         const result = await resolveModel(deps);
@@ -143,14 +143,16 @@ suite('pickConcreteModel (auto resolution)', () => {
 
     test('returns specific model when preferredId is not auto', () => {
         const result = pickConcreteModel({ models: ALL_MODELS, preferredId: HAIKU.id });
-        assert.strictEqual(result?.id, HAIKU.id);
-        assert.strictEqual(result?.name, HAIKU.name);
+        assert.ok(result, 'Expected a model to be returned');
+        assert.strictEqual(result.id, HAIKU.id);
+        assert.strictEqual(result.name, HAIKU.name);
     });
 
     test('skips auto and returns first concrete model', () => {
         const result = pickConcreteModel({ models: ALL_WITH_AUTO, preferredId: AUTO_MODEL_ID });
-        assert.strictEqual(result?.id, OPUS.id, 'Must skip auto and pick first concrete model');
-        assert.notStrictEqual(result?.id, AUTO_MODEL_ID, 'Must NOT return auto model');
+        assert.ok(result, 'Expected a concrete model');
+        assert.strictEqual(result.id, OPUS.id, 'Must skip auto and pick first concrete model');
+        assert.notStrictEqual(result.id, AUTO_MODEL_ID, 'Must NOT return auto model');
     });
 
     test('returns undefined when specific model not in list', () => {
@@ -170,6 +172,7 @@ suite('pickConcreteModel (auto resolution)', () => {
 
     test('auto with only concrete models picks first', () => {
         const result = pickConcreteModel({ models: ALL_MODELS, preferredId: AUTO_MODEL_ID });
-        assert.strictEqual(result?.id, OPUS.id, 'Should pick first model when no auto in list');
+        assert.ok(result, 'Expected a model');
+        assert.strictEqual(result.id, OPUS.id, 'Should pick first model when no auto in list');
     });
 });

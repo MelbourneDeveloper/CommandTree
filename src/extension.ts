@@ -232,7 +232,7 @@ function setupFileWatcher(context: vscode.ExtensionContext, workspaceRoot: strin
             clearTimeout(debounceTimer);
         }
         debounceTimer = setTimeout(() => {
-            syncQuickTasks().catch((e: unknown) => {
+            syncAndSummarise(workspaceRoot).catch((e: unknown) => {
                 logger.error('Sync failed', { error: e instanceof Error ? e.message : 'Unknown' });
             });
         }, 2000);
@@ -270,6 +270,15 @@ async function syncQuickTasks(): Promise<void> {
     });
     quickTasksProvider.updateTasks(allTasks);
     logger.info('syncQuickTasks END');
+}
+
+async function syncAndSummarise(workspaceRoot: string): Promise<void> {
+    await syncQuickTasks();
+    await registerDiscoveredCommands(workspaceRoot);
+    const aiEnabled = vscode.workspace.getConfiguration('commandtree').get<boolean>('enableAiSummaries', true);
+    if (isAiEnabled(aiEnabled)) {
+        await runSummarisation(workspaceRoot);
+    }
 }
 
 interface TagPattern {
@@ -375,7 +384,7 @@ async function pickOrCreateTag(existingTags: string[], taskLabel: string): Promi
 }
 
 function initAiSummaries(workspaceRoot: string): void {
-    const aiEnabled = vscode.workspace.getConfiguration('commandtree').get<boolean>('enableAiSummaries', false);
+    const aiEnabled = vscode.workspace.getConfiguration('commandtree').get<boolean>('enableAiSummaries', true);
     if (!isAiEnabled(aiEnabled)) { return; }
     vscode.commands.executeCommand('setContext', 'commandtree.aiSummariesEnabled', true);
     runSummarisation(workspaceRoot).catch((e: unknown) => {

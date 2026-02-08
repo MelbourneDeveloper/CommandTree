@@ -51,7 +51,9 @@ async function findPendingSummaries(params: {
         const hash = computeContentHash(content);
         const existing = getRow({ handle: params.handle, commandId: task.id });
         const needsSummary = !existing.ok
-            || existing.value?.contentHash !== hash;
+            || existing.value === undefined
+            || existing.value.summary === ''
+            || existing.value.contentHash !== hash;
         if (needsSummary) {
             pending.push({ task, content, hash });
         }
