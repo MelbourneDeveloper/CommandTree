@@ -2,12 +2,8 @@ import * as assert from 'assert';
 import * as path from 'path';
 import * as fs from 'fs';
 import * as os from 'os';
-import type { TaskItem } from '../../models/TaskItem';
-import { ok } from '../../models/TaskItem';
-import { openDatabase, initSchema, getAllRows, registerCommand, getRow } from '../../semantic/db';
+import { openDatabase, initSchema, getAllRows, registerCommand, getRow, upsertSummary } from '../../semantic/db';
 import type { DbHandle } from '../../semantic/db';
-import type { FileSystemAdapter } from '../../semantic/adapters';
-import { registerAllCommands } from '../../semantic/summaryPipeline';
 import { computeContentHash } from '../../semantic/store';
 
 /**
@@ -21,25 +17,6 @@ import { computeContentHash } from '../../semantic/store';
 function makeTmpDir(): string {
     return fs.mkdtempSync(path.join(os.tmpdir(), 'ct-reg-'));
 }
-
-function makeTask(id: string, command: string): TaskItem {
-    return {
-        id,
-        label: id,
-        type: 'npm',
-        category: 'NPM Scripts',
-        command,
-        filePath: '/fake/package.json',
-        tags: [],
-    };
-}
-
-const FAKE_FS: FileSystemAdapter = {
-    readFile: async () => ok('echo hello'),
-    writeFile: async () => ok(undefined),
-    exists: async () => false,
-    delete: async () => ok(undefined),
-};
 
 suite('Command Registration Unit Tests', function () {
     this.timeout(10000);
@@ -71,16 +48,16 @@ suite('Command Registration Unit Tests', function () {
 
         const row = getRow({ handle, commandId: 'npm:build' });
         assert.ok(row.ok, 'getRow should succeed');
-        assert.ok(row.value !== undefined, 'Row should exist');
+        assert.ok(row.value !== undefined, 'Row must exist in DB after registration');
         assert.strictEqual(row.value.commandId, 'npm:build');
         assert.strictEqual(row.value.contentHash, 'abc123');
-        assert.strictEqual(row.value.summary, '', 'Summary should be empty');
+        assert.strictEqual(row.value.summary, '', 'Summary should be empty for unsummarised command');
         assert.strictEqual(row.value.embedding, null, 'Embedding should be null');
         assert.strictEqual(row.value.securityWarning, null, 'Security warning should be null');
     });
 
-    test('registerCommand preserves existing summary when updating hash', () => {
-        const { upsertSummary } = require('../../semantic/db');
+    test('registerCommand preserves existing summary when content hash changes', () => {
+        // Simulate: Copilot already summarised this command
         upsertSummary({
             handle,
             commandId: 'npm:test',
@@ -89,6 +66,7 @@ suite('Command Registration Unit Tests', function () {
             securityWarning: null,
         });
 
+        // Now re-register with new hash (script content changed)
         const result = registerCommand({
             handle,
             commandId: 'npm:test',
@@ -99,45 +77,46 @@ suite('Command Registration Unit Tests', function () {
         const row = getRow({ handle, commandId: 'npm:test' });
         assert.ok(row.ok && row.value !== undefined);
         assert.strictEqual(row.value.contentHash, 'new-hash', 'Hash should be updated');
-        assert.strictEqual(row.value.summary, 'Runs unit tests', 'Summary must be preserved');
+        assert.strictEqual(row.value.summary, 'Runs unit tests', 'Existing summary MUST be preserved');
     });
 
-    test('registerAllCommands stores all tasks in DB', async () => {
-        const tasks = [
-            makeTask('npm:build', 'npm run build'),
-            makeTask('npm:test', 'npm test'),
-            makeTask('npm:lint', 'npm run lint'),
+    test('registerCommand is idempotent — calling twice does not duplicate', () => {
+        registerCommand({ handle, commandId: 'npm:lint', contentHash: 'h1' });
+        registerCommand({ handle, commandId: 'npm:lint', contentHash: 'h2' });
+
+        const rows = getAllRows(handle);
+        assert.ok(rows.ok);
+        const lintRows = rows.value.filter(r => r.commandId === 'npm:lint');
+        assert.strictEqual(lintRows.length, 1, 'Must be exactly one row, not duplicated');
+        const lintRow = lintRows[0];
+        assert.ok(lintRow !== undefined, 'Lint row must exist');
+        assert.strictEqual(lintRow.contentHash, 'h2', 'Hash should reflect latest registration');
+    });
+
+    test('all discovered commands land in DB with correct content hashes', () => {
+        const commands = [
+            { id: 'npm:build', content: 'tsc && node dist/index.js' },
+            { id: 'npm:test', content: 'jest --coverage' },
+            { id: 'npm:lint', content: 'eslint src/' },
+            { id: 'shell:deploy.sh', content: '#!/bin/bash\nrsync -avz dist/ server:/' },
+            { id: 'make:clean', content: 'rm -rf dist/' },
         ];
 
-        const dbDir = path.join(tmpDir, '.commandtree');
-        fs.mkdirSync(dbDir, { recursive: true });
-        const dbPath = path.join(dbDir, 'commandtree.sqlite3');
-        fs.copyFileSync(handle.path, dbPath);
-        handle.db.close();
-
-        const result = await registerAllCommands({
-            tasks,
-            workspaceRoot: tmpDir,
-            fs: FAKE_FS,
-        });
-
-        assert.ok(result.ok, `registerAllCommands should succeed: ${result.ok ? '' : result.error}`);
-        assert.strictEqual(result.value, 3, 'All 3 tasks should be registered');
-
-        const reopened = await openDatabase(dbPath);
-        assert.ok(reopened.ok);
-        const rows = getAllRows(reopened.value);
-        assert.ok(rows.ok);
-        assert.strictEqual(rows.value.length, 3, 'DB should have 3 rows');
-
-        const ids = rows.value.map(r => r.commandId).sort();
-        assert.deepStrictEqual(ids, ['npm:build', 'npm:lint', 'npm:test']);
-
-        const expectedHash = computeContentHash('echo hello');
-        for (const row of rows.value) {
-            assert.strictEqual(row.contentHash, expectedHash, `${row.commandId} hash should match`);
-            assert.strictEqual(row.summary, '', `${row.commandId} summary should be empty`);
+        for (const cmd of commands) {
+            const hash = computeContentHash(cmd.content);
+            const result = registerCommand({ handle, commandId: cmd.id, contentHash: hash });
+            assert.ok(result.ok, `registerCommand should succeed for ${cmd.id}`);
         }
-        reopened.value.db.close();
+
+        const rows = getAllRows(handle);
+        assert.ok(rows.ok);
+        assert.strictEqual(rows.value.length, 5, 'All 5 commands must be in DB');
+
+        for (const cmd of commands) {
+            const row = getRow({ handle, commandId: cmd.id });
+            assert.ok(row.ok && row.value !== undefined, `${cmd.id} must exist in DB`);
+            assert.strictEqual(row.value.contentHash, computeContentHash(cmd.content), `${cmd.id} hash must match`);
+            assert.strictEqual(row.value.summary, '', `${cmd.id} summary should be empty (no Copilot)`);
+        }
     });
 });

@@ -8,10 +8,10 @@ import * as vscode from 'vscode';
 import type { Result } from '../models/TaskItem';
 import { ok, err } from '../models/TaskItem';
 import { logger } from '../utils/logger';
-import { resolveModel } from './modelSelection';
+import { resolveModel, pickConcreteModel } from './modelSelection';
 import type { ModelSelectionDeps } from './modelSelection';
 export type { ModelRef, ModelSelectionDeps } from './modelSelection';
-export { resolveModel } from './modelSelection';
+export { resolveModel, pickConcreteModel, AUTO_MODEL_ID } from './modelSelection';
 
 const MAX_CONTENT_LENGTH = 4000;
 const MODEL_RETRY_COUNT = 10;
@@ -121,15 +121,24 @@ function buildVSCodeDeps(): ModelSelectionDeps {
 
 /**
  * Selects the configured model by ID, or prompts the user to pick one.
- * Saves the choice to settings so it persists across sessions.
+ * When "auto" is selected, resolves to the first concrete (non-auto) model.
  */
 export async function selectCopilotModel(): Promise<Result<vscode.LanguageModelChat, string>> {
     const result = await resolveModel(buildVSCodeDeps());
     if (!result.ok) { return result; }
 
-    const exactModel = await fetchModels({ vendor: 'copilot', id: result.value.id });
-    if (exactModel.length === 0) { return err('Selected model no longer available'); }
-    return ok(exactModel[0]!);
+    const allModels = await fetchModels({ vendor: 'copilot' });
+    if (allModels.length === 0) { return err('No Copilot models available'); }
+
+    const refs = allModels.map(m => ({ id: m.id, name: m.name }));
+    const concrete = pickConcreteModel({ models: refs, preferredId: result.value.id });
+    if (!concrete) { return err('Selected model no longer available'); }
+
+    const model = allModels.find(m => m.id === concrete.id);
+    if (!model) { return err('Selected model no longer available'); }
+
+    logger.info('Resolved model for requests', { selected: result.value.id, resolved: model.id });
+    return ok(model);
 }
 
 /**

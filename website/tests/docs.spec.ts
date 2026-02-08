@@ -20,6 +20,9 @@ test.describe('Documentation', () => {
     await expect(table).toContainText('Shell Scripts');
     await expect(table).toContainText('NPM Scripts');
     await expect(table).toContainText('Makefile Targets');
+    await expect(table).toContainText('VS Code Tasks');
+    await expect(table).toContainText('Launch Configs');
+    await expect(table).toContainText('Python Scripts');
   });
 
   test('discovery page loads with all sections', async ({ page }) => {

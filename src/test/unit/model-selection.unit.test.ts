@@ -7,12 +7,14 @@
  * 4. When user cancels quickpick, returns error
  */
 import * as assert from 'assert';
-import { resolveModel } from '../../semantic/modelSelection';
+import { resolveModel, pickConcreteModel, AUTO_MODEL_ID } from '../../semantic/modelSelection';
 import type { ModelSelectionDeps, ModelRef } from '../../semantic/modelSelection';
 
+const AUTO: ModelRef = { id: AUTO_MODEL_ID, name: 'Auto' };
 const HAIKU: ModelRef = { id: 'claude-haiku-4.5', name: 'Claude Haiku 4.5' };
 const OPUS: ModelRef = { id: 'claude-opus-4.6', name: 'Claude Opus 4.6' };
 const ALL_MODELS: readonly ModelRef[] = [OPUS, HAIKU];
+const ALL_WITH_AUTO: readonly ModelRef[] = [AUTO, OPUS, HAIKU];
 
 function makeDeps(overrides: Partial<ModelSelectionDeps>): ModelSelectionDeps {
     return {
@@ -134,5 +136,40 @@ suite('Model Selection (resolveModel)', () => {
         assert.ok(result.ok, 'Expected ok result');
         assert.strictEqual(promptCalled, true, 'Should prompt when saved model not found');
         assert.strictEqual(result.value.id, HAIKU.id);
+    });
+});
+
+suite('pickConcreteModel (auto resolution)', () => {
+
+    test('returns specific model when preferredId is not auto', () => {
+        const result = pickConcreteModel({ models: ALL_MODELS, preferredId: HAIKU.id });
+        assert.strictEqual(result?.id, HAIKU.id);
+        assert.strictEqual(result?.name, HAIKU.name);
+    });
+
+    test('skips auto and returns first concrete model', () => {
+        const result = pickConcreteModel({ models: ALL_WITH_AUTO, preferredId: AUTO_MODEL_ID });
+        assert.strictEqual(result?.id, OPUS.id, 'Must skip auto and pick first concrete model');
+        assert.notStrictEqual(result?.id, AUTO_MODEL_ID, 'Must NOT return auto model');
+    });
+
+    test('returns undefined when specific model not in list', () => {
+        const result = pickConcreteModel({ models: ALL_MODELS, preferredId: 'nonexistent' });
+        assert.strictEqual(result, undefined);
+    });
+
+    test('returns undefined for empty model list', () => {
+        const result = pickConcreteModel({ models: [], preferredId: HAIKU.id });
+        assert.strictEqual(result, undefined);
+    });
+
+    test('returns undefined for empty list with auto preferred', () => {
+        const result = pickConcreteModel({ models: [], preferredId: AUTO_MODEL_ID });
+        assert.strictEqual(result, undefined);
+    });
+
+    test('auto with only concrete models picks first', () => {
+        const result = pickConcreteModel({ models: ALL_MODELS, preferredId: AUTO_MODEL_ID });
+        assert.strictEqual(result?.id, OPUS.id, 'Should pick first model when no auto in list');
     });
 });
