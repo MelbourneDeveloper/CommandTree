@@ -2,7 +2,7 @@
   "name": "commandtree",
   "displayName": "CommandTree",
   "description": "Unified command runner: discover shell scripts, npm scripts, Makefiles, launch configs, VS Code tasks and more in one filterable tree",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "author": "Christian Findlay",
   "license": "MIT",
   "publisher": "nimblesite",
@@ -415,7 +415,6 @@
     "glob": "^13.0.1"
   },
   "dependencies": {
-    "@huggingface/transformers": "^3.8.1",
     "node-sqlite3-wasm": "^0.8.53"
   }
 }

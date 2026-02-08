@@ -437,6 +437,8 @@ CREATE TABLE IF NOT EXISTS command_tags (
 );
 ```
 
+CRITICAL: No backwards compatibility. If the database structure is wrong, the extension blows it away and recreates it from scratch.
+
 **Implementation**: SQLite via `node-sqlite3-wasm`
 - **Location**: `{workspaceFolder}/.commandtree/commandtree.sqlite3`
 - **Runtime**: Pure WASM, no native compilation (~1.3 MB)
@@ -444,9 +446,6 @@ CREATE TABLE IF NOT EXISTS command_tags (
   - SQLite disables FK constraints by default - this is a SQLite design flaw
   - Implementation: `openDatabase()` in `db.ts` runs this pragma immediately after opening
   - Without this pragma, FK constraints are SILENTLY IGNORED and orphaned records can be created
-- **Orphan Cleanup**: `cleanupOrphanedRecords()` removes any pre-existing orphaned command_tags rows
-  - Runs automatically during `initSemanticStore()` (every startup)
-  - Runs automatically during `migrateIfNeeded()` (legacy migration)
 - **Orphan Prevention**: `ensureCommandExists()` inserts placeholder command rows before adding tags
   - Called automatically by `addTagToCommand()` before creating junction records
   - Placeholder rows have empty summary/content_hash and NULL embedding
@@ -548,6 +547,8 @@ This is a **fully automated background process** that requires no user intervent
 
 ### Embedding Generation
 **ai-embedding-generation**
+
+⛔️ TEMPORARILY DISABLED UNTIL WE CAN GET A SMALL EMBEDDING MODEL WORKING
 
 - **Model**: `all-MiniLM-L6-v2` via `@huggingface/transformers`
 - **Input**: The AI-generated summary text (NOT the raw command code)

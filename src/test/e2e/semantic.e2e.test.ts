@@ -124,7 +124,8 @@ async function queryEmbeddingStats(dbPath: string): Promise<{
   }
 }
 
-suite("Vector Embedding Search E2E", () => {
+// Embedding functionality disabled — skip until re-enabled
+suite.skip("Vector Embedding Search E2E", () => {
   let provider: CommandTreeProvider;
   let totalTaskCount: number;
 

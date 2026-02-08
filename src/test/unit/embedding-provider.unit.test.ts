@@ -19,7 +19,8 @@ import { rankBySimilarity, cosineSimilarity } from '../../semantic/similarity.js
  * 3. Vector search finds semantically similar commands
  * 4. The search code works end-to-end
  */
-suite('Embedding Provider Tests (REAL MODEL)', function () {
+// Embedding functionality disabled — skip until re-enabled
+suite.skip('Embedding Provider Tests (REAL MODEL)', function () {
     this.timeout(60000); // HuggingFace model download can be slow on first run
 
     const testDbPath = path.join(os.tmpdir(), `commandtree-test-${Date.now()}.sqlite3`);

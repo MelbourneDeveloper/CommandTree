@@ -1,10 +1,12 @@
 /**
  * Text embedding via @huggingface/transformers (all-MiniLM-L6-v2).
- * Uses dynamic import() for ESM compatibility from CJS extension.
+ * Uses WASM backend (onnxruntime-web) to avoid shipping 208MB native binaries.
  */
 
 import type { Result } from '../models/Result';
 import { ok, err } from '../models/Result';
+
+const ORT_SYMBOL = Symbol.for('onnxruntime');
 
 interface Pipeline {
     (text: string, options: { pooling: string; normalize: boolean }): Promise<{ data: Float32Array }>;
@@ -13,6 +15,13 @@ interface Pipeline {
 
 export interface EmbedderHandle {
     readonly pipeline: Pipeline;
+}
+
+/** Injects WASM runtime so transformers.js skips the native onnxruntime-node binary. */
+async function injectWasmBackend(): Promise<void> {
+    if (ORT_SYMBOL in globalThis) { return; }
+    const ort = await import('onnxruntime-web');
+    (globalThis as Record<symbol, unknown>)[ORT_SYMBOL] = ort;
 }
 
 /**
@@ -24,6 +33,7 @@ export async function createEmbedder(params: {
     readonly onProgress?: (progress: unknown) => void;
 }): Promise<Result<EmbedderHandle, string>> {
     try {
+        await injectWasmBackend();
         const mod = await import('@huggingface/transformers');
         mod.env.cacheDir = params.modelCacheDir;
 

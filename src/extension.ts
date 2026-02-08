@@ -10,10 +10,8 @@ import { logger } from './utils/logger';
 import {
     isAiEnabled,
     summariseAllTasks,
-    semanticSearch,
     initSemanticStore,
-    disposeSemanticStore,
-    migrateIfNeeded
+    disposeSemanticStore
 } from './semantic';
 import { createVSCodeFileSystem } from './semantic/vscodeAdapters';
 import { getDb } from './semantic/lifecycle';
@@ -43,7 +41,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<Extens
     registerTreeViews(context);
     registerCommands(context, workspaceRoot);
     setupFileWatcher(context, workspaceRoot);
-    await syncQuickTasks(workspaceRoot);
+    await syncQuickTasks();
     await syncTagsFromJson(workspaceRoot);
     initAiSummaries(workspaceRoot);
     return { commandTreeProvider: treeProvider, quickTasksProvider };
@@ -54,9 +52,6 @@ async function initSemanticSubsystem(workspaceRoot: string): Promise<void> {
     if (!storeResult.ok) {
         logger.warn('SQLite init failed, semantic search unavailable', { error: storeResult.error });
     }
-    migrateIfNeeded({ workspaceRoot }).catch((e: unknown) => {
-        logger.warn('Migration failed', { error: e instanceof Error ? e.message : 'Unknown' });
-    });
 }
 
 function registerTreeViews(context: vscode.ExtensionContext): void {
@@ -200,23 +195,8 @@ async function handleRemoveTag(item: CommandTreeItem | TaskItem | undefined, tag
     quickTasksProvider.updateTasks(treeProvider.getAllTasks());
 }
 
-async function handleSemanticSearch(queryArg: string | undefined, workspaceRoot: string): Promise<void> {
-    const query = queryArg ?? await vscode.window.showInputBox({
-        prompt: 'Describe what you are looking for',
-        placeHolder: 'e.g. "deploy to staging", "run tests"'
-    });
-    if (query === undefined || query === '') { return; }
-    const result = await semanticSearch({ query, workspaceRoot });
-    if (!result.ok) {
-        vscode.window.showErrorMessage(`Semantic search failed: ${result.error}`);
-        return;
-    }
-    if (result.value.length === 0) {
-        vscode.window.showInformationMessage('No matching commands found');
-        return;
-    }
-    treeProvider.setSemanticFilter(result.value);
-    updateFilterContext();
+async function handleSemanticSearch(_queryArg: string | undefined, _workspaceRoot: string): Promise<void> {
+    vscode.window.showInformationMessage('Semantic search is currently disabled');
 }
 
 function setupFileWatcher(context: vscode.ExtensionContext, workspaceRoot: string): void {
@@ -229,7 +209,7 @@ function setupFileWatcher(context: vscode.ExtensionContext, workspaceRoot: strin
             clearTimeout(debounceTimer);
         }
         debounceTimer = setTimeout(() => {
-            syncQuickTasks(workspaceRoot).catch((e: unknown) => {
+            syncQuickTasks().catch((e: unknown) => {
                 logger.error('Sync failed', { error: e instanceof Error ? e.message : 'Unknown' });
             });
         }, 2000);
@@ -257,7 +237,7 @@ function setupFileWatcher(context: vscode.ExtensionContext, workspaceRoot: strin
     context.subscriptions.push(configWatcher);
 }
 
-async function syncQuickTasks(workspaceRoot: string): Promise<void> {
+async function syncQuickTasks(): Promise<void> {
     logger.info('syncQuickTasks START');
     await treeProvider.refresh();
     const allTasks = treeProvider.getAllTasks();
@@ -267,12 +247,6 @@ async function syncQuickTasks(workspaceRoot: string): Promise<void> {
     });
     quickTasksProvider.updateTasks(allTasks);
     logger.info('syncQuickTasks END');
-    const aiEnabled = vscode.workspace.getConfiguration('commandtree').get<boolean>('enableAiSummaries', false);
-    if (isAiEnabled(aiEnabled)) {
-        runSummarisation(workspaceRoot).catch((e: unknown) => {
-            logger.error('Re-summarisation failed', { error: e instanceof Error ? e.message : 'Unknown' });
-        });
-    }
 }
 
 interface TagPattern {
@@ -393,26 +367,30 @@ async function runSummarisation(workspaceRoot: string): Promise<void> {
         logger.warn('[DIAG] No tasks to summarise, returning early');
         return;
     }
-    logger.info('Starting AI summarisation', { taskCount: tasks.length });
+
     const fileSystem = createVSCodeFileSystem();
-    const result = await summariseAllTasks({
+
+    // Step 1: Generate summaries via Copilot (independent pipeline)
+    const summaryResult = await summariseAllTasks({
         tasks,
         workspaceRoot,
         fs: fileSystem,
         onProgress: (done, total) => {
-            logger.info('Summarisation progress', { done, total });
+            logger.info('Summary progress', { done, total });
         }
     });
-    if (result.ok) {
-        if (result.value > 0) {
-            await treeProvider.refresh();
-            quickTasksProvider.updateTasks(treeProvider.getAllTasks());
-        }
-        vscode.window.showInformationMessage(`CommandTree: Summarised ${result.value} commands`);
-    } else {
-        logger.error('Summarisation failed', { error: result.error });
-        vscode.window.showErrorMessage(`CommandTree: Summarisation failed — ${result.error}`);
+    if (!summaryResult.ok) {
+        logger.error('Summary pipeline failed', { error: summaryResult.error });
+        vscode.window.showErrorMessage(`CommandTree: Summary failed — ${summaryResult.error}`);
+        return;
     }
+
+    // Embedding pipeline disabled — summaries still work via Copilot
+    if (summaryResult.value > 0) {
+        await treeProvider.refresh();
+        quickTasksProvider.updateTasks(treeProvider.getAllTasks());
+    }
+    vscode.window.showInformationMessage(`CommandTree: Summarised ${summaryResult.value} commands`);
 }
 
 function updateFilterContext(): void {
