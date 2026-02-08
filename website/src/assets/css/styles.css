@@ -704,6 +704,15 @@ li::marker { color: var(--color-primary); }
   overflow: hidden;
   min-height: 220px;
 }
+.blog-hero-banner img.blog-hero-screenshot {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  position: absolute;
+  top: 0;
+  left: 0;
+  border-radius: var(--radius-lg);
+}
 .blog-hero-glow {
   position: absolute;
   top: 50%;

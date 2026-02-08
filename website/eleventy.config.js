@@ -54,7 +54,7 @@ export default function(eleventyConfig) {
     return content.replace(original, replacement);
   });
 
-  const blogHeroBanner = [
+  const blogHeroDefault = [
     '<div class="blog-hero-banner">',
     '  <div class="blog-hero-glow"></div>',
     '  <img src="/assets/images/logo.png" alt="CommandTree logo" class="blog-hero-logo">',
@@ -66,6 +66,33 @@ export default function(eleventyConfig) {
     '</div>',
   ].join("\n");
 
+  const blogHeroImages = {
+    "/blog/ai-summaries-hover/": '/assets/images/ai-summary-banner.png',
+  };
+
+  const makeBanner = (href) => {
+    const img = blogHeroImages[href];
+    if (!img) { return blogHeroDefault; }
+    return '<div class="blog-hero-banner">\n'
+      + `  <img src="${img}" alt="Blog post banner" class="blog-hero-screenshot">\n`
+      + '</div>';
+  };
+
+  const ARTICLE_TAG = '<article class="blog-post">';
+
+  const addBannersToCards = (content) => {
+    const parts = content.split(ARTICLE_TAG);
+    return parts.map((part, i) => {
+      if (i === 0) { return part; }
+      const hrefStart = part.indexOf('href="/blog/');
+      const hrefEnd = hrefStart >= 0 ? part.indexOf('"', hrefStart + 6) : -1;
+      const href = hrefStart >= 0 && hrefEnd >= 0
+        ? part.substring(hrefStart + 6, hrefEnd)
+        : "";
+      return ARTICLE_TAG + "\n" + makeBanner(href) + part;
+    }).join("");
+  };
+
   eleventyConfig.addTransform("blogHero", function(content) {
     if (!this.page.outputPath?.endsWith(".html")) {
       return content;
@@ -74,14 +101,14 @@ export default function(eleventyConfig) {
       return content;
     }
     if (this.page.url === "/blog/") {
-      return content.replaceAll(
-        '<article class="blog-post">',
-        '<article class="blog-post">\n' + blogHeroBanner
-      );
+      return addBannersToCards(content);
+    }
+    if (content.includes('blog-hero-banner')) {
+      return content;
     }
     return content.replace(
       '<div class="blog-post-content">',
-      '<div class="blog-post-content">\n' + blogHeroBanner
+      '<div class="blog-post-content">\n' + makeBanner(this.page.url)
     );
   });
 
