@@ -3,51 +3,28 @@ layout: layouts/docs.njk
 title: Configuration
 eleventyNavigation:
   key: Configuration
-  order: 4
+  order: 5
 ---
 
 # Configuration
 
 All settings via VS Code settings (`Cmd+,` / `Ctrl+,`).
 
-## Exclude Patterns
+## Settings
 
-`commandtree.excludePatterns` - Glob patterns to exclude from discovery. Defaults include `**/node_modules/**`, `**/.git/**`, etc.
-
-## Sort Order
-
-`commandtree.sortOrder`:
-
-| Value | Description |
-|-------|-------------|
-| `folder` | Sort by folder path (default) |
-| `name` | Sort alphabetically |
-| `type` | Sort by command type |
+| Setting | Description | Default |
+|---------|-------------|---------|
+| `commandtree.enableAiSummaries` | Use GitHub Copilot to generate plain-language summaries | `true` |
+| `commandtree.excludePatterns` | Glob patterns to exclude from discovery | `**/node_modules/**`, `**/.git/**`, etc. |
+| `commandtree.sortOrder` | Sort commands by `folder`, `name`, or `type` | `folder` |
 
 ## Quick Launch
 
-Pin commands by clicking the star icon. Stored in `.vscode/commandtree.json`:
-
-```json
-{
-  "quick": ["npm:build", "npm:test"]
-}
-```
+Pin commands by clicking the star icon. Pinned commands appear in a dedicated panel at the top of the tree.
 
 ## Tagging
 
-Tags are defined in `.vscode/commandtree.json`:
-
-```json
-{
-  "tags": {
-    "build": ["npm:build", "npm:compile"],
-    "test": ["npm:test*"]
-  }
-}
-```
-
-Supports wildcards: `npm:test*`, `*deploy*`, `type:shell:*`.
+Right-click any command and choose **Add Tag** to assign a tag. Tags are stored locally in the workspace database and can be used to filter the tree. Remove tags the same way via **Remove Tag**.
 
 ## Filtering
 
@@ -56,4 +33,3 @@ Supports wildcards: `npm:test*`, `*deploy*`, `type:shell:*`.
 | `commandtree.filter` | Text filter input |
 | `commandtree.filterByTag` | Tag filter picker |
 | `commandtree.clearFilter` | Clear all filters |
-| `commandtree.editTags` | Open commandtree.json |

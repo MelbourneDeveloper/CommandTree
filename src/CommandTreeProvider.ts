@@ -100,7 +100,12 @@ export class CommandTreeProvider implements vscode.TreeDataProvider<CommandTreeI
             if (record === undefined) {
                 return task;
             }
-            return { ...task, summary: record.summary };
+            const warning = record.securityWarning;
+            return {
+                ...task,
+                summary: record.summary,
+                ...(warning !== null ? { securityWarning: warning } : {})
+            };
         });
     }
 

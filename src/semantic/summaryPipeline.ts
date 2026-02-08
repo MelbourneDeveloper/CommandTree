@@ -12,6 +12,7 @@ import { ok, err } from '../models/TaskItem';
 import { logger } from '../utils/logger';
 import { computeContentHash } from './store';
 import type { FileSystemAdapter } from './adapters';
+import type { SummaryResult } from './summariser';
 import { selectCopilotModel, summariseScript } from './summariser';
 import { initDb } from './lifecycle';
 import { upsertSummary, getRow } from './db';
@@ -64,7 +65,7 @@ async function getSummary(params: {
     readonly model: vscode.LanguageModelChat;
     readonly task: TaskItem;
     readonly content: string;
-}): Promise<string | null> {
+}): Promise<SummaryResult | null> {
     const result = await summariseScript({
         model: params.model,
         label: params.task.label,
@@ -86,14 +87,16 @@ async function processOneSummary(params: {
     readonly hash: string;
     readonly handle: DbHandle;
 }): Promise<Result<void, string>> {
-    const summary = await getSummary(params);
-    if (summary === null) { return err('Copilot summary failed'); }
+    const result = await getSummary(params);
+    if (result === null) { return err('Copilot summary failed'); }
 
+    const warning = result.securityWarning === '' ? null : result.securityWarning;
     return upsertSummary({
         handle: params.handle,
         commandId: params.task.id,
         contentHash: params.hash,
-        summary
+        summary: result.summary,
+        securityWarning: warning
     });
 }
 

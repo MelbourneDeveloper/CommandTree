@@ -20,6 +20,7 @@ export interface EmbeddingRow {
   readonly commandId: string;
   readonly contentHash: string;
   readonly summary: string;
+  readonly securityWarning: string | null;
   readonly embedding: Float32Array | null;
   readonly lastUpdated: string;
 }
@@ -94,9 +95,18 @@ export function initSchema(handle: DbHandle): Result<void, string> {
                 content_hash TEXT NOT NULL,
                 summary TEXT NOT NULL,
                 embedding BLOB,
+                security_warning TEXT,
                 last_updated TEXT NOT NULL
             )
         `);
+
+    try {
+      handle.db.exec(
+        `ALTER TABLE ${COMMAND_TABLE} ADD COLUMN security_warning TEXT`,
+      );
+    } catch {
+      // Column already exists — expected for existing databases
+    }
 
     handle.db.exec(`
             CREATE TABLE IF NOT EXISTS ${TAG_TABLE} (
@@ -146,18 +156,20 @@ export function upsertRow(params: {
         : null;
     params.handle.db.run(
       `INSERT INTO ${COMMAND_TABLE}
-             (command_id, content_hash, summary, embedding, last_updated)
-             VALUES (?, ?, ?, ?, ?)
+             (command_id, content_hash, summary, embedding, security_warning, last_updated)
+             VALUES (?, ?, ?, ?, ?, ?)
              ON CONFLICT(command_id) DO UPDATE SET
                content_hash = excluded.content_hash,
                summary = excluded.summary,
                embedding = excluded.embedding,
+               security_warning = excluded.security_warning,
                last_updated = excluded.last_updated`,
       [
         params.row.commandId,
         params.row.contentHash,
         params.row.summary,
         blob,
+        params.row.securityWarning,
         params.row.lastUpdated,
       ],
     );
@@ -177,18 +189,20 @@ export function upsertSummary(params: {
   readonly commandId: string;
   readonly contentHash: string;
   readonly summary: string;
+  readonly securityWarning: string | null;
 }): Result<void, string> {
   try {
     const now = new Date().toISOString();
     params.handle.db.run(
       `INSERT INTO ${COMMAND_TABLE}
-             (command_id, content_hash, summary, embedding, last_updated)
-             VALUES (?, ?, ?, NULL, ?)
+             (command_id, content_hash, summary, embedding, security_warning, last_updated)
+             VALUES (?, ?, ?, NULL, ?, ?)
              ON CONFLICT(command_id) DO UPDATE SET
                content_hash = excluded.content_hash,
                summary = excluded.summary,
+               security_warning = excluded.security_warning,
                last_updated = excluded.last_updated`,
-      [params.commandId, params.contentHash, params.summary, now],
+      [params.commandId, params.contentHash, params.summary, params.securityWarning, now],
     );
     return ok(undefined);
   } catch (e) {
@@ -284,10 +298,12 @@ type RawRow = Record<string, number | bigint | string | Uint8Array | null>;
 function rowToEmbeddingRow(row: RawRow): EmbeddingRow {
   const blob = row["embedding"];
   const embedding = blob instanceof Uint8Array ? bytesToEmbedding(blob) : null;
+  const warning = row["security_warning"];
   return {
     commandId: row["command_id"] as string,
     contentHash: row["content_hash"] as string,
     summary: row["summary"] as string,
+    securityWarning: typeof warning === "string" ? warning : null,
     embedding,
     lastUpdated: row["last_updated"] as string,
   };
@@ -306,8 +322,8 @@ export function importFromJsonStore(params: {
     for (const record of records) {
       params.handle.db.run(
         `INSERT OR IGNORE INTO ${COMMAND_TABLE}
-                 (command_id, content_hash, summary, embedding, last_updated)
-                 VALUES (?, ?, ?, ?, ?)`,
+                 (command_id, content_hash, summary, embedding, security_warning, last_updated)
+                 VALUES (?, ?, ?, ?, NULL, ?)`,
         [
           record.commandId,
           record.contentHash,
@@ -344,8 +360,8 @@ export function ensureCommandExists(params: {
     if (existing === null) {
       params.handle.db.run(
         `INSERT INTO ${COMMAND_TABLE}
-                 (command_id, content_hash, summary, embedding, last_updated)
-                 VALUES (?, '', '', NULL, ?)`,
+                 (command_id, content_hash, summary, embedding, security_warning, last_updated)
+                 VALUES (?, '', '', NULL, NULL, ?)`,
         [params.commandId, new Date().toISOString()],
       );
     }

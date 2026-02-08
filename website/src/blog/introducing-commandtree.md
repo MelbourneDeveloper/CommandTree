@@ -32,6 +32,10 @@ Install CommandTree and a new panel appears in your VS Code sidebar. Every runna
 
 Click the play button. Done.
 
+## AI-Powered Summaries
+
+With [GitHub Copilot](https://marketplace.visualstudio.com/items?itemName=GitHub.copilot) installed, CommandTree goes a step further: it describes each command in plain language. Hover over any command and the tooltip tells you exactly what it does. Scripts that perform dangerous operations are flagged with a security warning so you know before you run.
+
 ## Quick Launch
 
 Pin your favorites. Click the star icon on any command and it appears in the Quick Launch panel at the top. Your most-used commands are always one click away.

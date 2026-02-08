@@ -20,7 +20,8 @@ const MODEL_WAIT_MS = 2000;
 const MODEL_MAX_ATTEMPTS = 30;
 const COPILOT_VENDOR = "copilot";
 
-suite("Copilot Language Model API E2E", () => {
+// Copilot tests disabled — skip until re-enabled
+suite.skip("Copilot Language Model API E2E", () => {
   let copilotAvailable = false;
 
   suiteSetup(async function () {

@@ -4,7 +4,7 @@
  */
 
 import * as vscode from 'vscode';
-import type { FileSystemAdapter, ConfigAdapter, LanguageModelAdapter } from './adapters';
+import type { FileSystemAdapter, ConfigAdapter, LanguageModelAdapter, SummaryAdapterResult } from './adapters';
 import type { Result } from '../models/Result';
 import { ok, err } from '../models/Result';
 
@@ -77,7 +77,7 @@ export function createVSCodeConfig(): ConfigAdapter {
  */
 export function createCopilotLM(): LanguageModelAdapter {
     return {
-        summarise: async (params): Promise<Result<string, string>> => {
+        summarise: async (params): Promise<Result<SummaryAdapterResult, string>> => {
             try {
                 // Import summariser functions
                 const { selectCopilotModel, summariseScript } = await import('./summariser.js');
@@ -88,7 +88,7 @@ export function createCopilotLM(): LanguageModelAdapter {
                     return err(modelResult.error);
                 }
 
-                // Generate summary
+                // Generate summary with structured tool output
                 return await summariseScript({
                     model: modelResult.value,
                     label: params.label,

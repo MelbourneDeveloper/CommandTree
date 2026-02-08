@@ -80,6 +80,7 @@ suite.skip('Embedding Provider Tests (REAL MODEL)', function () {
                 commandId: cmd.id,
                 contentHash: `hash-${cmd.id}`,
                 summary: cmd.summary,
+                securityWarning: null,
                 embedding,
                 lastUpdated: new Date().toISOString(),
             };

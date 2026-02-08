@@ -46,4 +46,4 @@ code --install-extension commandtree-*.vsix
 | Launch Configs | `.vscode/launch.json` |
 | Python Scripts | `.py` files |
 
-Discovery respects exclude patterns in settings and runs in the background.
+Discovery respects exclude patterns in settings and runs in the background. If [GitHub Copilot](https://marketplace.visualstudio.com/items?itemName=GitHub.copilot) is installed, each discovered command is automatically described in plain language — hover over any command to see what it does.

@@ -28,6 +28,11 @@ export interface ConfigAdapter {
     get: <T>(key: string, defaultValue: T) => T;
 }
 
+export interface SummaryAdapterResult {
+    readonly summary: string;
+    readonly securityWarning: string;
+}
+
 /**
  * Language Model API abstraction for summarisation.
  * Implementations: CopilotLM (production), MockLM (unit tests)
@@ -38,7 +43,7 @@ export interface LanguageModelAdapter {
         readonly type: string;
         readonly command: string;
         readonly content: string;
-    }) => Promise<Result<string, string>>;
+    }) => Promise<Result<SummaryAdapterResult, string>>;
 }
 
 /**

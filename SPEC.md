@@ -44,6 +44,10 @@
   - [Embedding Generation](#embedding-generation)
   - [Search Implementation](#search-implementation)
   - [Verification](#verification)
+- [Command Skills](#command-skills) *(not yet implemented)*
+  - [Skill File Format](#skill-file-format)
+  - [Context Menu Integration](#context-menu-integration)
+  - [Skill Execution](#skill-execution)
 
 ---
 
@@ -411,6 +415,9 @@ CREATE TABLE IF NOT EXISTS commands (
     embedding BLOB,                     -- EMBEDDING VECTOR: 384 Float32 values (1536 bytes) generated from the summary
                                         -- MUST be populated by embedding the summary text using all-MiniLM-L6-v2
                                         -- Required for semantic search to work
+    security_warning TEXT,              -- SECURITY WARNING: AI-detected security risk description (nullable)
+                                        -- Populated via VS Code Language Model Tool API (structured output)
+                                        -- When non-empty, tree view shows ⚠️ icon next to command
     last_updated TEXT NOT NULL          -- ISO 8601 timestamp of last summary/embedding generation
 );
 
@@ -467,6 +474,11 @@ CRITICAL: No backwards compatibility. If the database structure is wrong, the ex
   - **MUST be populated** by embedding the `summary` text using `all-MiniLM-L6-v2`
   - Stored as BLOB containing serialized Float32Array
   - **If missing or NULL, semantic search CANNOT work**
+- **`security_warning`**: AI-detected security risk description (TEXT, nullable)
+  - Populated via VS Code Language Model Tool API (structured output from Copilot)
+  - When non-empty, tree view shows ⚠️ icon next to the command label
+  - Hovering shows the full warning text in the tooltip
+  - Example: "Deletes build output files including node_modules without confirmation"
 - **`last_updated`**: ISO 8601 timestamp of last summary/embedding generation (NOT NULL)
 
 ### Tags Table Columns
@@ -539,9 +551,10 @@ This is a **fully automated background process** that requires no user intervent
 
 - **LLM**: GitHub Copilot via `vscode.lm` API (stable since VS Code 1.90)
 - **Input**: Command content (script code, npm script definition, etc.)
-- **Output**: Plain-language summary (1-3 sentences)
-- **Storage**: `commands.summary` column in SQLite `{workspaceFolder}/.commandtree/commandtree.sqlite3`
-- **Display**: Tooltip on hover, includes ⚠️ warning for security issues
+- **Output**: Structured result via Language Model Tool API (`summary` + `securityWarning`)
+- **Tool Mode**: `LanguageModelChatToolMode.Required` — forces structured output, no text parsing
+- **Storage**: `commands.summary` and `commands.security_warning` columns in SQLite
+- **Display**: Summary in tooltip on hover. Security warnings shown as ⚠️ prefix on tree item label + warning section in tooltip
 - **Requirement**: GitHub Copilot installed and authenticated
 - **MUST HAPPEN**: For every discovered command, automatically in background
 
@@ -609,3 +622,56 @@ SELECT command_id, length(embedding) as embedding_size FROM commands;
 - GitHub Copilot may not be installed/authenticated
 - The embedding model may not be downloaded
 - **The feature is BROKEN and must be fixed**
+
+---
+
+## Command Skills
+
+**command-skills**
+
+> **STATUS: NOT YET IMPLEMENTED**
+
+Command skills are markdown files stored in `.commandtree/skills/` that describe actions to perform on scripts. Each skill adds a context menu item to command items in the tree view. Selecting the menu item uses GitHub Copilot as an agent to perform the skill on the target script.
+
+**Reference:** https://agentskills.io/what-are-skills
+
+### Skill File Format
+
+Each skill is a single markdown file in `{workspaceRoot}/.commandtree/skills/`. The file contains YAML front matter for metadata followed by markdown instructions.
+
+```markdown
+---
+name: Clean Up Script
+icon: sparkle
+---
+
+- Remove superfluous comments from script
+- Remove duplication
+- Clean up formatting
+```
+
+**Front matter fields:**
+
+| Field  | Required | Description                                      |
+|--------|----------|--------------------------------------------------|
+| `name` | Yes      | Display text shown in the context menu            |
+| `icon` | No       | VS Code ThemeIcon id (defaults to `wand`)         |
+
+The markdown body is the instruction set sent to Copilot when the skill is executed.
+
+### Context Menu Integration
+
+- On activation (and on file changes in `.commandtree/skills/`), discover all `*.md` files in the skills folder
+- Register a dynamic context menu item per skill on command tree items (`viewItem == task`)
+- Each menu item shows the `name` from front matter and the chosen icon
+- Skills appear in a dedicated `4_skills` menu group in the context menu
+
+### Skill Execution
+
+When the user selects a skill from the context menu:
+
+1. Read the target command's script content (using `TaskItem.filePath`)
+2. Read the skill markdown body (the instructions)
+3. Select a Copilot model via `selectCopilotModel()`
+4. Send a request to Copilot with the script content and skill instructions
+5. Apply the result back to the script file (with user confirmation via a diff editor)

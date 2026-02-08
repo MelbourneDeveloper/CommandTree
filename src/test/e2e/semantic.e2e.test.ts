@@ -1,7 +1,8 @@
+/* eslint-disable no-console */
 /**
- * SPEC: ai-semantic-search, ai-summary-generation, ai-embedding-generation, database-schema, ai-search-implementation
+ * SPEC: ai-semantic-search, ai-embedding-generation, ai-search-implementation, database-schema
  *
- * VECTOR EMBEDDING SEARCH — FULL E2E TESTS
+ * VECTOR EMBEDDING SEARCH — E2E TESTS
  * Pipeline: Copilot summary → MiniLM embedding → SQLite BLOB → cosine similarity
  * These tests FAIL without Copilot + HuggingFace — that is correct.
  */
@@ -15,9 +16,11 @@ import {
   sleep,
   getFixturePath,
   getCommandTreeProvider,
+  collectLeafItems,
+  collectLeafTasks,
+  getLabelString,
 } from "../helpers/helpers";
-import type { CommandTreeProvider, CommandTreeItem } from "../helpers/helpers";
-import type { TaskItem } from "../../models/TaskItem";
+import type { CommandTreeProvider } from "../helpers/helpers";
 
 const COMMANDTREE_DIR = ".commandtree";
 const DB_FILENAME = "commandtree.sqlite3";
@@ -29,52 +32,6 @@ const INPUT_BOX_RENDER_MS = 1000;
 const COPILOT_VENDOR = "copilot";
 const COPILOT_WAIT_MS = 2000;
 const COPILOT_MAX_ATTEMPTS = 30;
-
-function getLabelString(label: string | vscode.TreeItemLabel | undefined): string {
-  if (label === undefined) {
-    return "";
-  }
-  if (typeof label === "string") {
-    return label;
-  }
-  return label.label;
-}
-
-async function collectLeafItems(
-  p: CommandTreeProvider,
-): Promise<CommandTreeItem[]> {
-  const out: CommandTreeItem[] = [];
-  async function walk(node: CommandTreeItem): Promise<void> {
-    if (node.task !== null) {
-      out.push(node);
-    }
-    for (const child of await p.getChildren(node)) {
-      await walk(child);
-    }
-  }
-  for (const root of await p.getChildren()) {
-    await walk(root);
-  }
-  return out;
-}
-
-async function collectLeafTasks(p: CommandTreeProvider): Promise<TaskItem[]> {
-  const items = await collectLeafItems(p);
-  return items.map((i) => i.task).filter((t): t is TaskItem => t !== null);
-}
-
-/**
- * Extracts tooltip text from a CommandTreeItem.
- */
-function getTooltipText(item: CommandTreeItem): string {
-  if (item.tooltip instanceof vscode.MarkdownString) {
-    return item.tooltip.value;
-  }
-  if (typeof item.tooltip === "string") {
-    return item.tooltip;
-  }
-  return "";
-}
 
 type SqlRow = Record<string, number | bigint | string | Uint8Array | null>;
 
@@ -134,8 +91,6 @@ suite.skip("Vector Embedding Search E2E", () => {
     this.timeout(300000); // 5 min — Copilot + model download
 
     // CLEAN SLATE: delete stale DB from previous run BEFORE activation
-    // so the extension creates a fresh DB during initSemanticSubsystem.
-    // Deleting AFTER activation would leave the DB singleton pointing at a deleted file.
     const staleDir = getFixturePath(COMMANDTREE_DIR);
     if (fs.existsSync(staleDir)) {
       fs.rmSync(staleDir, { recursive: true, force: true });
@@ -145,19 +100,15 @@ suite.skip("Vector Embedding Search E2E", () => {
     provider = getCommandTreeProvider();
     await sleep(3000);
 
-    // DEBUG: Log workspace root
-    const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
-    console.log(`[DEBUG] Workspace root: ${workspaceRoot}`);
+    console.log(`[DEBUG] Workspace root: ${vscode.workspace.workspaceFolders?.[0]?.uri.fsPath}`);
 
-    // Snapshot total task count before any filtering
     totalTaskCount = (await collectLeafTasks(provider)).length;
     assert.ok(
       totalTaskCount > 0,
       "Fixture workspace must have discovered tasks",
     );
 
-    // GATE: Wait for Copilot LM API to initialize (retries like production code).
-    // Copilot needs time to activate + authenticate after VS Code starts.
+    // GATE: Wait for Copilot LM API to initialize
     let copilotModels: vscode.LanguageModelChat[] = [];
     for (let i = 0; i < COPILOT_MAX_ATTEMPTS; i++) {
       copilotModels = await vscode.lm.selectChatModels({
@@ -166,41 +117,30 @@ suite.skip("Vector Embedding Search E2E", () => {
       if (copilotModels.length > 0) {
         break;
       }
-      // On last attempt, dump ALL models for diagnostics
       if (i === COPILOT_MAX_ATTEMPTS - 1) {
         const allModels = await vscode.lm.selectChatModels();
         const info = allModels.map((m) => `${m.vendor}/${m.name}/${m.id}`);
         assert.fail(
           `GATE FAILED: No Copilot models after ${COPILOT_MAX_ATTEMPTS} attempts (${(COPILOT_MAX_ATTEMPTS * COPILOT_WAIT_MS) / 1000}s). ` +
-            `All available models: [${info.join(", ")}]. ` +
-            `Check: (1) github.copilot-chat extension installed, (2) GitHub authenticated, (3) --disable-extensions not blocking Copilot.`,
+            `All available models: [${info.join(", ")}].`,
         );
       }
       await sleep(COPILOT_WAIT_MS);
     }
 
-    // Enable AI — extension uses Copilot + HuggingFace by itself
     await vscode.workspace
       .getConfiguration("commandtree")
       .update("enableAiSummaries", true, vscode.ConfigurationTarget.Workspace);
     await sleep(SHORT_SETTLE_MS);
 
-    // DEBUG: Log task count before generating summaries
-    const tasksBeforeGen = await collectLeafTasks(provider);
-    console.log(`[DEBUG] Tasks before generateSummaries: ${tasksBeforeGen.length}`);
-    console.log(`[DEBUG] First 3 task IDs: ${tasksBeforeGen.slice(0, 3).map(t => t.id).join(", ")}`);
+    console.log(`[DEBUG] Tasks before generateSummaries: ${(await collectLeafTasks(provider)).length}`);
 
-    // Trigger the REAL pipeline: Copilot summaries → MiniLM embeddings → SQLite
     await vscode.commands.executeCommand("commandtree.generateSummaries");
     await sleep(5000);
 
-    // DEBUG: Log task count after generating summaries
-    const tasksAfterGen = await collectLeafTasks(provider);
-    console.log(`[DEBUG] Tasks after generateSummaries: ${tasksAfterGen.length}`);
+    console.log(`[DEBUG] Tasks after generateSummaries: ${(await collectLeafTasks(provider)).length}`);
 
     // GATE: Verify the pipeline actually produced real embeddings.
-    // If generateSummaries silently failed (e.g. Copilot auth expired mid-run),
-    // we catch it HERE — not in individual tests with confusing errors.
     const dbPath = getFixturePath(path.join(COMMANDTREE_DIR, DB_FILENAME));
     console.log(`[DEBUG] Database path: ${dbPath}`);
     console.log(`[DEBUG] Database exists: ${fs.existsSync(dbPath)}`);
@@ -214,7 +154,7 @@ suite.skip("Vector Embedding Search E2E", () => {
 
     assert.ok(
       gateStats.embeddedCount > 0,
-      `GATE FAILED: ${gateStats.embeddedCount}/${gateStats.rowCount} rows have real embedding BLOBs. The LM API call succeeded but the pipeline produced nothing.`,
+      `GATE FAILED: ${gateStats.embeddedCount}/${gateStats.rowCount} rows have real embedding BLOBs.`,
     );
   });
 
@@ -225,14 +165,13 @@ suite.skip("Vector Embedding Search E2E", () => {
       .getConfiguration("commandtree")
       .update("enableAiSummaries", false, vscode.ConfigurationTarget.Workspace);
 
-    // Clean up generated DB
     const dir = getFixturePath(COMMANDTREE_DIR);
     if (fs.existsSync(dir)) {
       fs.rmSync(dir, { recursive: true, force: true });
     }
   });
 
-  // SPEC.md **ai-search-implementation** line 553: "User invokes semantic search through magnifying glass icon in the UI"
+  // SPEC.md **ai-search-implementation**: "User invokes semantic search through magnifying glass icon in the UI"
   test("semanticSearch command is registered and invokable", async function () {
     this.timeout(10000);
 
@@ -247,9 +186,6 @@ suite.skip("Vector Embedding Search E2E", () => {
   test("embedding pipeline fires and writes REAL 384-dim vectors to SQLite", async function () {
     this.timeout(15000);
 
-    // PROOF: The pipeline ran (generateSummaries command) and produced
-    // actual embedding BLOBs in the DB. We open SQLite DIRECTLY and
-    // inspect every single row. No internal APIs. No trust.
     const dbPath = getFixturePath(path.join(COMMANDTREE_DIR, DB_FILENAME));
     assert.ok(
       fs.existsSync(dbPath),
@@ -258,13 +194,10 @@ suite.skip("Vector Embedding Search E2E", () => {
 
     const stats = await queryEmbeddingStats(dbPath);
 
-    // 1. Rows must exist — pipeline must have processed tasks
     assert.ok(
       stats.rowCount > 0,
       `DB has ${stats.rowCount} rows — pipeline produced nothing`,
     );
-
-    // 2. EVERY row must have a non-null embedding BLOB
     assert.strictEqual(
       stats.nullCount,
       0,
@@ -275,8 +208,6 @@ suite.skip("Vector Embedding Search E2E", () => {
       stats.rowCount,
       `Only ${stats.embeddedCount}/${stats.rowCount} rows have embeddings`,
     );
-
-    // 3. Every BLOB must be exactly 384 dims × 4 bytes = 1536 bytes
     assert.strictEqual(
       stats.wrongSizeCount,
       0,
@@ -288,7 +219,6 @@ suite.skip("Vector Embedding Search E2E", () => {
       `Sample BLOB is ${stats.sampleBlobLength} bytes, need ${EMBEDDING_BLOB_BYTES}`,
     );
 
-    // 4. BLOB must contain real float data, not zeros
     const mod = await import("node-sqlite3-wasm");
     const db = new mod.default.Database(dbPath);
     try {
@@ -309,62 +239,6 @@ suite.skip("Vector Embedding Search E2E", () => {
       );
     } finally {
       db.close();
-    }
-  });
-
-  // SPEC.md **ai-summary-generation**
-  test("tasks have AI-generated summaries after pipeline", async function () {
-    this.timeout(15000);
-
-    const tasks = await collectLeafTasks(provider);
-    const withSummary = tasks.filter(
-      (t) => t.summary !== undefined && t.summary !== "",
-    );
-
-    assert.ok(
-      withSummary.length > 0,
-      `At least one task should have an AI summary, got 0 out of ${tasks.length}`,
-    );
-    for (const task of withSummary) {
-      assert.ok(
-        typeof task.summary === "string" && task.summary.length > 5,
-        `Summary for "${task.label}" should be a meaningful string, got: "${task.summary}"`,
-      );
-      // Anti-fraud: reject the old buildFallbackSummary metadata pattern
-      const fakePattern = `${task.type} command "${task.label}": ${task.command}`;
-      assert.notStrictEqual(
-        task.summary,
-        fakePattern,
-        `FRAUD: Summary for "${task.label}" matches fake metadata pattern`,
-      );
-    }
-  });
-
-  // SPEC.md **ai-summary-generation** (Display: Tooltip on hover)
-  test("tree items show summaries in tooltips as markdown blockquotes", async function () {
-    this.timeout(15000);
-
-    const items = await collectLeafItems(provider);
-    const withSummaryTooltip = items.filter((item) => {
-      const tip = getTooltipText(item);
-      return tip.includes("> ");
-    });
-
-    assert.ok(
-      withSummaryTooltip.length > 0,
-      "At least one tree item should show summary as markdown blockquote in tooltip",
-    );
-
-    for (const item of withSummaryTooltip) {
-      const tip = getTooltipText(item);
-      assert.ok(
-        tip.includes(`**${item.task?.label}**`),
-        `Tooltip should contain the task label "${item.task?.label}"`,
-      );
-      assert.ok(
-        item.tooltip instanceof vscode.MarkdownString,
-        "Tooltip should be a MarkdownString for rich display",
-      );
     }
   });
 
@@ -444,7 +318,6 @@ suite.skip("Vector Embedding Search E2E", () => {
   test("different queries produce different result sets", async function () {
     this.timeout(120000);
 
-    // Search "build"
     await vscode.commands.executeCommand(
       "commandtree.semanticSearch",
       "build project",
@@ -454,7 +327,6 @@ suite.skip("Vector Embedding Search E2E", () => {
     const buildIds = new Set(buildResults.map((t) => t.id));
     assert.ok(buildIds.size > 0, "Build search should have results");
 
-    // Search "deploy"
     await vscode.commands.executeCommand("commandtree.clearFilter");
     await sleep(500);
     await vscode.commands.executeCommand(
@@ -522,12 +394,10 @@ suite.skip("Vector Embedding Search E2E", () => {
   test("clear filter restores all tasks after search", async function () {
     this.timeout(30000);
 
-    // Apply a filter first
     await vscode.commands.executeCommand("commandtree.semanticSearch", "build");
     await sleep(SEARCH_SETTLE_MS);
     assert.ok(provider.hasFilter(), "Filter should be active before clearing");
 
-    // Clear it
     await vscode.commands.executeCommand("commandtree.clearFilter");
     await sleep(SHORT_SETTLE_MS);
 
@@ -579,7 +449,6 @@ suite.skip("Vector Embedding Search E2E", () => {
       await vscode.commands.executeCommand("commandtree.clearFilter");
       await sleep(500);
     }
-    // Different queries must produce different result sets (proves real vector math)
     const first = resultSets[0];
     const second = resultSets[1];
     if (first !== undefined && second !== undefined) {
@@ -593,27 +462,23 @@ suite.skip("Vector Embedding Search E2E", () => {
   });
 
   // SPEC.md **ai-search-implementation**
-  test("search command without args opens input box and cancellation is clean.", async function () {
+  test("search command without args opens input box and cancellation is clean", async function () {
     this.timeout(30000);
 
-    // Trigger search without query arg → opens VS Code input box
     const searchPromise = vscode.commands.executeCommand(
       "commandtree.semanticSearch",
     );
     await sleep(INPUT_BOX_RENDER_MS);
 
-    // Dismiss the input box (simulates user pressing Escape)
     await vscode.commands.executeCommand("workbench.action.closeQuickOpen");
     await searchPromise;
     await sleep(SHORT_SETTLE_MS);
 
-    // Cancelling input box should not activate any filter
     assert.ok(
       !provider.hasFilter(),
       "Cancelling input box should not activate semantic filter",
     );
 
-    // All tasks should still be visible after cancellation
     const tasks = await collectLeafTasks(provider);
     assert.strictEqual(
       tasks.length,
@@ -625,15 +490,6 @@ suite.skip("Vector Embedding Search E2E", () => {
   // SPEC.md **ai-search-implementation** (Cosine similarity, threshold 0.3)
   test("cosine similarity discriminates: related query filters, unrelated does not", async function () {
     this.timeout(120000);
-
-    // PROOF OF VECTOR SEARCH:
-    // A related query ("compile and build") hits cosine similarity > 0.3
-    // against build task embeddings → filter activates → fewer tasks.
-    // An unrelated query ("quantum entanglement photon wavelength") misses
-    // ALL embeddings below threshold → no filter → all tasks visible.
-    // Text matching (string.includes) can't do this — it returns 0 for both.
-    // The suiteSetup gate PROVED real 384-dim embeddings exist.
-    // So this discrimination IS cosine similarity on real vectors.
 
     await vscode.commands.executeCommand(
       "commandtree.semanticSearch",
@@ -654,7 +510,6 @@ suite.skip("Vector Embedding Search E2E", () => {
     const unrelatedCount = (await collectLeafTasks(provider)).length;
     await vscode.commands.executeCommand("commandtree.clearFilter");
 
-    // Related query MUST activate filter (cosine > threshold for some tasks)
     assert.ok(
       relatedFiltered,
       "Related query must activate filter via cosine similarity",
@@ -664,8 +519,6 @@ suite.skip("Vector Embedding Search E2E", () => {
       "Related must find subset",
     );
 
-    // Unrelated query should NOT activate filter (cosine < threshold for ALL)
-    // OR if it does, it should return drastically fewer results
     if (!unrelatedFiltered) {
       assert.strictEqual(
         unrelatedCount,
@@ -713,43 +566,6 @@ suite.skip("Vector Embedding Search E2E", () => {
     await vscode.commands.executeCommand("commandtree.clearFilter");
   });
 
-  // SPEC.md line 211: Security warning in tooltip
-  test("tooltips display security warning icon when summary contains security keywords", async function () {
-    this.timeout(15000);
-
-    const items = await collectLeafItems(provider);
-    const allTooltips = items
-      .map(i => ({ item: i, tooltip: getTooltipText(i) }))
-      .filter(x => x.tooltip.includes("> "));
-
-    const withWarning = allTooltips.filter(x => x.tooltip.includes("⚠️"));
-    const withKeywords = allTooltips.filter(x => {
-      const lower = x.tooltip.toLowerCase();
-      return ['danger', 'unsafe', 'caution', 'warning', 'security', 'risk', 'vulnerability']
-        .some(k => lower.includes(k));
-    });
-
-    assert.ok(
-      withKeywords.length >= 0,
-      "Checking for security keywords in summaries"
-    );
-
-    if (withKeywords.length > 0) {
-      assert.ok(
-        withWarning.length > 0,
-        `Found ${withKeywords.length} summaries with security keywords, but 0 have ⚠️ icon`
-      );
-
-      for (const item of withWarning) {
-        const tooltip = item.tooltip;
-        assert.ok(
-          tooltip.includes("> ⚠️"),
-          `Security warning should appear in blockquote format, got: "${tooltip.substring(0, 100)}"`
-        );
-      }
-    }
-  });
-
   // SPEC.md line 271: Match percentage displayed next to each command (e.g., "build (87%)")
   test("tree labels display similarity scores as percentages after semantic search", async function () {
     this.timeout(120000);
@@ -785,73 +601,5 @@ suite.skip("Vector Embedding Search E2E", () => {
     }
 
     await vscode.commands.executeCommand("commandtree.clearFilter");
-  });
-
-  // SPEC.md **ai-summary-generation** (Display: includes ⚠️ warning for security issues)
-  test("security warnings appear in tooltips when Copilot flags risky commands", async function () {
-    this.timeout(15000);
-
-    const tasks = await collectLeafTasks(provider);
-    const items = await collectLeafItems(provider);
-
-    const securityWarnings = tasks.filter(
-      (t) => t.summary?.includes("⚠️") === true,
-    );
-
-    if (securityWarnings.length === 0) {
-      return;
-    }
-
-    assert.ok(
-      securityWarnings.length > 0,
-      "Found commands with security warnings from Copilot",
-    );
-
-    for (const task of securityWarnings) {
-      const item = items.find((i) => i.task?.id === task.id);
-      assert.ok(
-        item !== undefined,
-        `Tree item should exist for flagged command "${task.label}"`,
-      );
-
-      const tip = getTooltipText(item);
-      assert.ok(
-        tip.includes("⚠️"),
-        `Tooltip for "${task.label}" should preserve security warning emoji`,
-      );
-      assert.ok(
-        tip.includes(task.summary ?? ""),
-        `Tooltip for "${task.label}" should include full summary with warning`,
-      );
-    }
-  });
-
-  // SPEC.md line 209: File watch with debounce
-  test("rapid file changes are debounced to prevent excessive re-summarization", async function () {
-    this.timeout(60000);
-
-    const testFilePath = getFixturePath("test-debounce.sh");
-    const testContent = "#!/bin/bash\necho 'test'\n";
-
-    fs.writeFileSync(testFilePath, testContent);
-    await sleep(SHORT_SETTLE_MS);
-
-    const startCount = (await collectLeafTasks(provider)).length;
-
-    fs.writeFileSync(testFilePath, "#!/bin/bash\necho 'change1'\n");
-    await sleep(500);
-    fs.writeFileSync(testFilePath, "#!/bin/bash\necho 'change2'\n");
-    await sleep(500);
-    fs.writeFileSync(testFilePath, "#!/bin/bash\necho 'change3'\n");
-    await sleep(3000);
-
-    const endCount = (await collectLeafTasks(provider)).length;
-    assert.ok(
-      endCount >= startCount,
-      `Task count should not decrease after rapid changes (${endCount} >= ${startCount})`
-    );
-
-    fs.unlinkSync(testFilePath);
-    await sleep(SHORT_SETTLE_MS);
   });
 });

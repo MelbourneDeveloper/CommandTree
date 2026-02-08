@@ -41,6 +41,10 @@ Reads command definitions from `.vscode/tasks.json`, including `${input:*}` vari
 
 Discovers `.py` files and runs them in a terminal.
 
+## AI Summaries
+
+When GitHub Copilot is available, each discovered command is automatically summarised in plain language. See [AI Summaries](/docs/ai-summaries/) for details.
+
 ## File Watching
 
-The tree automatically refreshes when scripts or config files change.
+The tree automatically refreshes when scripts or config files change. If AI summaries are enabled, changed scripts are re-summarised automatically.

@@ -75,6 +75,7 @@ export interface TaskItem {
     readonly params?: readonly ParamDef[];
     readonly description?: string;
     readonly summary?: string;
+    readonly securityWarning?: string;
 }
 
 /**
@@ -92,6 +93,7 @@ export interface MutableTaskItem {
     params?: ParamDef[];
     description?: string;
     summary?: string;
+    securityWarning?: string;
 }
 
 /**
@@ -105,7 +107,9 @@ export class CommandTreeItem extends vscode.TreeItem {
         parentId?: string,
         similarityScore?: number
     ) {
-        const baseLabel = task?.label ?? categoryLabel ?? '';
+        const rawLabel = task?.label ?? categoryLabel ?? '';
+        const hasWarning = task?.securityWarning !== undefined && task.securityWarning !== '';
+        const baseLabel = hasWarning ? `\u26A0\uFE0F ${rawLabel}` : rawLabel;
         const labelWithScore = similarityScore !== undefined
             ? `${baseLabel} (${Math.round(similarityScore * 100)}%)`
             : baseLabel;
@@ -152,8 +156,11 @@ export class CommandTreeItem extends vscode.TreeItem {
     private buildTooltip(task: TaskItem): vscode.MarkdownString {
         const md = new vscode.MarkdownString();
         md.appendMarkdown(`**${task.label}**\n\n`);
+        if (task.securityWarning !== undefined && task.securityWarning !== '') {
+            md.appendMarkdown(`\u26A0\uFE0F **Security Warning:** ${task.securityWarning}\n\n`);
+            md.appendMarkdown(`---\n\n`);
+        }
         if (task.summary !== undefined && task.summary !== '') {
-            // SPEC.md **ai-summary-generation**: LLM adds ⚠️ prefix, no need for code to duplicate
             md.appendMarkdown(`> ${task.summary}\n\n`);
             md.appendMarkdown(`---\n\n`);
         }
