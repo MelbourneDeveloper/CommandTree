@@ -6,7 +6,7 @@
 import type { Result } from '../models/Result';
 import { ok, err } from '../models/Result';
 
-const ORT_SYMBOL = Symbol.for('onnxruntime');
+// const ORT_SYMBOL = Symbol.for('onnxruntime');
 
 interface Pipeline {
     (text: string, options: { pooling: string; normalize: boolean }): Promise<{ data: Float32Array }>;
@@ -17,40 +17,23 @@ export interface EmbedderHandle {
     readonly pipeline: Pipeline;
 }
 
-/** Injects WASM runtime so transformers.js skips the native onnxruntime-node binary. */
-async function injectWasmBackend(): Promise<void> {
-    if (ORT_SYMBOL in globalThis) { return; }
-    const ort = await import('onnxruntime-web');
-    (globalThis as Record<symbol, unknown>)[ORT_SYMBOL] = ort;
-}
+// --- Embedding disabled: injectWasmBackend and createEmbedder commented out ---
+// /** Injects WASM runtime so transformers.js skips the native onnxruntime-node binary. */
+// async function injectWasmBackend(): Promise<void> {
+//     if (ORT_SYMBOL in globalThis) { return; }
+//     const ort = await import('onnxruntime-web');
+//     (globalThis as Record<symbol, unknown>)[ORT_SYMBOL] = ort;
+// }
 
 /**
  * Creates an embedder by loading the MiniLM model.
- * Downloads ~23MB model on first use.
+ * DISABLED — embedding functionality is turned off.
  */
-export async function createEmbedder(params: {
+export async function createEmbedder(_params: {
     readonly modelCacheDir: string;
     readonly onProgress?: (progress: unknown) => void;
 }): Promise<Result<EmbedderHandle, string>> {
-    try {
-        await injectWasmBackend();
-        const mod = await import('@huggingface/transformers');
-        mod.env.cacheDir = params.modelCacheDir;
-
-        const opts = params.onProgress !== undefined
-            ? { progress_callback: params.onProgress }
-            : {};
-        const pipe = await mod.pipeline(
-            'feature-extraction',
-            'Xenova/all-MiniLM-L6-v2',
-            opts
-        );
-
-        return ok({ pipeline: pipe as unknown as Pipeline });
-    } catch (e) {
-        const msg = e instanceof Error ? e.message : 'Failed to load embedding model';
-        return err(msg);
-    }
+    return err('Embedding is disabled');
 }
 
 /**

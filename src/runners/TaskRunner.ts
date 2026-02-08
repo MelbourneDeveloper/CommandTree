@@ -182,7 +182,7 @@ export class TaskRunner {
                 if (t === terminal && !resolved) {
                     resolved = true;
                     listener.dispose();
-                    shellIntegration.executeCommand(command);
+                    this.safeSendText(terminal, command, shellIntegration);
                 }
             }
         );
@@ -190,9 +190,29 @@ export class TaskRunner {
             if (!resolved) {
                 resolved = true;
                 listener.dispose();
-                terminal.sendText(command);
+                this.safeSendText(terminal, command);
             }
         }, SHELL_INTEGRATION_TIMEOUT_MS);
+    }
+
+    /**
+     * Sends text to terminal, preferring shell integration when available.
+     * Guards against xterm viewport not being initialized (no dimensions).
+     */
+    private safeSendText(
+        terminal: vscode.Terminal,
+        command: string,
+        shellIntegration?: vscode.TerminalShellIntegration
+    ): void {
+        try {
+            if (shellIntegration !== undefined) {
+                shellIntegration.executeCommand(command);
+            } else {
+                terminal.sendText(command);
+            }
+        } catch {
+            showError(`Failed to send command to terminal: ${command}`);
+        }
     }
 
     /**
