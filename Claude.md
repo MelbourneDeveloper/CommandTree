@@ -98,12 +98,21 @@ assert.ok(true, 'Command ran');
 
 ## Critical Docs
 
+### Vscode SDK
 [VSCode Extension API](https://code.visualstudio.com/api/)
 [VSCode Extension Testing API](https://code.visualstudio.com/api/extension-guides/testing)
 [VSCODE Language Model API](https://code.visualstudio.com/api/extension-guides/ai/language-model)
 [Language Model Tool API](https://code.visualstudio.com/api/extension-guides/ai/tools)
 [AI extensibility in VS Cod](https://code.visualstudio.com/api/extension-guides/ai/ai-extensibility-overview)
 [AI language models in VS Code](https://code.visualstudio.com/docs/copilot/customization/language-models)
+
+### Website
+
+https://developers.google.com/search/blog/2025/05/succeeding-in-ai-search
+https://developers.google.com/search/docs/fundamentals/seo-starter-guide
+
+https://studiohawk.com.au/blog/how-to-optimise-ai-overviews/
+https://about.ads.microsoft.com/en/blog/post/october-2025/optimizing-your-content-for-inclusion-in-ai-search-answers
 
 ## Project Structure
 
@@ -116,11 +125,25 @@ CommandTree/
 │   │   └── TagConfig.ts      # Tag configuration from commandtree.json
 │   ├── discovery/
 │   │   ├── index.ts          # Discovery orchestration
-│   │   ├── shell.ts          # Shell script discovery
-│   │   ├── npm.ts            # NPM script discovery
-│   │   ├── make.ts           # Makefile target discovery
-│   │   ├── launch.ts         # launch.json discovery
-│   │   └── tasks.ts          # tasks.json discovery
+│   │   ├── shell.ts          # Shell scripts (.sh, .bash, .zsh)
+│   │   ├── npm.ts            # NPM scripts (package.json)
+│   │   ├── make.ts           # Makefile targets
+│   │   ├── launch.ts         # VS Code launch configs
+│   │   ├── tasks.ts          # VS Code tasks
+│   │   ├── python.ts         # Python scripts (.py)
+│   │   ├── powershell.ts     # PowerShell scripts (.ps1)
+│   │   ├── gradle.ts         # Gradle tasks
+│   │   ├── cargo.ts          # Cargo (Rust) tasks
+│   │   ├── maven.ts          # Maven goals (pom.xml)
+│   │   ├── ant.ts            # Ant targets (build.xml)
+│   │   ├── just.ts           # Just recipes (justfile)
+│   │   ├── taskfile.ts       # Taskfile tasks (Taskfile.yml)
+│   │   ├── deno.ts           # Deno tasks (deno.json)
+│   │   ├── rake.ts           # Rake tasks (Rakefile)
+│   │   ├── composer.ts       # Composer scripts (composer.json)
+│   │   ├── docker.ts         # Docker Compose services
+│   │   ├── dotnet.ts         # .NET projects (.csproj)
+│   │   └── markdown.ts       # Markdown files (.md)
 │   ├── models/
 │   │   └── TaskItem.ts       # Task data model and TreeItem
 │   ├── runners/

@@ -31,6 +31,20 @@ test.describe('Navigation', () => {
     }
   });
 
+  test('favicon is present and served correctly', async ({ page }) => {
+    await page.goto('/');
+    const iconLinks = page.locator('link[rel="icon"]');
+    await expect(iconLinks.first()).toHaveAttribute('href', '/favicon.ico');
+    const svgIcon = page.locator('link[rel="icon"][type="image/svg+xml"]');
+    await expect(svgIcon).toHaveAttribute('href', '/assets/images/favicon.svg');
+
+    const icoResponse = await page.request.get('/favicon.ico');
+    expect(icoResponse.status()).toBe(200);
+    const svgResponse = await page.request.get('/assets/images/favicon.svg');
+    expect(svgResponse.status()).toBe(200);
+    expect(svgResponse.headers()['content-type']).toContain('image/svg+xml');
+  });
+
   test('footer contains documentation and community links', async ({ page }) => {
     await page.goto('/');
     const footer = page.locator('footer');
