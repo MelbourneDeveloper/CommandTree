@@ -1,6 +1,7 @@
 ---
 layout: layouts/docs.njk
-title: AI Summaries
+title: AI-Powered Command Summaries - CommandTree Docs
+description: GitHub Copilot generates plain-language summaries and security warnings for every command CommandTree discovers. Hover to see what any script does.
 eleventyNavigation:
   key: AI Summaries
   order: 3
@@ -8,7 +9,7 @@ eleventyNavigation:
 
 # AI Summaries
 
-When [GitHub Copilot](https://marketplace.visualstudio.com/items?itemName=GitHub.copilot) is installed, CommandTree uses it to generate a plain-language summary for every discovered command. Hover over any command in the tree to see what it does.
+CommandTree uses GitHub Copilot to automatically generate a one-sentence, plain-language summary for every discovered command. When [GitHub Copilot](https://marketplace.visualstudio.com/items?itemName=GitHub.copilot) is installed, hover over any command in the tree to see exactly what it does — and get warnings about dangerous operations.
 
 ## How It Works
 
@@ -30,3 +31,21 @@ If Copilot is not available, CommandTree works exactly as before — all core fe
 ## Triggering Summaries
 
 Summaries generate automatically on activation and when files change. To manually regenerate, run the **CommandTree: Generate AI Summaries** command from the command palette.
+
+## Frequently Asked Questions
+
+### What does an AI summary look like?
+
+Each summary is a one-to-two sentence plain-language description of what the command does. For example, a shell script that runs database migrations might show: "Runs pending database migrations and seeds the development database." Hover over any command in the tree to see its summary.
+
+### Are summaries stored locally?
+
+Yes. All summaries are stored in a SQLite database at `.commandtree/commandtree.sqlite3` in your workspace root. No data is sent to external servers beyond the GitHub Copilot API that runs locally in VS Code.
+
+### How are security warnings triggered?
+
+Copilot analyses each command for potentially dangerous operations such as `rm -rf`, `git push --force`, file permission changes, or credential handling. When a risk is detected, the command label shows a warning indicator and the tooltip explains the specific risk.
+
+### Can I disable AI summaries?
+
+Yes. Set `commandtree.enableAiSummaries` to `false` in your [VS Code settings](/docs/configuration/). All other features — [discovery](/docs/discovery/), [execution](/docs/execution/), tagging, and filtering — work independently of AI summaries.

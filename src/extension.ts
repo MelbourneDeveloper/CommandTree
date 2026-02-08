@@ -219,7 +219,7 @@ async function handleRemoveTag(item: CommandTreeItem | TaskItem | undefined, tag
 }
 
 async function handleSemanticSearch(_queryArg: string | undefined, _workspaceRoot: string): Promise<void> {
-    vscode.window.showInformationMessage('Semantic search is currently disabled');
+    await vscode.window.showInformationMessage('Semantic search is currently disabled');
 }
 
 function setupFileWatcher(context: vscode.ExtensionContext, workspaceRoot: string): void {

@@ -44,6 +44,16 @@ export default function(eleventyConfig) {
     return cleaned.replace("</head>", faviconLinks + "\n</head>");
   });
 
+  eleventyConfig.addTransform("copyright", function(content) {
+    if (!this.page.outputPath?.endsWith(".html")) {
+      return content;
+    }
+    const year = new Date().getFullYear();
+    const original = `&copy; ${year} CommandTree`;
+    const replacement = `&copy; ${year} <a href="https://www.nimblesite.co">Nimblesite Pty Ltd</a>`;
+    return content.replace(original, replacement);
+  });
+
   eleventyConfig.addTransform("customScripts", function(content) {
     if (!this.page.outputPath?.endsWith(".html")) {
       return content;

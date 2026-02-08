@@ -33,6 +33,7 @@ export async function createEmbedder(_params: {
     readonly modelCacheDir: string;
     readonly onProgress?: (progress: unknown) => void;
 }): Promise<Result<EmbedderHandle, string>> {
+    await Promise.resolve();
     return err('Embedding is disabled');
 }
 

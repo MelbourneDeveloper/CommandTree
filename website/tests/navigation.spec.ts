@@ -52,5 +52,8 @@ test.describe('Navigation', () => {
     await expect(footer.locator('a[href="/docs/"]')).toBeVisible();
     await expect(footer.locator('a[href*="github.com"]')).toBeVisible();
     await expect(footer.locator('a[href*="marketplace.visualstudio.com"]')).toBeVisible();
+    const copyrightLink = footer.locator('a[href="https://www.nimblesite.co"]');
+    await expect(copyrightLink).toBeVisible();
+    await expect(copyrightLink).toContainText('Nimblesite Pty Ltd');
   });
 });

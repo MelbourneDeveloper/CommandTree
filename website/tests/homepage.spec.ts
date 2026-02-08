@@ -50,9 +50,9 @@ test.describe('Homepage', () => {
     }
   });
 
-  test('command types section shows all 6 types', async ({ page }) => {
+  test('command types section shows all 19 types', async ({ page }) => {
     const commandTypes = page.locator('.command-type');
-    await expect(commandTypes).toHaveCount(6);
+    await expect(commandTypes).toHaveCount(19);
 
     const expectedTypes = [
       'Shell Scripts',
@@ -61,6 +61,19 @@ test.describe('Homepage', () => {
       'VS Code Tasks',
       'Launch Configs',
       'Python Scripts',
+      'PowerShell Scripts',
+      'Gradle Tasks',
+      'Cargo Tasks',
+      'Maven Goals',
+      'Ant Targets',
+      'Just Recipes',
+      'Taskfile Tasks',
+      'Deno Tasks',
+      'Rake Tasks',
+      'Composer Scripts',
+      'Docker Compose',
+      '.NET Projects',
+      'Markdown Files',
     ];
     for (const name of expectedTypes) {
       await expect(page.locator('.command-type', { hasText: name })).toBeVisible();

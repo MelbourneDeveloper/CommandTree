@@ -53,7 +53,8 @@ export async function resolveModel(
 
     if (savedId !== '') {
         const exact = await deps.fetchById(savedId);
-        if (exact.length > 0) { return ok(exact[0]!); }
+        const first = exact[0];
+        if (first !== undefined) { return ok(first); }
     }
 
     const allModels = await deps.fetchAll();

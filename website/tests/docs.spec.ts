@@ -46,6 +46,19 @@ test.describe('Documentation', () => {
     await expect(page.locator('text=Makefile Targets')).toBeVisible();
     await expect(page.locator('text=Launch Configurations')).toBeVisible();
     await expect(page.locator('text=Python Scripts')).toBeVisible();
+    await expect(page.locator('text=PowerShell Scripts')).toBeVisible();
+    await expect(page.locator('text=Gradle Tasks')).toBeVisible();
+    await expect(page.locator('text=Cargo Tasks')).toBeVisible();
+    await expect(page.locator('text=Maven Goals')).toBeVisible();
+    await expect(page.locator('text=Ant Targets')).toBeVisible();
+    await expect(page.locator('text=Just Recipes')).toBeVisible();
+    await expect(page.locator('text=Taskfile Tasks')).toBeVisible();
+    await expect(page.locator('text=Deno Tasks')).toBeVisible();
+    await expect(page.locator('text=Rake Tasks')).toBeVisible();
+    await expect(page.locator('text=Composer Scripts')).toBeVisible();
+    await expect(page.locator('text=Docker Compose')).toBeVisible();
+    await expect(page.locator('.docs-content h2', { hasText: '.NET Projects' })).toBeVisible();
+    await expect(page.locator('text=Markdown Files')).toBeVisible();
   });
 
   test('execution page loads with all sections', async ({ page }) => {

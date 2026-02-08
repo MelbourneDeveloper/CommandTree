@@ -9,7 +9,7 @@ import type { Result } from '../models/TaskItem';
 import { ok, err } from '../models/TaskItem';
 import { logger } from '../utils/logger';
 import { resolveModel, pickConcreteModel } from './modelSelection';
-import type { ModelSelectionDeps } from './modelSelection';
+import type { ModelSelectionDeps, ModelRef } from './modelSelection';
 export type { ModelRef, ModelSelectionDeps } from './modelSelection';
 export { resolveModel, pickConcreteModel, AUTO_MODEL_ID } from './modelSelection';
 
@@ -107,15 +107,15 @@ async function promptModelPicker(
 function buildVSCodeDeps(): ModelSelectionDeps {
     const config = vscode.workspace.getConfiguration('commandtree');
     return {
-        getSavedId: () => config.get<string>('aiModel', ''),
-        fetchById: (id) => fetchModels({ vendor: 'copilot', id }),
-        fetchAll: () => fetchModels({ vendor: 'copilot' }),
-        promptUser: async () => {
+        getSavedId: (): string => config.get<string>('aiModel', ''),
+        fetchById: async (id: string): Promise<readonly ModelRef[]> => await fetchModels({ vendor: 'copilot', id }),
+        fetchAll: async (): Promise<readonly ModelRef[]> => await fetchModels({ vendor: 'copilot' }),
+        promptUser: async (): Promise<ModelRef | undefined> => {
             const all = await fetchModels({ vendor: 'copilot' });
             const picked = await promptModelPicker(all);
             return picked !== undefined ? { id: picked.id, name: picked.name } : undefined;
         },
-        saveId: async (id) => { await config.update('aiModel', id, vscode.ConfigurationTarget.Global); }
+        saveId: async (id: string): Promise<void> => { await config.update('aiModel', id, vscode.ConfigurationTarget.Global); }
     };
 }
 
