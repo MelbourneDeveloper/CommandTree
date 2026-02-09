@@ -16,7 +16,7 @@
 
   <text x="100" y="200" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="72" font-weight="700" fill="#ffffff">CommandTree</text>
 
-  <text x="100" y="280" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="36" fill="#99aacc">One sidebar. Every command.</text>
+  <text x="100" y="280" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="36" fill="#99aacc">One sidebar. Every command. AI-powered.</text>
 
   <text x="100" y="370" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="24" fill="#6688aa">Auto-discover 18+ command types in VS Code</text>
   <text x="100" y="410" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="24" fill="#6688aa">Shell scripts, npm, Make, Gradle, Docker Compose, and more</text>

@@ -1,6 +1,6 @@
 # CommandTree
 
-**One sidebar. Every command in your workspace.**
+**One sidebar. Every command. AI-powered.**
 
 **[commandtree.dev](https://commandtree.dev/)**
 
@@ -8,7 +8,7 @@
   <img src="website/src/assets/images/CommandTree.gif" alt="CommandTree in action" width="780">
 </p>
 
-CommandTree scans your project and surfaces all runnable commands in a single tree view: shell scripts, npm scripts, Makefile targets, VS Code tasks, launch configurations, and Python scripts. Filter by text or tag, run in terminal or debugger.
+CommandTree scans your project and surfaces all runnable commands across 19 tool types in a single tree view. Filter by text or tag, search by meaning with AI-powered semantic search, and run in terminal or debugger.
 
 ## AI Summaries (powered by GitHub Copilot)
 
@@ -19,7 +19,8 @@ Summaries are stored locally and only regenerate when the underlying script chan
 ## Features
 
 - **AI Summaries** - GitHub Copilot describes each command in plain language, with security warnings for dangerous operations
-- **Auto-discovery** - Shell scripts (`.sh`, `.bash`, `.zsh`), npm scripts, Makefile targets, VS Code tasks, launch configurations, and Python scripts
+- **AI-Powered Search** - Find commands by meaning, not just name — local embeddings, no data leaves your machine
+- **Auto-discovery** - 19 command types including shell scripts, npm, Make, Python, PowerShell, Gradle, Cargo, Maven, Docker Compose, .NET, and more
 - **Quick Launch** - Pin frequently-used commands to a dedicated panel at the top
 - **Tagging** - Right-click any command to add or remove tags
 - **Filtering** - Filter the tree by text search or by tag
@@ -38,6 +39,19 @@ Summaries are stored locally and only regenerate when the underlying script chan
 | VS Code Tasks | `.vscode/tasks.json` |
 | Launch Configs | `.vscode/launch.json` |
 | Python Scripts | `.py` files |
+| PowerShell Scripts | `.ps1` files |
+| Gradle Tasks | `build.gradle`, `build.gradle.kts` |
+| Cargo Tasks | `Cargo.toml` (Rust) |
+| Maven Goals | `pom.xml` |
+| Ant Targets | `build.xml` |
+| Just Recipes | `justfile` |
+| Taskfile Tasks | `Taskfile.yml` |
+| Deno Tasks | `deno.json`, `deno.jsonc` |
+| Rake Tasks | `Rakefile` (Ruby) |
+| Composer Scripts | `composer.json` (PHP) |
+| Docker Compose | `docker-compose.yml` |
+| .NET Projects | `.csproj`, `.fsproj` |
+| Markdown Files | `.md` files |
 
 ## Getting Started
 
@@ -64,7 +78,7 @@ Open a workspace and the CommandTree panel appears in the sidebar. All discovere
 
 | Setting | Description | Default |
 |---------|-------------|---------|
-| `commandtree.enableAiSummaries` | Use GitHub Copilot to generate plain-language summaries | `true` |
+| `commandtree.enableAiSummaries` | Copilot-powered plain-language summaries and security warnings | `true` |
 | `commandtree.excludePatterns` | Glob patterns to exclude from discovery | `**/node_modules/**`, `**/.git/**`, etc. |
 | `commandtree.sortOrder` | Sort commands by `folder`, `name`, or `type` | `folder` |
 
