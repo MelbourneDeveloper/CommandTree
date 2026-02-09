@@ -134,7 +134,6 @@ suite("Commands and UI E2E Tests", () => {
         "commandtree.run",
         "commandtree.filterByTag",
         "commandtree.clearFilter",
-        "commandtree.semanticSearch",
       ];
 
       for (const cmd of expectedCommands) {
@@ -204,16 +203,12 @@ suite("Commands and UI E2E Tests", () => {
         (m) => m.when?.includes("view == commandtree") === true,
       );
 
-      assert.ok(taskTreeMenus.length >= 4, "Should have at least 4 menu items");
+      assert.ok(taskTreeMenus.length >= 3, "Should have at least 3 menu items");
 
       const commands = taskTreeMenus.map((m) => m.command);
       assert.ok(
         commands.includes("commandtree.filterByTag"),
         "Should have filterByTag in menu",
-      );
-      assert.ok(
-        commands.includes("commandtree.semanticSearch"),
-        "Should have semanticSearch in menu",
       );
       assert.ok(
         commands.includes("commandtree.clearFilter"),
@@ -330,7 +325,7 @@ suite("Commands and UI E2E Tests", () => {
       );
     });
 
-    test("commandtree view has exactly 4 title bar icons", function () {
+    test("commandtree view has exactly 3 title bar icons", function () {
       this.timeout(10000);
 
       const packageJson = readPackageJson();
@@ -344,14 +339,13 @@ suite("Commands and UI E2E Tests", () => {
 
       assert.strictEqual(
         taskTreeMenus.length,
-        4,
-        `Expected exactly 4 view/title items for commandtree, got ${taskTreeMenus.length}: ${taskTreeMenus.map((m) => m.command).join(", ")}`,
+        3,
+        `Expected exactly 3 view/title items for commandtree, got ${taskTreeMenus.length}: ${taskTreeMenus.map((m) => m.command).join(", ")}`,
       );
 
       const expectedCommands = [
         "commandtree.filterByTag",
         "commandtree.clearFilter",
-        "commandtree.semanticSearch",
         "commandtree.refresh",
       ];
       for (const cmd of expectedCommands) {
@@ -409,12 +403,6 @@ suite("Commands and UI E2E Tests", () => {
 
       const runCmd = commands.find((c) => c.command === "commandtree.run");
       assert.ok(runCmd?.icon === "$(play)", "Run should have play icon");
-
-      const semanticSearchCmd = commands.find((c) => c.command === "commandtree.semanticSearch");
-      assert.ok(
-        semanticSearchCmd?.icon === "$(search)",
-        "SemanticSearch should have search icon",
-      );
 
       const tagFilterCmd = commands.find(
         (c) => c.command === "commandtree.filterByTag",

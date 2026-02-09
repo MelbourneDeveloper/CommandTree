@@ -74,8 +74,6 @@ export interface TaskItem {
     readonly tags: readonly string[];
     readonly params?: readonly ParamDef[];
     readonly description?: string;
-    readonly summary?: string;
-    readonly securityWarning?: string;
 }
 
 /**
@@ -92,8 +90,6 @@ export interface MutableTaskItem {
     tags: string[];
     params?: ParamDef[];
     description?: string;
-    summary?: string;
-    securityWarning?: string;
 }
 
 /**
@@ -104,18 +100,12 @@ export class CommandTreeItem extends vscode.TreeItem {
         public readonly task: TaskItem | null,
         public readonly categoryLabel: string | null,
         public readonly children: CommandTreeItem[] = [],
-        parentId?: string,
-        similarityScore?: number
+        parentId?: string
     ) {
-        const rawLabel = task?.label ?? categoryLabel ?? '';
-        const hasWarning = task?.securityWarning !== undefined && task.securityWarning !== '';
-        const baseLabel = hasWarning ? `\u26A0\uFE0F ${rawLabel}` : rawLabel;
-        const labelWithScore = similarityScore !== undefined
-            ? `${baseLabel} (${Math.round(similarityScore * 100)}%)`
-            : baseLabel;
+        const label = task?.label ?? categoryLabel ?? '';
 
         super(
-            labelWithScore,
+            label,
             children.length > 0
                 ? vscode.TreeItemCollapsibleState.Collapsed
                 : vscode.TreeItemCollapsibleState.None
@@ -156,14 +146,6 @@ export class CommandTreeItem extends vscode.TreeItem {
     private buildTooltip(task: TaskItem): vscode.MarkdownString {
         const md = new vscode.MarkdownString();
         md.appendMarkdown(`**${task.label}**\n\n`);
-        if (task.securityWarning !== undefined && task.securityWarning !== '') {
-            md.appendMarkdown(`\u26A0\uFE0F **Security Warning:** ${task.securityWarning}\n\n`);
-            md.appendMarkdown(`---\n\n`);
-        }
-        if (task.summary !== undefined && task.summary !== '') {
-            md.appendMarkdown(`> ${task.summary}\n\n`);
-            md.appendMarkdown(`---\n\n`);
-        }
         md.appendMarkdown(`Type: \`${task.type}\`\n\n`);
         md.appendMarkdown(`Command: \`${task.command}\`\n\n`);
         if (task.cwd !== undefined && task.cwd !== '') {

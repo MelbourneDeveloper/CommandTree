@@ -9,8 +9,8 @@ import type { TaskItem, Result } from './models/TaskItem';
 import { CommandTreeItem } from './models/TaskItem';
 import { TagConfig } from './config/TagConfig';
 import { logger } from './utils/logger';
-import { getDb } from './semantic/lifecycle';
-import { getCommandIdsByTag } from './semantic/db';
+import { getDb } from './db/lifecycle';
+import { getCommandIdsByTag } from './db/db';
 
 const QUICK_TASK_MIME_TYPE = 'application/vnd.commandtree.quicktask';
 const QUICK_TAG = 'quick';

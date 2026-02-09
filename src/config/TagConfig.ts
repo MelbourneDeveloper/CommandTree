@@ -6,14 +6,14 @@
 
 import type { TaskItem, Result } from '../models/TaskItem';
 import { err } from '../models/TaskItem';
-import { getDb } from '../semantic/lifecycle';
+import { getDb } from '../db/lifecycle';
 import {
     addTagToCommand,
     removeTagFromCommand,
     getCommandIdsByTag,
     getAllTagNames,
     reorderTagCommands
-} from '../semantic/db';
+} from '../db/db';
 
 export class TagConfig {
     private commandTagsMap = new Map<string, string[]>();

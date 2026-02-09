@@ -14,8 +14,8 @@ import {
     getCommandTreeProvider,
 } from '../helpers/helpers';
 import type { CommandTreeProvider } from '../helpers/helpers';
-import { getDb } from '../../semantic/lifecycle';
-import { getCommandIdsByTag, getTagsForCommand } from '../../semantic/db';
+import { getDb } from '../../db/lifecycle';
+import { getCommandIdsByTag, getTagsForCommand } from '../../db/db';
 
 // SPEC: tagging
 suite('Junction Table Tagging E2E Tests', () => {
@@ -54,6 +54,10 @@ suite('Junction Table Tagging E2E Tests', () => {
         assert.ok(tagsResult.ok, 'Should get tags for command');
         assert.ok(tagsResult.value.length > 0, 'Task should have at least one tag');
         assert.ok(tagsResult.value.includes(testTag), `Task should have tag "${testTag}"`);
+
+        // Verify getAllTags includes the new tag (exercises CommandTreeProvider.getAllTags + TagConfig.getTagNames)
+        const allTags = treeProvider.getAllTags();
+        assert.ok(allTags.includes(testTag), `getAllTags should include "${testTag}"`);
 
         // Clean up
         await vscode.commands.executeCommand('commandtree.removeTag', task, testTag);
@@ -186,5 +190,34 @@ suite('Junction Table Tagging E2E Tests', () => {
         // Clean up
         await vscode.commands.executeCommand('commandtree.removeTag', task1, testTag);
         await sleep(500);
+    });
+
+    // SPEC: tagging/config-file
+    test('E2E: Tags from commandtree.json are synced at activation', function () {
+        this.timeout(15000);
+
+        // The fixture workspace has .vscode/commandtree.json with tags: build, test, deploy, debug, scripts, ci
+        // syncTagsFromJson runs at activation, so tags should already be in DB
+        const allTags = treeProvider.getAllTags();
+
+        const expectedTags = ['build', 'test', 'deploy', 'debug', 'scripts', 'ci'];
+        for (const tag of expectedTags) {
+            assert.ok(
+                allTags.includes(tag),
+                `Tag "${tag}" from commandtree.json should be synced. Found: [${allTags.join(', ')}]`
+            );
+        }
+
+        // Verify pattern matching: "scripts" tag applies to shell tasks (type: "shell" pattern)
+        const dbResult = getDb();
+        assert.ok(dbResult.ok, 'Database must be available');
+        const scriptsResult = getCommandIdsByTag({ handle: dbResult.value, tagName: 'scripts' });
+        assert.ok(scriptsResult.ok, 'Should get command IDs for scripts tag');
+        assert.ok(scriptsResult.value.length > 0, 'scripts tag should match shell commands');
+
+        // Verify "debug" tag applies to launch configs (type: "launch" pattern)
+        const debugResult = getCommandIdsByTag({ handle: dbResult.value, tagName: 'debug' });
+        assert.ok(debugResult.ok, 'Should get command IDs for debug tag');
+        assert.ok(debugResult.value.length > 0, 'debug tag should match launch configs');
     });
 });

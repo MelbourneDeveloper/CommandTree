@@ -198,6 +198,16 @@ suite("Markdown Discovery and Preview E2E Tests", () => {
         finalEditorCount >= initialEditorCount,
         "Running markdown item should open preview"
       );
+
+      // Verify markdown uses preview, not terminal (exercises TaskRunner.runMarkdownPreview routing)
+      const markdownTerminals = vscode.window.terminals.filter(t =>
+        t.name.includes("guide.md")
+      );
+      assert.strictEqual(
+        markdownTerminals.length,
+        0,
+        "Markdown preview should NOT create a terminal"
+      );
     });
   });
 

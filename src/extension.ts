@@ -7,17 +7,8 @@ import type { TaskItem } from './models/TaskItem';
 import { TaskRunner } from './runners/TaskRunner';
 import { QuickTasksProvider } from './QuickTasksProvider';
 import { logger } from './utils/logger';
-import {
-    isAiEnabled,
-    summariseAllTasks,
-    registerAllCommands,
-    initSemanticStore,
-    disposeSemanticStore
-} from './semantic';
-import { createVSCodeFileSystem } from './semantic/vscodeAdapters';
-import { forceSelectModel } from './semantic/summariser';
-import { getDb } from './semantic/lifecycle';
-import { addTagToCommand, removeTagFromCommand, getCommandIdsByTag } from './semantic/db';
+import { initDb, getDb, disposeDb } from './db/lifecycle';
+import { addTagToCommand, removeTagFromCommand, getCommandIdsByTag } from './db/db';
 
 let treeProvider: CommandTreeProvider;
 let quickTasksProvider: QuickTasksProvider;
@@ -35,40 +26,22 @@ export async function activate(context: vscode.ExtensionContext): Promise<Extens
         logger.warn('No workspace root found, extension not activating');
         return;
     }
-    await initSemanticSubsystem(workspaceRoot);
+    initDatabase(workspaceRoot);
     treeProvider = new CommandTreeProvider(workspaceRoot);
-    // SPEC.md **user-data-storage**: Tags stored in SQLite, not .vscode/commandtree.json
     quickTasksProvider = new QuickTasksProvider();
     taskRunner = new TaskRunner();
     registerTreeViews(context);
-    registerCommands(context, workspaceRoot);
+    registerCommands(context);
     setupFileWatcher(context, workspaceRoot);
     await syncQuickTasks();
-    await registerDiscoveredCommands(workspaceRoot);
     await syncTagsFromJson(workspaceRoot);
-    initAiSummaries(workspaceRoot);
     return { commandTreeProvider: treeProvider, quickTasksProvider };
 }
 
-async function registerDiscoveredCommands(workspaceRoot: string): Promise<void> {
-    const tasks = treeProvider.getAllTasks();
-    if (tasks.length === 0) { return; }
-    const result = await registerAllCommands({
-        tasks,
-        workspaceRoot,
-        fs: createVSCodeFileSystem(),
-    });
+function initDatabase(workspaceRoot: string): void {
+    const result = initDb(workspaceRoot);
     if (!result.ok) {
-        logger.warn('Command registration failed', { error: result.error });
-    } else {
-        logger.info('Commands registered in DB', { count: result.value });
-    }
-}
-
-async function initSemanticSubsystem(workspaceRoot: string): Promise<void> {
-    const storeResult = await initSemanticStore(workspaceRoot);
-    if (!storeResult.ok) {
-        logger.warn('SQLite init failed, semantic search unavailable', { error: storeResult.error });
+        logger.warn('SQLite init failed', { error: result.error });
     }
 }
 
@@ -86,9 +59,9 @@ function registerTreeViews(context: vscode.ExtensionContext): void {
     );
 }
 
-function registerCommands(context: vscode.ExtensionContext, workspaceRoot: string): void {
+function registerCommands(context: vscode.ExtensionContext): void {
     registerCoreCommands(context);
-    registerFilterCommands(context, workspaceRoot);
+    registerFilterCommands(context);
     registerTagCommands(context);
     registerQuickCommands(context);
 }
@@ -118,23 +91,12 @@ function registerCoreCommands(context: vscode.ExtensionContext): void {
     );
 }
 
-function registerFilterCommands(context: vscode.ExtensionContext, workspaceRoot: string): void {
+function registerFilterCommands(context: vscode.ExtensionContext): void {
     context.subscriptions.push(
         vscode.commands.registerCommand('commandtree.filterByTag', handleFilterByTag),
         vscode.commands.registerCommand('commandtree.clearFilter', () => {
             treeProvider.clearFilters();
             updateFilterContext();
-        }),
-        vscode.commands.registerCommand('commandtree.semanticSearch', async (q?: string) => { await handleSemanticSearch(q, workspaceRoot); }),
-        vscode.commands.registerCommand('commandtree.generateSummaries', async () => { await runSummarisation(workspaceRoot); }),
-        vscode.commands.registerCommand('commandtree.selectModel', async () => {
-            const result = await forceSelectModel();
-            if (result.ok) {
-                vscode.window.showInformationMessage(`CommandTree: AI model set to ${result.value}`);
-                await runSummarisation(workspaceRoot);
-            } else {
-                vscode.window.showWarningMessage(`CommandTree: ${result.error}`);
-            }
         })
     );
 }
@@ -218,10 +180,6 @@ async function handleRemoveTag(item: CommandTreeItem | TaskItem | undefined, tag
     quickTasksProvider.updateTasks(treeProvider.getAllTasks());
 }
 
-async function handleSemanticSearch(_queryArg: string | undefined, _workspaceRoot: string): Promise<void> {
-    await vscode.window.showInformationMessage('Semantic search is currently disabled');
-}
-
 function setupFileWatcher(context: vscode.ExtensionContext, workspaceRoot: string): void {
     const watcher = vscode.workspace.createFileSystemWatcher(
         '**/{package.json,Makefile,makefile,tasks.json,launch.json,*.sh,*.py}'
@@ -232,7 +190,7 @@ function setupFileWatcher(context: vscode.ExtensionContext, workspaceRoot: strin
             clearTimeout(debounceTimer);
         }
         debounceTimer = setTimeout(() => {
-            syncAndSummarise(workspaceRoot).catch((e: unknown) => {
+            syncQuickTasks().catch((e: unknown) => {
                 logger.error('Sync failed', { error: e instanceof Error ? e.message : 'Unknown' });
             });
         }, 2000);
@@ -270,15 +228,6 @@ async function syncQuickTasks(): Promise<void> {
     });
     quickTasksProvider.updateTasks(allTasks);
     logger.info('syncQuickTasks END');
-}
-
-async function syncAndSummarise(workspaceRoot: string): Promise<void> {
-    await syncQuickTasks();
-    await registerDiscoveredCommands(workspaceRoot);
-    const aiEnabled = vscode.workspace.getConfiguration('commandtree').get<boolean>('enableAiSummaries', true);
-    if (isAiEnabled(aiEnabled)) {
-        await runSummarisation(workspaceRoot);
-    }
 }
 
 interface TagPattern {
@@ -383,48 +332,6 @@ async function pickOrCreateTag(existingTags: string[], taskLabel: string): Promi
     });
 }
 
-function initAiSummaries(workspaceRoot: string): void {
-    const aiEnabled = vscode.workspace.getConfiguration('commandtree').get<boolean>('enableAiSummaries', true);
-    if (!isAiEnabled(aiEnabled)) { return; }
-    vscode.commands.executeCommand('setContext', 'commandtree.aiSummariesEnabled', true);
-    runSummarisation(workspaceRoot).catch((e: unknown) => {
-        logger.error('AI summarisation failed', { error: e instanceof Error ? e.message : 'Unknown' });
-    });
-}
-
-async function runSummarisation(workspaceRoot: string): Promise<void> {
-    const tasks = treeProvider.getAllTasks();
-    logger.info('[DIAG] runSummarisation called', { taskCount: tasks.length, workspaceRoot });
-    if (tasks.length === 0) {
-        logger.warn('[DIAG] No tasks to summarise, returning early');
-        return;
-    }
-
-    const fileSystem = createVSCodeFileSystem();
-
-    // Step 1: Generate summaries via Copilot (independent pipeline)
-    const summaryResult = await summariseAllTasks({
-        tasks,
-        workspaceRoot,
-        fs: fileSystem,
-        onProgress: (done, total) => {
-            logger.info('Summary progress', { done, total });
-        }
-    });
-    if (!summaryResult.ok) {
-        logger.error('Summary pipeline failed', { error: summaryResult.error });
-        vscode.window.showErrorMessage(`CommandTree: Summary failed — ${summaryResult.error}`);
-        return;
-    }
-
-    // Embedding pipeline disabled — summaries still work via Copilot
-    if (summaryResult.value > 0) {
-        await treeProvider.refresh();
-        quickTasksProvider.updateTasks(treeProvider.getAllTasks());
-    }
-    vscode.window.showInformationMessage(`CommandTree: Summarised ${summaryResult.value} commands`);
-}
-
 function updateFilterContext(): void {
     vscode.commands.executeCommand(
         'setContext',
@@ -433,6 +340,6 @@ function updateFilterContext(): void {
     );
 }
 
-export async function deactivate(): Promise<void> {
-    await disposeSemanticStore();
+export function deactivate(): void {
+    disposeDb();
 }
