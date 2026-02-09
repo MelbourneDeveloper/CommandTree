@@ -18,7 +18,7 @@ function showError(message: string): void {
  */
 export type RunMode = 'newTerminal' | 'currentTerminal';
 
-const SHELL_INTEGRATION_TIMEOUT_MS = 500;
+const SHELL_INTEGRATION_TIMEOUT_MS = 50;
 
 /**
  * Executes commands based on their type.
