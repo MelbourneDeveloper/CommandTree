@@ -8,10 +8,10 @@ import * as vscode from 'vscode';
 import type { Result } from '../models/TaskItem';
 import { ok, err } from '../models/TaskItem';
 import { logger } from '../utils/logger';
-import { resolveModel, AUTO_MODEL_ID } from './modelSelection';
+import { resolveModel } from './modelSelection';
 import type { ModelSelectionDeps, ModelRef } from './modelSelection';
 export type { ModelRef, ModelSelectionDeps } from './modelSelection';
-export { resolveModel, AUTO_MODEL_ID };
+export { resolveModel, AUTO_MODEL_ID } from './modelSelection';
 
 const MAX_CONTENT_LENGTH = 4000;
 const MODEL_RETRY_COUNT = 10;
@@ -86,8 +86,7 @@ function formatModelDetail(m: vscode.LanguageModelChat): string {
 async function promptModelPicker(
     models: readonly vscode.LanguageModelChat[]
 ): Promise<vscode.LanguageModelChat | undefined> {
-    const concrete = models.filter(m => m.id !== AUTO_MODEL_ID);
-    const items = concrete.map(m => ({
+    const items = models.map(m => ({
         label: m.name,
         description: m.id,
         detail: formatModelDetail(m),
