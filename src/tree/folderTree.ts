@@ -58,7 +58,17 @@ export function buildNestedFolderItems({
     const result: CommandTreeItem[] = [];
 
     for (const node of rootNodes) {
-        if (needsFolderWrapper(node, rootNodes.length)) {
+        if (node.dir === '') {
+            for (const sub of node.subdirs) {
+                result.push(renderFolder({
+                    node: sub,
+                    parentDir: '',
+                    parentTreeId: categoryId,
+                    sortTasks
+                }));
+            }
+            result.push(...sortTasks(node.tasks).map(t => createTaskNode(t)));
+        } else if (needsFolderWrapper(node, rootNodes.length)) {
             result.push(renderFolder({
                 node,
                 parentDir: '',

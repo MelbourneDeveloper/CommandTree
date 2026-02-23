@@ -102,6 +102,24 @@ suite("TreeView E2E Tests", () => {
   });
 
   suite("Folder Hierarchy", () => {
+    test("root-level items appear directly under category — no Root folder node", async function () {
+      this.timeout(15000);
+      const provider = getCommandTreeProvider();
+      const categories = await provider.getChildren();
+
+      for (const category of categories) {
+        const topChildren = await provider.getChildren(category);
+        for (const child of topChildren) {
+          const label = getLabelString(child.label);
+          assert.notStrictEqual(
+            label,
+            "Root",
+            `Category "${getLabelString(category.label)}" must NOT have a "Root" folder — root items should appear directly under the category`,
+          );
+        }
+      }
+    });
+
     test("folders must come before files in tree — normal file/folder rules", async function () {
       this.timeout(15000);
       const provider = getCommandTreeProvider();
