@@ -1,7 +1,9 @@
 import * as vscode from 'vscode';
-import type { TaskItem, MutableTaskItem } from '../models/TaskItem';
+import type { TaskItem, MutableTaskItem, IconDef } from '../models/TaskItem';
 import { generateTaskId } from '../models/TaskItem';
 import { readJsonFile } from '../utils/fileUtils';
+
+export const ICON_DEF: IconDef = { icon: 'debug-alt', color: 'debugIcon.startForeground' };
 
 interface LaunchConfig {
     name?: string;

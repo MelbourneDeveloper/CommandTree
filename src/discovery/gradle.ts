@@ -1,8 +1,10 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
-import type { TaskItem } from '../models/TaskItem';
+import type { TaskItem, IconDef } from '../models/TaskItem';
 import { generateTaskId, simplifyPath } from '../models/TaskItem';
 import { readFile } from '../utils/fileUtils';
+
+export const ICON_DEF: IconDef = { icon: 'symbol-property', color: 'terminal.ansiGreen' };
 
 /**
  * Discovers Gradle tasks from build.gradle and build.gradle.kts files.

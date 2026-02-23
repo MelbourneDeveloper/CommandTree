@@ -1,8 +1,10 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
-import type { TaskItem, MutableTaskItem } from '../models/TaskItem';
+import type { TaskItem, MutableTaskItem, IconDef } from '../models/TaskItem';
 import { generateTaskId, simplifyPath } from '../models/TaskItem';
 import { readFile } from '../utils/fileUtils';
+
+export const ICON_DEF: IconDef = { icon: 'ruby', color: 'terminal.ansiRed' };
 
 /**
  * Discovers Rake tasks from Rakefile.

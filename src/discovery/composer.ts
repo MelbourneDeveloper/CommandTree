@@ -1,8 +1,10 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
-import type { TaskItem, MutableTaskItem } from '../models/TaskItem';
+import type { TaskItem, MutableTaskItem, IconDef } from '../models/TaskItem';
 import { generateTaskId, simplifyPath } from '../models/TaskItem';
 import { readFile, parseJson } from '../utils/fileUtils';
+
+export const ICON_DEF: IconDef = { icon: 'symbol-interface', color: 'terminal.ansiYellow' };
 
 interface ComposerJson {
     scripts?: Record<string, string | string[]>;

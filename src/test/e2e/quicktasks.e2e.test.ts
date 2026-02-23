@@ -18,7 +18,7 @@ import {
 import type { CommandTreeProvider, QuickTasksProvider } from "../helpers/helpers";
 import { getDb } from "../../db/lifecycle";
 import { getCommandIdsByTag, getTagsForCommand } from "../../db/db";
-import { CommandTreeItem } from "../../models/TaskItem";
+import { createTaskNode } from "../../tree/nodeFactory";
 
 const QUICK_TAG = "quick";
 
@@ -76,7 +76,7 @@ suite("Quick Launch E2E Tests (SQLite Junction Table)", () => {
       assert.ok(task !== undefined, "First task must exist");
 
       // Add to quick via UI command
-      const item = new CommandTreeItem(task, null, []);
+      const item = createTaskNode(task);
       await vscode.commands.executeCommand("commandtree.addToQuick", item);
       await sleep(1000);
 
@@ -105,7 +105,7 @@ suite("Quick Launch E2E Tests (SQLite Junction Table)", () => {
       assert.ok(treeItem.label !== undefined, "getTreeItem should return a TreeItem with a label");
 
       // Clean up
-      const removeItem = new CommandTreeItem(task, null, []);
+      const removeItem = createTaskNode(task);
       await vscode.commands.executeCommand("commandtree.removeFromQuick", removeItem);
       await sleep(500);
     });
@@ -118,7 +118,7 @@ suite("Quick Launch E2E Tests (SQLite Junction Table)", () => {
       assert.ok(task !== undefined, "First task must exist");
 
       // Add to quick first
-      const addItem = new CommandTreeItem(task, null, []);
+      const addItem = createTaskNode(task);
       await vscode.commands.executeCommand("commandtree.addToQuick", addItem);
       await sleep(1000);
 
@@ -136,7 +136,7 @@ suite("Quick Launch E2E Tests (SQLite Junction Table)", () => {
       );
 
       // Remove from quick via UI
-      const removeItem = new CommandTreeItem(task, null, []);
+      const removeItem = createTaskNode(task);
       await vscode.commands.executeCommand("commandtree.removeFromQuick", removeItem);
       await sleep(1000);
 
@@ -172,13 +172,13 @@ suite("Quick Launch E2E Tests (SQLite Junction Table)", () => {
       );
 
       // Add tasks in specific order
-      const item1 = new CommandTreeItem(task1, null, []);
+      const item1 = createTaskNode(task1);
       await vscode.commands.executeCommand("commandtree.addToQuick", item1);
       await sleep(500);
-      const item2 = new CommandTreeItem(task2, null, []);
+      const item2 = createTaskNode(task2);
       await vscode.commands.executeCommand("commandtree.addToQuick", item2);
       await sleep(500);
-      const item3 = new CommandTreeItem(task3, null, []);
+      const item3 = createTaskNode(task3);
       await vscode.commands.executeCommand("commandtree.addToQuick", item3);
       await sleep(1000);
 
@@ -216,9 +216,9 @@ suite("Quick Launch E2E Tests (SQLite Junction Table)", () => {
       assert.strictEqual(viewItem1.task?.id, task2.id, "Second view item should match second added task");
 
       // Clean up
-      const removeItem1 = new CommandTreeItem(task1, null, []);
-      const removeItem2 = new CommandTreeItem(task2, null, []);
-      const removeItem3 = new CommandTreeItem(task3, null, []);
+      const removeItem1 = createTaskNode(task1);
+      const removeItem2 = createTaskNode(task2);
+      const removeItem3 = createTaskNode(task3);
       await vscode.commands.executeCommand("commandtree.removeFromQuick", removeItem1);
       await vscode.commands.executeCommand("commandtree.removeFromQuick", removeItem2);
       await vscode.commands.executeCommand("commandtree.removeFromQuick", removeItem3);
@@ -233,7 +233,7 @@ suite("Quick Launch E2E Tests (SQLite Junction Table)", () => {
       assert.ok(task !== undefined, "First task must exist");
 
       // Add to quick once
-      const item = new CommandTreeItem(task, null, []);
+      const item = createTaskNode(task);
       await vscode.commands.executeCommand("commandtree.addToQuick", item);
       await sleep(1000);
 
@@ -249,7 +249,7 @@ suite("Quick Launch E2E Tests (SQLite Junction Table)", () => {
       assert.strictEqual(initialCount, 1, "Should have exactly one instance of task");
 
       // Try to add again (should be ignored by INSERT OR IGNORE)
-      const item2 = new CommandTreeItem(task, null, []);
+      const item2 = createTaskNode(task);
       await vscode.commands.executeCommand("commandtree.addToQuick", item2);
       await sleep(1000);
 
@@ -266,7 +266,7 @@ suite("Quick Launch E2E Tests (SQLite Junction Table)", () => {
       );
 
       // Clean up
-      const removeItem = new CommandTreeItem(task, null, []);
+      const removeItem = createTaskNode(task);
       await vscode.commands.executeCommand("commandtree.removeFromQuick", removeItem);
       await sleep(500);
     });
@@ -285,7 +285,7 @@ suite("Quick Launch E2E Tests (SQLite Junction Table)", () => {
 
       // Add in specific order
       for (const task of tasks) {
-        const item = new CommandTreeItem(task, null, []);
+        const item = createTaskNode(task);
         await vscode.commands.executeCommand("commandtree.addToQuick", item);
         await sleep(500);
       }
@@ -332,7 +332,7 @@ suite("Quick Launch E2E Tests (SQLite Junction Table)", () => {
 
       // Clean up
       for (const task of tasks) {
-        const removeItem = new CommandTreeItem(task, null, []);
+        const removeItem = createTaskNode(task);
         await vscode.commands.executeCommand("commandtree.removeFromQuick", removeItem);
       }
       await sleep(500);

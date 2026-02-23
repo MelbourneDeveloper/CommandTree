@@ -1,25 +1,47 @@
 import * as vscode from 'vscode';
-import type { TaskItem } from '../models/TaskItem';
-import { discoverShellScripts } from './shell';
-import { discoverNpmScripts } from './npm';
-import { discoverMakeTargets } from './make';
-import { discoverLaunchConfigs } from './launch';
-import { discoverVsCodeTasks } from './tasks';
-import { discoverPythonScripts } from './python';
-import { discoverPowerShellScripts } from './powershell';
-import { discoverGradleTasks } from './gradle';
-import { discoverCargoTasks } from './cargo';
-import { discoverMavenGoals } from './maven';
-import { discoverAntTargets } from './ant';
-import { discoverJustRecipes } from './just';
-import { discoverTaskfileTasks } from './taskfile';
-import { discoverDenoTasks } from './deno';
-import { discoverRakeTasks } from './rake';
-import { discoverComposerScripts } from './composer';
-import { discoverDockerComposeServices } from './docker';
-import { discoverDotnetProjects } from './dotnet';
-import { discoverMarkdownFiles } from './markdown';
+import type { TaskItem, TaskType, IconDef } from '../models/TaskItem';
+import { discoverShellScripts, ICON_DEF as SHELL_ICON } from './shell';
+import { discoverNpmScripts, ICON_DEF as NPM_ICON } from './npm';
+import { discoverMakeTargets, ICON_DEF as MAKE_ICON } from './make';
+import { discoverLaunchConfigs, ICON_DEF as LAUNCH_ICON } from './launch';
+import { discoverVsCodeTasks, ICON_DEF as VSCODE_ICON } from './tasks';
+import { discoverPythonScripts, ICON_DEF as PYTHON_ICON } from './python';
+import { discoverPowerShellScripts, ICON_DEF as POWERSHELL_ICON } from './powershell';
+import { discoverGradleTasks, ICON_DEF as GRADLE_ICON } from './gradle';
+import { discoverCargoTasks, ICON_DEF as CARGO_ICON } from './cargo';
+import { discoverMavenGoals, ICON_DEF as MAVEN_ICON } from './maven';
+import { discoverAntTargets, ICON_DEF as ANT_ICON } from './ant';
+import { discoverJustRecipes, ICON_DEF as JUST_ICON } from './just';
+import { discoverTaskfileTasks, ICON_DEF as TASKFILE_ICON } from './taskfile';
+import { discoverDenoTasks, ICON_DEF as DENO_ICON } from './deno';
+import { discoverRakeTasks, ICON_DEF as RAKE_ICON } from './rake';
+import { discoverComposerScripts, ICON_DEF as COMPOSER_ICON } from './composer';
+import { discoverDockerComposeServices, ICON_DEF as DOCKER_ICON } from './docker';
+import { discoverDotnetProjects, ICON_DEF as DOTNET_ICON } from './dotnet';
+import { discoverMarkdownFiles, ICON_DEF as MARKDOWN_ICON } from './markdown';
 import { logger } from '../utils/logger';
+
+export const ICON_REGISTRY: Record<TaskType, IconDef> = {
+    shell: SHELL_ICON,
+    npm: NPM_ICON,
+    make: MAKE_ICON,
+    launch: LAUNCH_ICON,
+    vscode: VSCODE_ICON,
+    python: PYTHON_ICON,
+    powershell: POWERSHELL_ICON,
+    gradle: GRADLE_ICON,
+    cargo: CARGO_ICON,
+    maven: MAVEN_ICON,
+    ant: ANT_ICON,
+    just: JUST_ICON,
+    taskfile: TASKFILE_ICON,
+    deno: DENO_ICON,
+    rake: RAKE_ICON,
+    composer: COMPOSER_ICON,
+    docker: DOCKER_ICON,
+    dotnet: DOTNET_ICON,
+    markdown: MARKDOWN_ICON,
+};
 
 export interface DiscoveryResult {
     shell: TaskItem[];

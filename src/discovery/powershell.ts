@@ -1,8 +1,10 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
-import type { TaskItem, ParamDef, MutableTaskItem } from '../models/TaskItem';
+import type { TaskItem, ParamDef, MutableTaskItem, IconDef } from '../models/TaskItem';
 import { generateTaskId, simplifyPath } from '../models/TaskItem';
 import { readFile } from '../utils/fileUtils';
+
+export const ICON_DEF: IconDef = { icon: 'terminal-powershell', color: 'terminal.ansiBlue' };
 
 /**
  * Discovers PowerShell and Batch scripts (.ps1, .bat, .cmd files) in the workspace.

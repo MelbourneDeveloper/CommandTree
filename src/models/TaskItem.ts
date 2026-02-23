@@ -4,6 +4,14 @@ export type { Result, Ok, Err } from './Result';
 export { ok, err } from './Result';
 
 /**
+ * Icon definition for a task type. Plain data — no VS Code dependency.
+ */
+export interface IconDef {
+    readonly icon: string;
+    readonly color: string;
+}
+
+/**
  * Command type identifiers.
  */
 export type TaskType =
@@ -93,197 +101,44 @@ export interface MutableTaskItem {
 }
 
 /**
- * Tree node for the CommandTree view.
+ * Pre-computed display properties for a CommandTreeItem.
+ */
+export interface CommandTreeItemProps {
+    readonly task: TaskItem | null;
+    readonly categoryLabel: string | null;
+    readonly children: CommandTreeItem[];
+    readonly id: string;
+    readonly contextValue: string;
+    readonly iconPath?: vscode.ThemeIcon;
+    readonly tooltip?: vscode.MarkdownString;
+    readonly description?: string;
+    readonly command?: vscode.Command;
+}
+
+/**
+ * Tree node for the CommandTree view. Dumb data container — no logic.
  */
 export class CommandTreeItem extends vscode.TreeItem {
-    constructor(
-        public readonly task: TaskItem | null,
-        public readonly categoryLabel: string | null,
-        public readonly children: CommandTreeItem[] = [],
-        parentId?: string
-    ) {
-        const label = task?.label ?? categoryLabel ?? '';
+    public readonly task: TaskItem | null;
+    public readonly categoryLabel: string | null;
+    public readonly children: CommandTreeItem[];
 
+    constructor(props: CommandTreeItemProps) {
         super(
-            label,
-            children.length > 0
+            props.task?.label ?? props.categoryLabel ?? '',
+            props.children.length > 0
                 ? vscode.TreeItemCollapsibleState.Collapsed
                 : vscode.TreeItemCollapsibleState.None
         );
-
-        // Set unique id for proper tree rendering and indentation
-        if (task !== null) {
-            this.id = task.id;
-            const isQuick = task.tags.includes('quick');
-            const isMarkdown = task.type === 'markdown';
-
-            if (isMarkdown && isQuick) {
-                this.contextValue = 'task-markdown-quick';
-            } else if (isMarkdown) {
-                this.contextValue = 'task-markdown';
-            } else if (isQuick) {
-                this.contextValue = 'task-quick';
-            } else {
-                this.contextValue = 'task';
-            }
-
-            this.tooltip = this.buildTooltip(task);
-            this.iconPath = this.getIcon(task.type);
-            const tagStr = task.tags.length > 0 ? ` [${task.tags.join(', ')}]` : '';
-            this.description = `${task.category}${tagStr}`;
-            this.command = {
-                command: 'vscode.open',
-                title: 'Open File',
-                arguments: [vscode.Uri.file(task.filePath)]
-            };
-        } else if (categoryLabel !== null && categoryLabel !== '') {
-            this.id = parentId !== undefined ? `${parentId}/${categoryLabel}` : categoryLabel;
-            this.contextValue = 'category';
-            this.iconPath = this.getCategoryIcon(categoryLabel);
-        }
-    }
-
-    private buildTooltip(task: TaskItem): vscode.MarkdownString {
-        const md = new vscode.MarkdownString();
-        md.appendMarkdown(`**${task.label}**\n\n`);
-        md.appendMarkdown(`Type: \`${task.type}\`\n\n`);
-        md.appendMarkdown(`Command: \`${task.command}\`\n\n`);
-        if (task.cwd !== undefined && task.cwd !== '') {
-            md.appendMarkdown(`Working Dir: \`${task.cwd}\`\n\n`);
-        }
-        if (task.tags.length > 0) {
-            md.appendMarkdown(`Tags: ${task.tags.map(t => `\`${t}\``).join(', ')}\n\n`);
-        }
-        md.appendMarkdown(`Source: \`${task.filePath}\``);
-        return md;
-    }
-
-    private getIcon(type: TaskType): vscode.ThemeIcon {
-        switch (type) {
-            case 'shell': {
-                return new vscode.ThemeIcon('terminal', new vscode.ThemeColor('terminal.ansiGreen'));
-            }
-            case 'npm': {
-                return new vscode.ThemeIcon('package', new vscode.ThemeColor('terminal.ansiMagenta'));
-            }
-            case 'make': {
-                return new vscode.ThemeIcon('tools', new vscode.ThemeColor('terminal.ansiYellow'));
-            }
-            case 'launch': {
-                return new vscode.ThemeIcon('debug-alt', new vscode.ThemeColor('debugIcon.startForeground'));
-            }
-            case 'vscode': {
-                return new vscode.ThemeIcon('gear', new vscode.ThemeColor('terminal.ansiBlue'));
-            }
-            case 'python': {
-                return new vscode.ThemeIcon('symbol-misc', new vscode.ThemeColor('terminal.ansiCyan'));
-            }
-            case 'powershell': {
-                return new vscode.ThemeIcon('terminal-powershell', new vscode.ThemeColor('terminal.ansiBlue'));
-            }
-            case 'gradle': {
-                return new vscode.ThemeIcon('symbol-property', new vscode.ThemeColor('terminal.ansiGreen'));
-            }
-            case 'cargo': {
-                return new vscode.ThemeIcon('package', new vscode.ThemeColor('terminal.ansiRed'));
-            }
-            case 'maven': {
-                return new vscode.ThemeIcon('library', new vscode.ThemeColor('terminal.ansiRed'));
-            }
-            case 'ant': {
-                return new vscode.ThemeIcon('symbol-constructor', new vscode.ThemeColor('terminal.ansiYellow'));
-            }
-            case 'just': {
-                return new vscode.ThemeIcon('checklist', new vscode.ThemeColor('terminal.ansiMagenta'));
-            }
-            case 'taskfile': {
-                return new vscode.ThemeIcon('tasklist', new vscode.ThemeColor('terminal.ansiCyan'));
-            }
-            case 'deno': {
-                return new vscode.ThemeIcon('symbol-namespace', new vscode.ThemeColor('terminal.ansiWhite'));
-            }
-            case 'rake': {
-                return new vscode.ThemeIcon('ruby', new vscode.ThemeColor('terminal.ansiRed'));
-            }
-            case 'composer': {
-                return new vscode.ThemeIcon('symbol-interface', new vscode.ThemeColor('terminal.ansiYellow'));
-            }
-            case 'docker': {
-                return new vscode.ThemeIcon('server-environment', new vscode.ThemeColor('terminal.ansiBlue'));
-            }
-            case 'dotnet': {
-                return new vscode.ThemeIcon('circuit-board', new vscode.ThemeColor('terminal.ansiMagenta'));
-            }
-            case 'markdown': {
-                return new vscode.ThemeIcon('markdown', new vscode.ThemeColor('terminal.ansiCyan'));
-            }
-            default: {
-                const exhaustiveCheck: never = type;
-                return exhaustiveCheck;
-            }
-        }
-    }
-
-    private getCategoryIcon(category: string): vscode.ThemeIcon {
-        const lower = category.toLowerCase();
-        if (lower.includes('shell')) {
-            return new vscode.ThemeIcon('terminal', new vscode.ThemeColor('terminal.ansiGreen'));
-        }
-        if (lower.includes('npm')) {
-            return new vscode.ThemeIcon('package', new vscode.ThemeColor('terminal.ansiMagenta'));
-        }
-        if (lower.includes('make')) {
-            return new vscode.ThemeIcon('tools', new vscode.ThemeColor('terminal.ansiYellow'));
-        }
-        if (lower.includes('launch')) {
-            return new vscode.ThemeIcon('debug-alt', new vscode.ThemeColor('debugIcon.startForeground'));
-        }
-        if (lower.includes('task')) {
-            return new vscode.ThemeIcon('gear', new vscode.ThemeColor('terminal.ansiBlue'));
-        }
-        if (lower.includes('python')) {
-            return new vscode.ThemeIcon('symbol-misc', new vscode.ThemeColor('terminal.ansiCyan'));
-        }
-        if (lower.includes('powershell') || lower.includes('batch')) {
-            return new vscode.ThemeIcon('terminal-powershell', new vscode.ThemeColor('terminal.ansiBlue'));
-        }
-        if (lower.includes('gradle')) {
-            return new vscode.ThemeIcon('symbol-property', new vscode.ThemeColor('terminal.ansiGreen'));
-        }
-        if (lower.includes('cargo') || lower.includes('rust')) {
-            return new vscode.ThemeIcon('package', new vscode.ThemeColor('terminal.ansiRed'));
-        }
-        if (lower.includes('maven')) {
-            return new vscode.ThemeIcon('library', new vscode.ThemeColor('terminal.ansiRed'));
-        }
-        if (lower.includes('ant')) {
-            return new vscode.ThemeIcon('symbol-constructor', new vscode.ThemeColor('terminal.ansiYellow'));
-        }
-        if (lower.includes('just')) {
-            return new vscode.ThemeIcon('checklist', new vscode.ThemeColor('terminal.ansiMagenta'));
-        }
-        if (lower.includes('taskfile')) {
-            return new vscode.ThemeIcon('tasklist', new vscode.ThemeColor('terminal.ansiCyan'));
-        }
-        if (lower.includes('deno')) {
-            return new vscode.ThemeIcon('symbol-namespace', new vscode.ThemeColor('terminal.ansiWhite'));
-        }
-        if (lower.includes('rake') || lower.includes('ruby')) {
-            return new vscode.ThemeIcon('ruby', new vscode.ThemeColor('terminal.ansiRed'));
-        }
-        if (lower.includes('composer') || lower.includes('php')) {
-            return new vscode.ThemeIcon('symbol-interface', new vscode.ThemeColor('terminal.ansiYellow'));
-        }
-        if (lower.includes('docker')) {
-            return new vscode.ThemeIcon('server-environment', new vscode.ThemeColor('terminal.ansiBlue'));
-        }
-        if (lower.includes('dotnet') || lower.includes('.net') || lower.includes('csharp') || lower.includes('fsharp')) {
-            return new vscode.ThemeIcon('circuit-board', new vscode.ThemeColor('terminal.ansiMagenta'));
-        }
-        if (lower.includes('markdown') || lower.includes('docs')) {
-            return new vscode.ThemeIcon('markdown', new vscode.ThemeColor('terminal.ansiCyan'));
-        }
-        return new vscode.ThemeIcon('folder');
+        this.task = props.task;
+        this.categoryLabel = props.categoryLabel;
+        this.children = props.children;
+        this.id = props.id;
+        this.contextValue = props.contextValue;
+        if (props.iconPath !== undefined) { this.iconPath = props.iconPath; }
+        if (props.tooltip !== undefined) { this.tooltip = props.tooltip; }
+        if (props.description !== undefined) { this.description = props.description; }
+        if (props.command !== undefined) { this.command = props.command; }
     }
 }
 

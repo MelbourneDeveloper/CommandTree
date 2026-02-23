@@ -1,16 +1,17 @@
 import * as vscode from 'vscode';
-import type { TaskItem, Result } from './models/TaskItem';
-import { CommandTreeItem } from './models/TaskItem';
+import type { TaskItem, TaskType, Result } from './models/TaskItem';
+import type { CommandTreeItem } from './models/TaskItem';
 import type { DiscoveryResult } from './discovery';
 import { discoverAllTasks, flattenTasks, getExcludePatterns } from './discovery';
 import { TagConfig } from './config/TagConfig';
 import { logger } from './utils/logger';
 import { buildNestedFolderItems } from './tree/folderTree';
+import { createTaskNode, createCategoryNode } from './tree/nodeFactory';
 
 type SortOrder = 'folder' | 'name' | 'type';
 
 interface CategoryDef {
-    readonly type: string;
+    readonly type: TaskType;
     readonly label: string;
     readonly flat?: boolean;
 }
@@ -139,25 +140,32 @@ export class CommandTreeProvider implements vscode.TreeDataProvider<CommandTreeI
         const matched = tasks.filter(t => t.type === def.type);
         if (matched.length === 0) { return null; }
         return def.flat === true
-            ? this.buildFlatCategory(def.label, matched)
-            : this.buildCategoryWithFolders(def.label, matched);
+            ? this.buildFlatCategory(def, matched)
+            : this.buildCategoryWithFolders(def, matched);
     }
 
-    private buildCategoryWithFolders(name: string, tasks: TaskItem[]): CommandTreeItem {
+    private buildCategoryWithFolders(def: CategoryDef, tasks: TaskItem[]): CommandTreeItem {
         const children = buildNestedFolderItems({
             tasks,
             workspaceRoot: this.workspaceRoot,
-            categoryId: name,
+            categoryId: def.label,
             sortTasks: (t) => this.sortTasks(t)
         });
-        return new CommandTreeItem(null, `${name} (${tasks.length})`, children);
+        return createCategoryNode({
+            label: `${def.label} (${tasks.length})`,
+            children,
+            type: def.type,
+        });
     }
 
-    private buildFlatCategory(name: string, tasks: TaskItem[]): CommandTreeItem {
+    private buildFlatCategory(def: CategoryDef, tasks: TaskItem[]): CommandTreeItem {
         const sorted = this.sortTasks(tasks);
-        const categoryId = name;
-        const children = sorted.map(t => new CommandTreeItem(t, null, [], categoryId));
-        return new CommandTreeItem(null, `${name} (${tasks.length})`, children);
+        const children = sorted.map(t => createTaskNode(t));
+        return createCategoryNode({
+            label: `${def.label} (${tasks.length})`,
+            children,
+            type: def.type,
+        });
     }
 
     private getSortOrder(): SortOrder {

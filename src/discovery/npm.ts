@@ -1,8 +1,10 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
-import type { TaskItem } from '../models/TaskItem';
+import type { TaskItem, IconDef } from '../models/TaskItem';
 import { generateTaskId, simplifyPath } from '../models/TaskItem';
 import { readFile, parseJson } from '../utils/fileUtils';
+
+export const ICON_DEF: IconDef = { icon: 'package', color: 'terminal.ansiMagenta' };
 
 interface PackageJson {
     scripts?: Record<string, string>;

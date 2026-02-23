@@ -1,7 +1,9 @@
 import * as vscode from 'vscode';
-import type { TaskItem, ParamDef, MutableTaskItem } from '../models/TaskItem';
+import type { TaskItem, ParamDef, MutableTaskItem, IconDef } from '../models/TaskItem';
 import { generateTaskId } from '../models/TaskItem';
 import { readJsonFile } from '../utils/fileUtils';
+
+export const ICON_DEF: IconDef = { icon: 'gear', color: 'terminal.ansiBlue' };
 
 interface TaskInput {
     id: string;

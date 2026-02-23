@@ -6,11 +6,12 @@
 
 import * as vscode from 'vscode';
 import type { TaskItem, Result } from './models/TaskItem';
-import { CommandTreeItem } from './models/TaskItem';
+import type { CommandTreeItem } from './models/TaskItem';
 import { TagConfig } from './config/TagConfig';
 import { logger } from './utils/logger';
 import { getDb } from './db/lifecycle';
 import { getCommandIdsByTag } from './db/db';
+import { createTaskNode, createPlaceholderNode } from './tree/nodeFactory';
 
 const QUICK_TASK_MIME_TYPE = 'application/vnd.commandtree.quicktask';
 const QUICK_TAG = 'quick';
@@ -109,10 +110,10 @@ export class QuickTasksProvider implements vscode.TreeDataProvider<CommandTreeIt
         const quickTasks = this.allTasks.filter(task => task.tags.includes(QUICK_TAG));
         logger.quick('Filtered quick tasks', { count: quickTasks.length });
         if (quickTasks.length === 0) {
-            return [new CommandTreeItem(null, 'No quick commands - star commands to add them here', [])];
+            return [createPlaceholderNode('No quick commands - star commands to add them here')];
         }
         const sorted = this.sortByDisplayOrder(quickTasks);
-        return sorted.map(task => new CommandTreeItem(task, null, []));
+        return sorted.map(task => createTaskNode(task));
     }
 
     /**
