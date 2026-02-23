@@ -11,7 +11,7 @@ import {
   createMockTaskItem,
 } from "../helpers/helpers";
 import type { TestContext } from "../helpers/helpers";
-import type { TaskItem } from "../../models/TaskItem";
+import type { CommandItem } from "../../models/TaskItem";
 
 // Spec: command-execution
 suite("Command Runner E2E Tests", () => {
@@ -105,7 +105,7 @@ suite("Command Runner E2E Tests", () => {
 
       const terminalsBefore = vscode.window.terminals.length;
 
-      const task: TaskItem = {
+      const task: CommandItem = {
         id: "shell:no-cwd:test",
         type: "shell",
         label: "No CWD Test",
@@ -243,7 +243,7 @@ suite("Command Runner E2E Tests", () => {
 
       const terminalsBefore = vscode.window.terminals.length;
 
-      const task: TaskItem = {
+      const task: CommandItem = {
         id: "make:no-cwd:test",
         type: "make",
         label: "test",
@@ -370,7 +370,8 @@ suite("Command Runner E2E Tests", () => {
       // Launch tasks should NOT create CommandTree terminals - they use debug API
       const launchTerminals = vscode.window.terminals.filter(
         (t) =>
-          t.name.includes("CommandTree") && t.name.includes("Debug Application"),
+          t.name.includes("CommandTree") &&
+          t.name.includes("Debug Application"),
       );
       assert.strictEqual(
         launchTerminals.length,
@@ -691,7 +692,7 @@ suite("Command Runner E2E Tests", () => {
 
       const terminalsBefore = vscode.window.terminals.length;
 
-      const task: TaskItem = {
+      const task: CommandItem = {
         id: "shell:empty-cwd:test",
         type: "shell",
         label: "Empty CWD Test",
@@ -850,7 +851,7 @@ suite("Command Runner E2E Tests", () => {
     test("task with empty command does not crash", async function () {
       this.timeout(10000);
 
-      const task: TaskItem = {
+      const task: CommandItem = {
         id: "test:missing-cmd:test",
         type: "shell",
         label: "Missing Command",
@@ -1048,7 +1049,8 @@ suite("Command Runner E2E Tests", () => {
       // Launch tasks should NOT create CommandTree terminals - they use debug API
       const launchTerminals = vscode.window.terminals.filter(
         (t) =>
-          t.name.includes("CommandTree") && t.name.includes("Launch Route Test"),
+          t.name.includes("CommandTree") &&
+          t.name.includes("Launch Route Test"),
       );
 
       // Launch tasks use debug API, not terminals
@@ -1136,10 +1138,7 @@ suite("Command Runner E2E Tests", () => {
         "Terminal should exist after running command",
       );
       const activeTerminal = vscode.window.activeTerminal;
-      assert.ok(
-        activeTerminal !== undefined,
-        "Should have active terminal",
-      );
+      assert.ok(activeTerminal !== undefined, "Should have active terminal");
       assert.strictEqual(
         activeTerminal.exitStatus,
         undefined,
@@ -1155,7 +1154,10 @@ suite("Command Runner E2E Tests", () => {
 
       // 1. Verify run command exists
       const commands = await vscode.commands.getCommands(true);
-      assert.ok(commands.includes("commandtree.run"), "Run command should exist");
+      assert.ok(
+        commands.includes("commandtree.run"),
+        "Run command should exist",
+      );
 
       // 2. Create a task
       const task = createMockTaskItem({
@@ -1210,15 +1212,21 @@ suite("Command Runner E2E Tests", () => {
         filePath: path.join(context.workspaceRoot, "Makefile"),
       });
 
-      await vscode.commands.executeCommand("commandtree.run", { task: shellTask });
+      await vscode.commands.executeCommand("commandtree.run", {
+        task: shellTask,
+      });
       await sleep(1000);
       const afterShell = vscode.window.terminals.length;
 
-      await vscode.commands.executeCommand("commandtree.run", { task: npmTask });
+      await vscode.commands.executeCommand("commandtree.run", {
+        task: npmTask,
+      });
       await sleep(1000);
       const afterNpm = vscode.window.terminals.length;
 
-      await vscode.commands.executeCommand("commandtree.run", { task: makeTask });
+      await vscode.commands.executeCommand("commandtree.run", {
+        task: makeTask,
+      });
       await sleep(1000);
       const afterMake = vscode.window.terminals.length;
 

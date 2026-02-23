@@ -13,7 +13,7 @@ import {
   getCommandTreeProvider,
   getLabelString,
 } from "../helpers/helpers";
-import type { CommandTreeItem } from "../../models/TaskItem";
+import { type CommandTreeItem, isCommandItem } from "../../models/TaskItem";
 
 // TODO: No corresponding section in spec
 suite("TreeView E2E Tests", () => {
@@ -33,13 +33,13 @@ suite("TreeView E2E Tests", () => {
     for (const category of categories) {
       const children = await provider.getChildren(category);
       for (const child of children) {
-        if (child.task !== null) {
+        if (isCommandItem(child.data)) {
           return child;
         }
         // Check nested children (folder nodes)
         const grandChildren = await provider.getChildren(child);
         for (const gc of grandChildren) {
-          if (gc.task !== null) {
+          if (isCommandItem(gc.data)) {
             return gc;
           }
         }
@@ -93,11 +93,7 @@ suite("TreeView E2E Tests", () => {
         uri.fsPath !== undefined && uri.fsPath !== "",
         "Click command argument should be a file URI with fsPath",
       );
-      assert.strictEqual(
-        uri.scheme,
-        "file",
-        "URI scheme should be 'file'",
-      );
+      assert.strictEqual(uri.scheme, "file", "URI scheme should be 'file'");
     });
   });
 
@@ -124,8 +120,8 @@ suite("TreeView E2E Tests", () => {
       this.timeout(15000);
       const provider = getCommandTreeProvider();
       const categories = await provider.getChildren();
-      const shellCategory = categories.find(
-        (c) => getLabelString(c.label).includes("Shell Scripts"),
+      const shellCategory = categories.find((c) =>
+        getLabelString(c.label).includes("Shell Scripts"),
       );
       assert.ok(
         shellCategory !== undefined,
@@ -135,9 +131,9 @@ suite("TreeView E2E Tests", () => {
       const topChildren = await provider.getChildren(shellCategory);
       const mixedFolder = topChildren.find(
         (c) =>
-          c.task === null &&
-          c.children.some((gc) => gc.task !== null) &&
-          c.children.some((gc) => gc.task === null),
+          !isCommandItem(c.data) &&
+          c.children.some((gc) => isCommandItem(gc.data)) &&
+          c.children.some((gc) => !isCommandItem(gc.data)),
       );
       assert.ok(
         mixedFolder !== undefined,
@@ -147,7 +143,7 @@ suite("TreeView E2E Tests", () => {
       const kids = mixedFolder.children;
       let seenTask = false;
       for (const child of kids) {
-        if (child.task !== null) {
+        if (isCommandItem(child.data)) {
           seenTask = true;
         } else {
           assert.ok(

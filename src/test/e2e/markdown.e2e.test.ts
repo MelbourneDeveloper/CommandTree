@@ -7,7 +7,14 @@
 
 import * as assert from "assert";
 import * as vscode from "vscode";
-import { activateExtension, sleep, getCommandTreeProvider, getTreeChildren } from "../helpers/helpers";
+import {
+  activateExtension,
+  sleep,
+  getCommandTreeProvider,
+  getTreeChildren,
+  getLabelString,
+} from "../helpers/helpers";
+import { isCommandItem } from "../../models/TaskItem";
 
 suite("Markdown Discovery and Preview E2E Tests", () => {
   suiteSetup(async function () {
@@ -23,22 +30,23 @@ suite("Markdown Discovery and Preview E2E Tests", () => {
       const provider = getCommandTreeProvider();
       const rootItems = await getTreeChildren(provider);
 
-      const markdownCategory = rootItems.find(
-        (item) => item.categoryLabel?.toLowerCase().includes("markdown") === true
+      const markdownCategory = rootItems.find((item) =>
+        getLabelString(item.label).toLowerCase().includes("markdown"),
       );
 
       assert.ok(markdownCategory, "Should have a Markdown category");
 
       const markdownItems = await getTreeChildren(provider, markdownCategory);
-      const readmeItem = markdownItems.find((item) =>
-        item.task?.label.includes("README.md") === true
+      const readmeItem = markdownItems.find(
+        (item) =>
+          isCommandItem(item.data) && item.data.label.includes("README.md"),
       );
 
       assert.ok(readmeItem, "Should discover README.md");
       assert.strictEqual(
-        readmeItem.task?.type,
+        isCommandItem(readmeItem.data) ? readmeItem.data.type : undefined,
         "markdown",
-        "README.md should be of type markdown"
+        "README.md should be of type markdown",
       );
     });
 
@@ -48,22 +56,23 @@ suite("Markdown Discovery and Preview E2E Tests", () => {
       const provider = getCommandTreeProvider();
       const rootItems = await getTreeChildren(provider);
 
-      const markdownCategory = rootItems.find(
-        (item) => item.categoryLabel?.toLowerCase().includes("markdown") === true
+      const markdownCategory = rootItems.find((item) =>
+        getLabelString(item.label).toLowerCase().includes("markdown"),
       );
 
       assert.ok(markdownCategory, "Should have a Markdown category");
 
       const markdownItems = await getTreeChildren(provider, markdownCategory);
-      const guideItem = markdownItems.find((item) =>
-        item.task?.label.includes("guide.md") === true
+      const guideItem = markdownItems.find(
+        (item) =>
+          isCommandItem(item.data) && item.data.label.includes("guide.md"),
       );
 
       assert.ok(guideItem, "Should discover guide.md in subdirectory");
       assert.strictEqual(
-        guideItem.task?.type,
+        isCommandItem(guideItem.data) ? guideItem.data.type : undefined,
         "markdown",
-        "guide.md should be of type markdown"
+        "guide.md should be of type markdown",
       );
     });
 
@@ -73,24 +82,32 @@ suite("Markdown Discovery and Preview E2E Tests", () => {
       const provider = getCommandTreeProvider();
       const rootItems = await getTreeChildren(provider);
 
-      const markdownCategory = rootItems.find(
-        (item) => item.categoryLabel?.toLowerCase().includes("markdown") === true
+      const markdownCategory = rootItems.find((item) =>
+        getLabelString(item.label).toLowerCase().includes("markdown"),
       );
 
       assert.ok(markdownCategory, "Should have a Markdown category");
 
       const markdownItems = await getTreeChildren(provider, markdownCategory);
-      const readmeItem = markdownItems.find((item) =>
-        item.task?.label.includes("README.md") === true
+      const readmeItem = markdownItems.find(
+        (item) =>
+          isCommandItem(item.data) && item.data.label.includes("README.md"),
       );
 
       assert.ok(readmeItem, "Should find README.md item");
 
-      const description = readmeItem.task?.description;
-      assert.ok(description !== undefined && description.length > 0, "Should have a description");
+      assert.ok(
+        isCommandItem(readmeItem.data),
+        "README.md must be a command node",
+      );
+      const description = readmeItem.data.description;
+      assert.ok(
+        description !== undefined && description.length > 0,
+        "Should have a description",
+      );
       assert.ok(
         description.includes("Test Project Documentation"),
-        "Description should come from first heading"
+        "Description should come from first heading",
       );
     });
 
@@ -100,24 +117,29 @@ suite("Markdown Discovery and Preview E2E Tests", () => {
       const provider = getCommandTreeProvider();
       const rootItems = await getTreeChildren(provider);
 
-      const markdownCategory = rootItems.find(
-        (item) => item.categoryLabel?.toLowerCase().includes("markdown") === true
+      const markdownCategory = rootItems.find((item) =>
+        getLabelString(item.label).toLowerCase().includes("markdown"),
       );
 
       assert.ok(markdownCategory, "Should have a Markdown category");
 
       const markdownItems = await getTreeChildren(provider, markdownCategory);
-      const readmeItem = markdownItems.find((item) =>
-        item.task?.label.includes("README.md") === true
+      const readmeItem = markdownItems.find(
+        (item) =>
+          isCommandItem(item.data) && item.data.label.includes("README.md"),
       );
 
       assert.ok(readmeItem, "Should find README.md item");
 
-      const filePath = readmeItem.task?.filePath;
-      assert.ok(filePath !== undefined && filePath.length > 0, "Should have a file path");
+      assert.ok(
+        isCommandItem(readmeItem.data),
+        "README.md must be a command node",
+      );
+      const filePath = readmeItem.data.filePath;
+      assert.ok(filePath.length > 0, "Should have a file path");
       assert.ok(
         filePath.endsWith("README.md"),
-        "File path should end with README.md"
+        "File path should end with README.md",
       );
     });
   });
@@ -129,7 +151,7 @@ suite("Markdown Discovery and Preview E2E Tests", () => {
       const commands = await vscode.commands.getCommands(true);
       assert.ok(
         commands.includes("commandtree.openPreview"),
-        "openPreview command should be registered"
+        "openPreview command should be registered",
       );
     });
 
@@ -139,24 +161,28 @@ suite("Markdown Discovery and Preview E2E Tests", () => {
       const provider = getCommandTreeProvider();
       const rootItems = await getTreeChildren(provider);
 
-      const markdownCategory = rootItems.find(
-        (item) => item.categoryLabel?.toLowerCase().includes("markdown") === true
+      const markdownCategory = rootItems.find((item) =>
+        getLabelString(item.label).toLowerCase().includes("markdown"),
       );
 
       assert.ok(markdownCategory, "Should have a Markdown category");
 
       const markdownItems = await getTreeChildren(provider, markdownCategory);
-      const readmeItem = markdownItems.find((item) =>
-        item.task?.label.includes("README.md") === true
+      const readmeItem = markdownItems.find(
+        (item) =>
+          isCommandItem(item.data) && item.data.label.includes("README.md"),
       );
 
-      assert.ok(readmeItem?.task, "Should find README.md with task");
+      assert.ok(
+        readmeItem !== undefined && isCommandItem(readmeItem.data),
+        "Should find README.md with task",
+      );
 
       const initialEditorCount = vscode.window.visibleTextEditors.length;
 
       await vscode.commands.executeCommand(
         "commandtree.openPreview",
-        readmeItem
+        readmeItem,
       );
 
       await sleep(2000);
@@ -164,7 +190,7 @@ suite("Markdown Discovery and Preview E2E Tests", () => {
       const finalEditorCount = vscode.window.visibleTextEditors.length;
       assert.ok(
         finalEditorCount >= initialEditorCount,
-        "Preview should open a new editor or reuse existing"
+        "Preview should open a new editor or reuse existing",
       );
     });
 
@@ -174,18 +200,22 @@ suite("Markdown Discovery and Preview E2E Tests", () => {
       const provider = getCommandTreeProvider();
       const rootItems = await getTreeChildren(provider);
 
-      const markdownCategory = rootItems.find(
-        (item) => item.categoryLabel?.toLowerCase().includes("markdown") === true
+      const markdownCategory = rootItems.find((item) =>
+        getLabelString(item.label).toLowerCase().includes("markdown"),
       );
 
       assert.ok(markdownCategory, "Should have a Markdown category");
 
       const markdownItems = await getTreeChildren(provider, markdownCategory);
-      const guideItem = markdownItems.find((item) =>
-        item.task?.label.includes("guide.md") === true
+      const guideItem = markdownItems.find(
+        (item) =>
+          isCommandItem(item.data) && item.data.label.includes("guide.md"),
       );
 
-      assert.ok(guideItem?.task, "Should find guide.md with task");
+      assert.ok(
+        guideItem !== undefined && isCommandItem(guideItem.data),
+        "Should find guide.md with task",
+      );
 
       const initialEditorCount = vscode.window.visibleTextEditors.length;
 
@@ -196,17 +226,17 @@ suite("Markdown Discovery and Preview E2E Tests", () => {
       const finalEditorCount = vscode.window.visibleTextEditors.length;
       assert.ok(
         finalEditorCount >= initialEditorCount,
-        "Running markdown item should open preview"
+        "Running markdown item should open preview",
       );
 
       // Verify markdown uses preview, not terminal (exercises TaskRunner.runMarkdownPreview routing)
-      const markdownTerminals = vscode.window.terminals.filter(t =>
-        t.name.includes("guide.md")
+      const markdownTerminals = vscode.window.terminals.filter((t) =>
+        t.name.includes("guide.md"),
       );
       assert.strictEqual(
         markdownTerminals.length,
         0,
-        "Markdown preview should NOT create a terminal"
+        "Markdown preview should NOT create a terminal",
       );
     });
   });
@@ -218,15 +248,16 @@ suite("Markdown Discovery and Preview E2E Tests", () => {
       const provider = getCommandTreeProvider();
       const rootItems = await getTreeChildren(provider);
 
-      const markdownCategory = rootItems.find(
-        (item) => item.categoryLabel?.toLowerCase().includes("markdown") === true
+      const markdownCategory = rootItems.find((item) =>
+        getLabelString(item.label).toLowerCase().includes("markdown"),
       );
 
       assert.ok(markdownCategory, "Should have a Markdown category");
 
       const markdownItems = await getTreeChildren(provider, markdownCategory);
-      const readmeItem = markdownItems.find((item) =>
-        item.task?.label.includes("README.md") === true
+      const readmeItem = markdownItems.find(
+        (item) =>
+          isCommandItem(item.data) && item.data.label.includes("README.md"),
       );
 
       assert.ok(readmeItem, "Should find README.md item");
@@ -234,7 +265,7 @@ suite("Markdown Discovery and Preview E2E Tests", () => {
       const contextValue = readmeItem.contextValue;
       assert.ok(
         contextValue?.includes("markdown") === true,
-        "Context value should include 'markdown'"
+        "Context value should include 'markdown'",
       );
     });
 
@@ -244,19 +275,23 @@ suite("Markdown Discovery and Preview E2E Tests", () => {
       const provider = getCommandTreeProvider();
       const rootItems = await getTreeChildren(provider);
 
-      const markdownCategory = rootItems.find(
-        (item) => item.categoryLabel?.toLowerCase().includes("markdown") === true
+      const markdownCategory = rootItems.find((item) =>
+        getLabelString(item.label).toLowerCase().includes("markdown"),
       );
 
       assert.ok(markdownCategory, "Should have a Markdown category");
 
       const markdownItems = await getTreeChildren(provider, markdownCategory);
-      const readmeItem = markdownItems.find((item) =>
-        item.task?.label.includes("README.md") === true
+      const readmeItem = markdownItems.find(
+        (item) =>
+          isCommandItem(item.data) && item.data.label.includes("README.md"),
       );
 
       assert.ok(readmeItem, "Should find README.md item");
-      assert.ok(readmeItem.iconPath !== undefined, "Markdown item should have an icon");
+      assert.ok(
+        readmeItem.iconPath !== undefined,
+        "Markdown item should have an icon",
+      );
     });
   });
 });
