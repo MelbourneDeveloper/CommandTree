@@ -44,7 +44,7 @@ suite("Command Runner E2E Tests", () => {
         filePath: path.join(context.workspaceRoot, "scripts/test.sh"),
       });
 
-      await vscode.commands.executeCommand("commandtree.run", { task });
+      await vscode.commands.executeCommand("commandtree.run", { data: task });
       await sleep(2000);
 
       const terminalsAfter = vscode.window.terminals.length;
@@ -67,7 +67,7 @@ suite("Command Runner E2E Tests", () => {
         filePath: path.join(subdir, "build.sh"),
       });
 
-      await vscode.commands.executeCommand("commandtree.run", { task });
+      await vscode.commands.executeCommand("commandtree.run", { data: task });
       await sleep(1500);
 
       const terminal = vscode.window.terminals.find((t) =>
@@ -90,7 +90,7 @@ suite("Command Runner E2E Tests", () => {
         params: [],
       });
 
-      await vscode.commands.executeCommand("commandtree.run", { task });
+      await vscode.commands.executeCommand("commandtree.run", { data: task });
       await sleep(1500);
 
       const terminalsAfter = vscode.window.terminals.length;
@@ -115,7 +115,7 @@ suite("Command Runner E2E Tests", () => {
         tags: [],
       };
 
-      await vscode.commands.executeCommand("commandtree.run", { task });
+      await vscode.commands.executeCommand("commandtree.run", { data: task });
       await sleep(1500);
 
       const terminalsAfter = vscode.window.terminals.length;
@@ -141,7 +141,7 @@ suite("Command Runner E2E Tests", () => {
         filePath: path.join(context.workspaceRoot, "package.json"),
       });
 
-      await vscode.commands.executeCommand("commandtree.run", { task });
+      await vscode.commands.executeCommand("commandtree.run", { data: task });
       await sleep(1500);
 
       const terminalsAfter = vscode.window.terminals.length;
@@ -166,7 +166,7 @@ suite("Command Runner E2E Tests", () => {
         category: "subproject",
       });
 
-      await vscode.commands.executeCommand("commandtree.run", { task });
+      await vscode.commands.executeCommand("commandtree.run", { data: task });
       await sleep(1500);
 
       const terminalsAfter = vscode.window.terminals.length;
@@ -210,7 +210,7 @@ suite("Command Runner E2E Tests", () => {
         filePath: path.join(context.workspaceRoot, "Makefile"),
       });
 
-      await vscode.commands.executeCommand("commandtree.run", { task });
+      await vscode.commands.executeCommand("commandtree.run", { data: task });
       await sleep(1500);
 
       const terminalsAfter = vscode.window.terminals.length;
@@ -253,7 +253,7 @@ suite("Command Runner E2E Tests", () => {
         tags: [],
       };
 
-      await vscode.commands.executeCommand("commandtree.run", { task });
+      await vscode.commands.executeCommand("commandtree.run", { data: task });
       await sleep(1500);
 
       const terminalsAfter = vscode.window.terminals.length;
@@ -283,7 +283,7 @@ suite("Command Runner E2E Tests", () => {
         filePath: scriptPath,
       });
 
-      await vscode.commands.executeCommand("commandtree.run", { task });
+      await vscode.commands.executeCommand("commandtree.run", { data: task });
       await sleep(1500);
 
       const terminalsAfter = vscode.window.terminals.length;
@@ -334,7 +334,7 @@ suite("Command Runner E2E Tests", () => {
         params: [],
       });
 
-      await vscode.commands.executeCommand("commandtree.run", { task });
+      await vscode.commands.executeCommand("commandtree.run", { data: task });
       await sleep(1500);
 
       const terminalsAfter = vscode.window.terminals.length;
@@ -364,7 +364,7 @@ suite("Command Runner E2E Tests", () => {
       });
 
       // Launch tasks bypass normal execution and use debug API
-      await vscode.commands.executeCommand("commandtree.run", { task });
+      await vscode.commands.executeCommand("commandtree.run", { data: task });
       await sleep(1000);
 
       // Launch tasks should NOT create CommandTree terminals - they use debug API
@@ -474,7 +474,7 @@ suite("Command Runner E2E Tests", () => {
         filePath: path.join(context.workspaceRoot, "scripts/test.sh"),
       });
 
-      await vscode.commands.executeCommand("commandtree.run", { task });
+      await vscode.commands.executeCommand("commandtree.run", { data: task });
       await sleep(1500);
 
       const terminal = vscode.window.terminals.find((t) =>
@@ -497,7 +497,7 @@ suite("Command Runner E2E Tests", () => {
         filePath: path.join(context.workspaceRoot, "scripts/test.sh"),
       });
 
-      await vscode.commands.executeCommand("commandtree.run", { task });
+      await vscode.commands.executeCommand("commandtree.run", { data: task });
       await sleep(1500);
 
       // After execution, there should be an active terminal
@@ -520,7 +520,7 @@ suite("Command Runner E2E Tests", () => {
         filePath: path.join(context.workspaceRoot, "scripts/test.sh"),
       });
 
-      await vscode.commands.executeCommand("commandtree.run", { task });
+      await vscode.commands.executeCommand("commandtree.run", { data: task });
       await sleep(1500);
 
       // Terminal should be created with the task name
@@ -558,12 +558,12 @@ suite("Command Runner E2E Tests", () => {
         filePath: path.join(context.workspaceRoot, "scripts/test.sh"),
       });
 
-      await vscode.commands.executeCommand("commandtree.run", { task: task1 });
+      await vscode.commands.executeCommand("commandtree.run", { data: task1 });
       await sleep(1000);
 
       const afterFirst = vscode.window.terminals.length;
 
-      await vscode.commands.executeCommand("commandtree.run", { task: task2 });
+      await vscode.commands.executeCommand("commandtree.run", { data: task2 });
       await sleep(1000);
 
       const afterSecond = vscode.window.terminals.length;
@@ -598,7 +598,7 @@ suite("Command Runner E2E Tests", () => {
       });
 
       await vscode.commands.executeCommand("commandtree.runInCurrentTerminal", {
-        task,
+        data: task,
       });
       await sleep(1500);
 
@@ -627,7 +627,7 @@ suite("Command Runner E2E Tests", () => {
       });
 
       await vscode.commands.executeCommand("commandtree.runInCurrentTerminal", {
-        task,
+        data: task,
       });
       await sleep(1000);
 
@@ -654,7 +654,7 @@ suite("Command Runner E2E Tests", () => {
       });
 
       await vscode.commands.executeCommand("commandtree.runInCurrentTerminal", {
-        task,
+        data: task,
       });
       await sleep(1500);
 
@@ -677,7 +677,7 @@ suite("Command Runner E2E Tests", () => {
       });
 
       await vscode.commands.executeCommand("commandtree.runInCurrentTerminal", {
-        task,
+        data: task,
       });
       await sleep(1000);
 
@@ -704,7 +704,7 @@ suite("Command Runner E2E Tests", () => {
       };
 
       await vscode.commands.executeCommand("commandtree.runInCurrentTerminal", {
-        task,
+        data: task,
       });
       await sleep(1000);
 
@@ -815,7 +815,7 @@ suite("Command Runner E2E Tests", () => {
 
       const terminalsBefore = vscode.window.terminals.length;
 
-      await vscode.commands.executeCommand("commandtree.run", { task: null });
+      await vscode.commands.executeCommand("commandtree.run", { data: null });
       await sleep(500);
 
       const terminalsAfter = vscode.window.terminals.length;
@@ -837,7 +837,7 @@ suite("Command Runner E2E Tests", () => {
         command: "echo test",
       });
 
-      await vscode.commands.executeCommand("commandtree.run", { task });
+      await vscode.commands.executeCommand("commandtree.run", { data: task });
       await sleep(500);
 
       const terminalsAfter = vscode.window.terminals.length;
@@ -862,7 +862,7 @@ suite("Command Runner E2E Tests", () => {
       };
 
       // Should not throw
-      await vscode.commands.executeCommand("commandtree.run", { task });
+      await vscode.commands.executeCommand("commandtree.run", { data: task });
       await sleep(500);
 
       // Verify we didn't crash
@@ -884,7 +884,7 @@ suite("Command Runner E2E Tests", () => {
         filePath: "/nonexistent/path/script.sh",
       });
 
-      await vscode.commands.executeCommand("commandtree.run", { task });
+      await vscode.commands.executeCommand("commandtree.run", { data: task });
       await sleep(500);
 
       const terminalsAfter = vscode.window.terminals.length;
@@ -920,7 +920,7 @@ suite("Command Runner E2E Tests", () => {
       const terminalsBefore = vscode.window.terminals.length;
 
       await vscode.commands.executeCommand("commandtree.runInCurrentTerminal", {
-        task: null,
+        data: null,
       });
       await sleep(500);
 
@@ -946,7 +946,7 @@ suite("Command Runner E2E Tests", () => {
         filePath: path.join(context.workspaceRoot, "scripts/test.sh"),
       });
 
-      await vscode.commands.executeCommand("commandtree.run", { task });
+      await vscode.commands.executeCommand("commandtree.run", { data: task });
       await sleep(1000);
 
       const terminal = vscode.window.terminals.find((t) =>
@@ -971,7 +971,7 @@ suite("Command Runner E2E Tests", () => {
         filePath: path.join(context.workspaceRoot, "package.json"),
       });
 
-      await vscode.commands.executeCommand("commandtree.run", { task });
+      await vscode.commands.executeCommand("commandtree.run", { data: task });
       await sleep(1000);
 
       const terminalsAfter = vscode.window.terminals.length;
@@ -994,7 +994,7 @@ suite("Command Runner E2E Tests", () => {
         filePath: path.join(context.workspaceRoot, "Makefile"),
       });
 
-      await vscode.commands.executeCommand("commandtree.run", { task });
+      await vscode.commands.executeCommand("commandtree.run", { data: task });
       await sleep(1000);
 
       const terminalsAfter = vscode.window.terminals.length;
@@ -1023,7 +1023,7 @@ suite("Command Runner E2E Tests", () => {
         ),
       });
 
-      await vscode.commands.executeCommand("commandtree.run", { task });
+      await vscode.commands.executeCommand("commandtree.run", { data: task });
       await sleep(1000);
 
       const terminalsAfter = vscode.window.terminals.length;
@@ -1043,7 +1043,7 @@ suite("Command Runner E2E Tests", () => {
         filePath: path.join(context.workspaceRoot, ".vscode/launch.json"),
       });
 
-      await vscode.commands.executeCommand("commandtree.run", { task });
+      await vscode.commands.executeCommand("commandtree.run", { data: task });
       await sleep(1000);
 
       // Launch tasks should NOT create CommandTree terminals - they use debug API
@@ -1094,7 +1094,7 @@ suite("Command Runner E2E Tests", () => {
         filePath: path.join(context.workspaceRoot, "scripts/test.sh"),
       });
 
-      await vscode.commands.executeCommand("commandtree.run", { task });
+      await vscode.commands.executeCommand("commandtree.run", { data: task });
       await sleep(4000);
 
       const terminal = vscode.window.terminals.find((t) =>
@@ -1129,7 +1129,7 @@ suite("Command Runner E2E Tests", () => {
       });
 
       await vscode.commands.executeCommand("commandtree.runInCurrentTerminal", {
-        task,
+        data: task,
       });
       await sleep(4000);
 
@@ -1169,7 +1169,7 @@ suite("Command Runner E2E Tests", () => {
       });
 
       // 3. Execute
-      await vscode.commands.executeCommand("commandtree.run", { task });
+      await vscode.commands.executeCommand("commandtree.run", { data: task });
       await sleep(2000);
 
       // 4. Verify terminal exists
@@ -1213,19 +1213,19 @@ suite("Command Runner E2E Tests", () => {
       });
 
       await vscode.commands.executeCommand("commandtree.run", {
-        task: shellTask,
+        data: shellTask,
       });
       await sleep(1000);
       const afterShell = vscode.window.terminals.length;
 
       await vscode.commands.executeCommand("commandtree.run", {
-        task: npmTask,
+        data: npmTask,
       });
       await sleep(1000);
       const afterNpm = vscode.window.terminals.length;
 
       await vscode.commands.executeCommand("commandtree.run", {
-        task: makeTask,
+        data: makeTask,
       });
       await sleep(1000);
       const afterMake = vscode.window.terminals.length;
@@ -1262,7 +1262,7 @@ suite("Command Runner E2E Tests", () => {
       });
 
       await vscode.commands.executeCommand("commandtree.run", {
-        task: newTerminalTask,
+        data: newTerminalTask,
       });
       await sleep(1000);
 
@@ -1277,7 +1277,7 @@ suite("Command Runner E2E Tests", () => {
       });
 
       await vscode.commands.executeCommand("commandtree.runInCurrentTerminal", {
-        task: currentTerminalTask,
+        data: currentTerminalTask,
       });
       await sleep(1000);
 

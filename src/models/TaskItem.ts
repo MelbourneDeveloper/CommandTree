@@ -132,8 +132,10 @@ export type NodeData = CommandItem | CategoryNode | FolderNode;
 /**
  * Type guard: true when data is a CommandItem (command leaf).
  */
-export function isCommandItem(data: NodeData): data is CommandItem {
-  return !("nodeType" in data);
+export function isCommandItem(
+  data: NodeData | null | undefined,
+): data is CommandItem {
+  return data !== null && data !== undefined && !("nodeType" in data);
 }
 
 /**

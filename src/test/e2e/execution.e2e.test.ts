@@ -117,7 +117,7 @@ suite("Command Execution E2E Tests", () => {
       });
 
       try {
-        await vscode.commands.executeCommand("commandtree.run", shellTask);
+        await vscode.commands.executeCommand("commandtree.run", { data: shellTask });
         await sleep(2000);
 
         const terminalsAfter = vscode.window.terminals.length;
@@ -464,7 +464,7 @@ suite("Command Execution E2E Tests", () => {
         filePath: path.join(context.workspaceRoot, "scripts/test.sh"),
       });
 
-      const commandTreeItem = { task: shellTask };
+      const commandTreeItem = { data: shellTask };
       await vscode.commands.executeCommand("commandtree.run", commandTreeItem);
       await sleep(1500);
 
@@ -508,7 +508,7 @@ suite("Command Execution E2E Tests", () => {
         filePath: path.join(context.workspaceRoot, "scripts/test.sh"),
       });
 
-      const commandTreeItem = { task: shellTask };
+      const commandTreeItem = { data: shellTask };
 
       await vscode.commands.executeCommand("commandtree.run", commandTreeItem);
       await sleep(1500);
@@ -531,7 +531,7 @@ suite("Command Execution E2E Tests", () => {
         filePath: path.join(context.workspaceRoot, "scripts/test.sh"),
       });
 
-      const commandTreeItem = { task: shellTask };
+      const commandTreeItem = { data: shellTask };
 
       await vscode.commands.executeCommand("commandtree.run", commandTreeItem);
       await sleep(1500);
@@ -570,7 +570,7 @@ suite("Command Execution E2E Tests", () => {
       const terminalsBefore = vscode.window.terminals.length;
 
       try {
-        await vscode.commands.executeCommand("commandtree.run", { task: null });
+        await vscode.commands.executeCommand("commandtree.run", { data: null });
       } catch {
         // Expected behavior
       }
@@ -612,7 +612,7 @@ suite("Command Execution E2E Tests", () => {
         filePath: path.join(context.workspaceRoot, "scripts/test.sh"),
       });
 
-      const commandTreeItem = { task: shellTask };
+      const commandTreeItem = { data: shellTask };
 
       await vscode.commands.executeCommand(
         "commandtree.runInCurrentTerminal",
@@ -644,7 +644,7 @@ suite("Command Execution E2E Tests", () => {
         filePath: path.join(context.workspaceRoot, "scripts/test.sh"),
       });
 
-      const commandTreeItem = { task: shellTask };
+      const commandTreeItem = { data: shellTask };
 
       await vscode.commands.executeCommand(
         "commandtree.runInCurrentTerminal",
@@ -691,7 +691,7 @@ suite("Command Execution E2E Tests", () => {
         filePath: path.join(context.workspaceRoot, "scripts/test.sh"),
       });
 
-      const commandTreeItem = { task: shellTask };
+      const commandTreeItem = { data: shellTask };
 
       await vscode.commands.executeCommand(
         "commandtree.runInCurrentTerminal",
@@ -815,7 +815,7 @@ suite("Command Execution E2E Tests", () => {
         filePath: path.join(context.workspaceRoot, "scripts/test.sh"),
       });
 
-      const commandTreeItem = { task: shellTask };
+      const commandTreeItem = { data: shellTask };
       await vscode.commands.executeCommand(
         "commandtree.runInCurrentTerminal",
         commandTreeItem,
@@ -849,7 +849,7 @@ suite("Command Execution E2E Tests", () => {
         filePath: path.join(context.workspaceRoot, "scripts/test.sh"),
       });
 
-      const commandTreeItem = { task: shellTask };
+      const commandTreeItem = { data: shellTask };
       await vscode.commands.executeCommand(
         "commandtree.runInCurrentTerminal",
         commandTreeItem,
@@ -881,7 +881,7 @@ suite("Command Execution E2E Tests", () => {
         filePath: path.join(context.workspaceRoot, "scripts/test.sh"),
       });
 
-      const commandTreeItem = { task: shellTask };
+      const commandTreeItem = { data: shellTask };
       await vscode.commands.executeCommand("commandtree.run", commandTreeItem);
       await sleep(3000);
 
@@ -912,7 +912,7 @@ suite("Command Execution E2E Tests", () => {
         filePath: path.join(subprojectDir, "test.sh"),
       });
 
-      const commandTreeItem = { task: shellTask };
+      const commandTreeItem = { data: shellTask };
       await vscode.commands.executeCommand("commandtree.run", commandTreeItem);
       await sleep(1500);
 
