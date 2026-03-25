@@ -31,7 +31,7 @@ Examples:
 
 ### Test Coverage
 - [tagging.e2e.test.ts](../src/test/e2e/tagging.e2e.test.ts): "E2E: Add tag via UI → exact ID stored in junction table", "E2E: Remove tag via UI → junction record deleted", "E2E: Cannot add same tag twice (UNIQUE constraint)", "E2E: Filter by tag → only exact ID matches shown"
-- [tagconfig.e2e.test.ts](../src/test/e2e/tagconfig.e2e.test.ts): "E2E: Add tag via UI → exact ID stored in junction table", "E2E: Remove tag via UI → junction record deleted", "E2E: Cannot add same tag twice (UNIQUE constraint)", "E2E: Filter by tag → only exact ID matches shown"
+- [tagconfig.e2e.test.ts](../src/test/e2e/tagconfig.e2e.test.ts): "E2E: Add tag via UI → exact ID stored in junction table", "E2E: Remove tag via UI → junction record deleted"
 
 ## Database Operations
 
