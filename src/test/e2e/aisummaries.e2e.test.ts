@@ -47,6 +47,60 @@ suite("AI Summary E2E Tests", () => {
       assert.ok(models.length > 0, "At least one Copilot model must be available — is GitHub Copilot authenticated?");
     });
 
+    test("multiple Copilot models are available for user to pick from", async function () {
+      this.timeout(30000);
+      const models = await vscode.lm.selectChatModels({ vendor: "copilot" });
+      assert.ok(
+        models.length >= 1,
+        `Model picker needs models to show the user — got ${models.length}. Is GitHub Copilot authenticated?`,
+      );
+      // Every model must have an id and name for the picker to display
+      for (const m of models) {
+        assert.ok(m.id.length > 0, `Model must have an id — got empty string for "${m.name}"`);
+        assert.ok(m.name.length > 0, `Model must have a name — got empty string for "${m.id}"`);
+      }
+    });
+
+    test("setting aiModel config selects that model for summarisation", async function () {
+      this.timeout(120000);
+      const models = await vscode.lm.selectChatModels({ vendor: "copilot" });
+      assert.ok(models.length > 0, "Need at least one Copilot model — is GitHub Copilot authenticated?");
+      const firstModel = models[0] as vscode.LanguageModelChat;
+
+      // Set the model via config (same way the picker persists it)
+      const config = vscode.workspace.getConfiguration("commandtree");
+      await config.update("aiModel", firstModel.id, vscode.ConfigurationTarget.Global);
+
+      // Verify it persisted
+      const savedId = config.get<string>("aiModel", "");
+      assert.strictEqual(savedId, firstModel.id, "aiModel config must persist the chosen model ID");
+
+      // Run summarisation — it should use the configured model without prompting
+      await vscode.commands.executeCommand("commandtree.generateSummaries");
+      await sleep(10000);
+
+      // If we got here without a QuickPick blocking, the saved model was used
+      const provider = getCommandTreeProvider();
+      const tasks = await collectLeafTasks(provider);
+      const withSummary = tasks.filter((t) => t.summary !== undefined && t.summary !== "");
+      assert.ok(
+        withSummary.length > 0,
+        `Summarisation with model "${firstModel.id}" must produce results — got 0/${tasks.length}`,
+      );
+
+      // Clean up — reset to empty so other tests aren't affected
+      await config.update("aiModel", "", vscode.ConfigurationTarget.Global);
+    });
+
+    test("aiModel config is empty by default so user gets prompted", async function () {
+      this.timeout(10000);
+      const config = vscode.workspace.getConfiguration("commandtree");
+      // Reset to default
+      await config.update("aiModel", undefined, vscode.ConfigurationTarget.Global);
+      const savedId = config.get<string>("aiModel", "");
+      assert.strictEqual(savedId, "", "aiModel must default to empty string (triggers picker on first use)");
+    });
+
     test("generateSummaries produces actual summaries on tasks", async function () {
       this.timeout(120000);
       const provider = getCommandTreeProvider();

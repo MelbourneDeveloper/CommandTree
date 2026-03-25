@@ -40,6 +40,8 @@ You are working with many other agents. Make sure there is effective cooperation
 #### Rules
 - **Prefer e2e tests over unit tests** - only unit tests for isolating bugs
 - Separate e2e tests from unit tests by file. They should not be in the same file together.
+- Tests must prove USER INTERACTIONS work
+- E2E tests should have multiple user interactions each and loads of assertions
 - Prefer adding assertions to existing tests rather than adding new tests
 - Test files in `src/test/suite/*.test.ts`
 - Run tests: `npm test`
