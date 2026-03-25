@@ -24,15 +24,15 @@ export class QuickTasksProvider
   implements vscode.TreeDataProvider<CommandTreeItem>, vscode.TreeDragAndDropController<CommandTreeItem>
 {
   private readonly onDidChangeTreeDataEmitter = new vscode.EventEmitter<CommandTreeItem | undefined>();
-  readonly onDidChangeTreeData = this.onDidChangeTreeDataEmitter.event;
+  public readonly onDidChangeTreeData = this.onDidChangeTreeDataEmitter.event;
 
-  readonly dropMimeTypes = [QUICK_TASK_MIME_TYPE];
-  readonly dragMimeTypes = [QUICK_TASK_MIME_TYPE];
+  public readonly dropMimeTypes = [QUICK_TASK_MIME_TYPE];
+  public readonly dragMimeTypes = [QUICK_TASK_MIME_TYPE];
 
   private readonly tagConfig: TagConfig;
   private allTasks: CommandItem[] = [];
 
-  constructor() {
+  public constructor() {
     this.tagConfig = new TagConfig();
   }
 
@@ -40,7 +40,7 @@ export class QuickTasksProvider
    * SPEC: quick-launch
    * Updates the list of all tasks and refreshes the view.
    */
-  updateTasks(tasks: CommandItem[]): void {
+  public updateTasks(tasks: CommandItem[]): void {
     this.tagConfig.load();
     this.allTasks = this.tagConfig.applyTags(tasks);
     this.onDidChangeTreeDataEmitter.fire(undefined);
@@ -50,7 +50,7 @@ export class QuickTasksProvider
    * SPEC: quick-launch
    * Adds a command to the quick list.
    */
-  addToQuick(task: CommandItem): Result<void, string> {
+  public addToQuick(task: CommandItem): Result<void, string> {
     const result = this.tagConfig.addTaskToTag(task, QUICK_TAG);
     if (result.ok) {
       this.tagConfig.load();
@@ -64,7 +64,7 @@ export class QuickTasksProvider
    * SPEC: quick-launch
    * Removes a command from the quick list.
    */
-  removeFromQuick(task: CommandItem): Result<void, string> {
+  public removeFromQuick(task: CommandItem): Result<void, string> {
     const result = this.tagConfig.removeTaskFromTag(task, QUICK_TAG);
     if (result.ok) {
       this.tagConfig.load();
@@ -77,15 +77,15 @@ export class QuickTasksProvider
   /**
    * Refreshes the view.
    */
-  refresh(): void {
+  public refresh(): void {
     this.onDidChangeTreeDataEmitter.fire(undefined);
   }
 
-  getTreeItem(element: CommandTreeItem): vscode.TreeItem {
+  public getTreeItem(element: CommandTreeItem): vscode.TreeItem {
     return element;
   }
 
-  getChildren(element?: CommandTreeItem): CommandTreeItem[] {
+  public getChildren(element?: CommandTreeItem): CommandTreeItem[] {
     if (element !== undefined) {
       return element.children;
     }
@@ -143,7 +143,7 @@ export class QuickTasksProvider
   /**
    * Called when dragging starts.
    */
-  handleDrag(source: readonly CommandTreeItem[], dataTransfer: vscode.DataTransfer): void {
+  public handleDrag(source: readonly CommandTreeItem[], dataTransfer: vscode.DataTransfer): void {
     const taskItem = source[0];
     if (taskItem === undefined || !isCommandItem(taskItem.data)) {
       return;
@@ -155,42 +155,79 @@ export class QuickTasksProvider
    * SPEC: quick-launch
    * Called when dropping - reorders tasks in junction table.
    */
-  handleDrop(target: CommandTreeItem | undefined, dataTransfer: vscode.DataTransfer): void {
+  public handleDrop(target: CommandTreeItem | undefined, dataTransfer: vscode.DataTransfer): void {
     const draggedTask = this.extractDraggedTask(dataTransfer);
     if (draggedTask === undefined) {
       return;
     }
 
-    const dbResult = getDb();
-    if (!dbResult.ok) {
+    const orderedIds = this.fetchOrderedQuickIds();
+    if (orderedIds === undefined) {
       return;
     }
 
+    const reordered = this.computeReorder({ orderedIds, draggedTask, target });
+    if (reordered === undefined) {
+      return;
+    }
+
+    this.persistDisplayOrder(reordered);
+    this.reloadAndRefresh();
+  }
+
+  /**
+   * Fetches ordered command IDs for the quick tag from the DB.
+   */
+  private fetchOrderedQuickIds(): string[] | undefined {
+    const dbResult = getDb();
+    if (!dbResult.ok) {
+      return undefined;
+    }
     const orderedIdsResult = getCommandIdsByTag({
       handle: dbResult.value,
       tagName: QUICK_TAG,
     });
-    if (!orderedIdsResult.ok) {
-      return;
-    }
+    return orderedIdsResult.ok ? orderedIdsResult.value : undefined;
+  }
 
-    const orderedIds = orderedIdsResult.value;
+  /**
+   * Computes the reordered ID list after a drag-and-drop, or undefined if no change needed.
+   */
+  private computeReorder({
+    orderedIds,
+    draggedTask,
+    target,
+  }: {
+    orderedIds: string[];
+    draggedTask: CommandItem;
+    target: CommandTreeItem | undefined;
+  }): string[] | undefined {
     const currentIndex = orderedIds.indexOf(draggedTask.id);
     if (currentIndex === -1) {
-      return;
+      return undefined;
     }
 
     const targetData = target !== undefined && isCommandItem(target.data) ? target.data : undefined;
     const targetIndex = targetData !== undefined ? orderedIds.indexOf(targetData.id) : orderedIds.length - 1;
 
     if (targetIndex === -1 || currentIndex === targetIndex) {
-      return;
+      return undefined;
     }
 
     const reordered = [...orderedIds];
     reordered.splice(currentIndex, 1);
     reordered.splice(targetIndex, 0, draggedTask.id);
+    return reordered;
+  }
 
+  /**
+   * Persists display_order for each command in the reordered list.
+   */
+  private persistDisplayOrder(reordered: string[]): void {
+    const dbResult = getDb();
+    if (!dbResult.ok) {
+      return;
+    }
     for (let i = 0; i < reordered.length; i++) {
       const commandId = reordered[i];
       if (commandId !== undefined) {
@@ -203,7 +240,12 @@ export class QuickTasksProvider
         );
       }
     }
+  }
 
+  /**
+   * Reloads tag config and refreshes the tree view.
+   */
+  private reloadAndRefresh(): void {
     this.tagConfig.load();
     this.allTasks = this.tagConfig.applyTags(this.allTasks);
     this.onDidChangeTreeDataEmitter.fire(undefined);

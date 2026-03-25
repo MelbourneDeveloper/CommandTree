@@ -65,14 +65,17 @@ suite("AI Summary E2E Tests", () => {
       this.timeout(120000);
       const models = await vscode.lm.selectChatModels({ vendor: "copilot" });
       assert.ok(models.length > 0, "Need at least one Copilot model — is GitHub Copilot authenticated?");
-      const firstModel = models[0] as vscode.LanguageModelChat;
+      const firstModel = models[0];
+      if (firstModel === undefined) {
+        assert.fail("First model must exist");
+      }
 
       // Set the model via config (same way the picker persists it)
       const config = vscode.workspace.getConfiguration("commandtree");
       await config.update("aiModel", firstModel.id, vscode.ConfigurationTarget.Global);
 
       // Verify it persisted
-      const savedId = config.get<string>("aiModel", "");
+      const savedId = config.get("aiModel", "");
       assert.strictEqual(savedId, firstModel.id, "aiModel config must persist the chosen model ID");
 
       // Run summarisation — it should use the configured model without prompting
@@ -97,7 +100,7 @@ suite("AI Summary E2E Tests", () => {
       const config = vscode.workspace.getConfiguration("commandtree");
       // Reset to default
       await config.update("aiModel", undefined, vscode.ConfigurationTarget.Global);
-      const savedId = config.get<string>("aiModel", "");
+      const savedId = config.get("aiModel", "");
       assert.strictEqual(savedId, "", "aiModel must default to empty string (triggers picker on first use)");
     });
 

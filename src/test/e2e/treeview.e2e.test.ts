@@ -19,6 +19,27 @@ suite("TreeView E2E Tests", () => {
   });
 
   /**
+   * Searches a node's children and grandchildren for the first command item.
+   */
+  async function findTaskInCategory(
+    provider: ReturnType<typeof getCommandTreeProvider>,
+    category: CommandTreeItem
+  ): Promise<CommandTreeItem | undefined> {
+    const children = await provider.getChildren(category);
+    for (const child of children) {
+      if (isCommandItem(child.data)) {
+        return child;
+      }
+      const grandChildren = await provider.getChildren(child);
+      const match = grandChildren.find((gc) => isCommandItem(gc.data));
+      if (match !== undefined) {
+        return match;
+      }
+    }
+    return undefined;
+  }
+
+  /**
    * Finds the first task item (leaf node with a task) in the tree.
    */
   async function findFirstTaskItem(): Promise<CommandTreeItem | undefined> {
@@ -26,18 +47,9 @@ suite("TreeView E2E Tests", () => {
     const categories = await provider.getChildren();
 
     for (const category of categories) {
-      const children = await provider.getChildren(category);
-      for (const child of children) {
-        if (isCommandItem(child.data)) {
-          return child;
-        }
-        // Check nested children (folder nodes)
-        const grandChildren = await provider.getChildren(child);
-        for (const gc of grandChildren) {
-          if (isCommandItem(gc.data)) {
-            return gc;
-          }
-        }
+      const found = await findTaskInCategory(provider, category);
+      if (found !== undefined) {
+        return found;
       }
     }
     return undefined;

@@ -68,9 +68,14 @@ export function computeContentHash(content: string): string {
   return crypto.createHash("sha256").update(content).digest("hex").substring(0, 16);
 }
 
-function addColumnIfMissing(handle: DbHandle, table: string, column: string, definition: string): void {
+function addColumnIfMissing(params: {
+  readonly handle: DbHandle;
+  readonly table: string;
+  readonly column: string;
+  readonly definition: string;
+}): void {
   try {
-    handle.db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+    params.handle.db.exec(`ALTER TABLE ${params.table} ADD COLUMN ${params.column} ${params.definition}`);
   } catch {
     // Column already exists — expected for existing databases
   }
@@ -91,10 +96,20 @@ export function initSchema(handle: DbHandle): Result<void, string> {
                 last_updated TEXT NOT NULL DEFAULT ''
             )
         `);
-    addColumnIfMissing(handle, COMMAND_TABLE, "content_hash", "TEXT NOT NULL DEFAULT ''");
-    addColumnIfMissing(handle, COMMAND_TABLE, "summary", "TEXT NOT NULL DEFAULT ''");
-    addColumnIfMissing(handle, COMMAND_TABLE, "security_warning", "TEXT");
-    addColumnIfMissing(handle, COMMAND_TABLE, "last_updated", "TEXT NOT NULL DEFAULT ''");
+    addColumnIfMissing({
+      handle,
+      table: COMMAND_TABLE,
+      column: "content_hash",
+      definition: "TEXT NOT NULL DEFAULT ''",
+    });
+    addColumnIfMissing({ handle, table: COMMAND_TABLE, column: "summary", definition: "TEXT NOT NULL DEFAULT ''" });
+    addColumnIfMissing({ handle, table: COMMAND_TABLE, column: "security_warning", definition: "TEXT" });
+    addColumnIfMissing({
+      handle,
+      table: COMMAND_TABLE,
+      column: "last_updated",
+      definition: "TEXT NOT NULL DEFAULT ''",
+    });
     handle.db.exec(`
             CREATE TABLE IF NOT EXISTS ${TAG_TABLE} (
                 tag_id TEXT PRIMARY KEY,

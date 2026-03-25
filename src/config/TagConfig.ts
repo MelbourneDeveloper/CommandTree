@@ -22,7 +22,7 @@ export class TagConfig {
    * SPEC: tagging
    * Loads all tag assignments from SQLite junction table.
    */
-  load(): void {
+  public load(): void {
     const dbResult = getDb();
     if (!dbResult.ok) {
       this.commandTagsMap = new Map();
@@ -56,7 +56,7 @@ export class TagConfig {
    * SPEC: tagging
    * Applies tags to tasks using exact command ID matching (no patterns).
    */
-  applyTags(tasks: CommandItem[]): CommandItem[] {
+  public applyTags(tasks: CommandItem[]): CommandItem[] {
     return tasks.map((task) => {
       const tags = this.commandTagsMap.get(task.id) ?? [];
       return { ...task, tags };
@@ -67,7 +67,7 @@ export class TagConfig {
    * SPEC: tagging
    * Gets all tag names.
    */
-  getTagNames(): string[] {
+  public getTagNames(): string[] {
     const dbResult = getDb();
     if (!dbResult.ok) {
       return [];
@@ -80,7 +80,7 @@ export class TagConfig {
    * SPEC: tagging/management
    * Adds a task to a tag by creating junction record with exact command ID.
    */
-  addTaskToTag(task: CommandItem, tagName: string): Result<void, string> {
+  public addTaskToTag(task: CommandItem, tagName: string): Result<void, string> {
     const dbResult = getDb();
     if (!dbResult.ok) {
       return err(dbResult.error);
@@ -102,7 +102,7 @@ export class TagConfig {
    * SPEC: tagging/management
    * Removes a task from a tag by deleting junction record.
    */
-  removeTaskFromTag(task: CommandItem, tagName: string): Result<void, string> {
+  public removeTaskFromTag(task: CommandItem, tagName: string): Result<void, string> {
     const dbResult = getDb();
     if (!dbResult.ok) {
       return err(dbResult.error);
@@ -124,7 +124,7 @@ export class TagConfig {
    * SPEC: quick-launch
    * Gets ordered command IDs for a tag (ordered by display_order).
    */
-  getOrderedCommandIds(tagName: string): string[] {
+  public getOrderedCommandIds(tagName: string): string[] {
     const dbResult = getDb();
     if (!dbResult.ok) {
       return [];
@@ -140,7 +140,7 @@ export class TagConfig {
    * SPEC: quick-launch
    * Reorders commands for a tag by updating display_order in junction table.
    */
-  reorderCommands(tagName: string, orderedCommandIds: string[]): Result<void, string> {
+  public reorderCommands(tagName: string, orderedCommandIds: string[]): Result<void, string> {
     const dbResult = getDb();
     if (!dbResult.ok) {
       return err(dbResult.error);

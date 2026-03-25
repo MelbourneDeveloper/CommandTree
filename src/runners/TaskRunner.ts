@@ -31,7 +31,7 @@ export class TaskRunner {
   /**
    * Runs a command, prompting for parameters if needed.
    */
-  async run(task: CommandItem, mode: RunMode = "newTerminal"): Promise<void> {
+  public async run(task: CommandItem, mode: RunMode = "newTerminal"): Promise<void> {
     const params = await this.collectParams(task.params);
     if (params === null) {
       return;

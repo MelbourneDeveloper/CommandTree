@@ -60,38 +60,71 @@ interface AntTarget {
   description?: string;
 }
 
-/**
- * Parses build.xml to extract target names and descriptions.
- */
+const TARGET_TAG_OPEN = "<target";
+const ATTR_NAME = "name";
+const ATTR_DESCRIPTION = "description";
+
+/** Extracts the value of an attribute from an XML tag string, or undefined if absent. */
+function extractAttribute(tag: string, attr: string): string | undefined {
+  const prefix = `${attr}=`;
+  const attrStart = tag.indexOf(prefix);
+  if (attrStart === -1) {
+    return undefined;
+  }
+  const quoteChar = tag.charAt(attrStart + prefix.length);
+  if (quoteChar !== '"' && quoteChar !== "'") {
+    return undefined;
+  }
+  const valueStart = attrStart + prefix.length + 1;
+  const valueEnd = tag.indexOf(quoteChar, valueStart);
+  if (valueEnd === -1) {
+    return undefined;
+  }
+  return tag.substring(valueStart, valueEnd);
+}
+
+/** Finds all <target ...> tag strings in the content. */
+function findTargetTags(content: string): string[] {
+  const tags: string[] = [];
+  let searchFrom = 0;
+  for (;;) {
+    const openIdx = content.indexOf(TARGET_TAG_OPEN, searchFrom);
+    if (openIdx === -1) {
+      break;
+    }
+    const closeIdx = content.indexOf(">", openIdx);
+    if (closeIdx === -1) {
+      break;
+    }
+    tags.push(content.substring(openIdx, closeIdx + 1));
+    searchFrom = closeIdx + 1;
+  }
+  return tags;
+}
+
+/** Builds an AntTarget from a tag string if it has a valid name. */
+function tagToTarget(tag: string): AntTarget | undefined {
+  const name = extractAttribute(tag, ATTR_NAME);
+  if (name === undefined || name === "") {
+    return undefined;
+  }
+  const description = extractAttribute(tag, ATTR_DESCRIPTION);
+  return {
+    name,
+    ...(description !== undefined && description !== "" ? { description } : {}),
+  };
+}
+
+/** Parses build.xml to extract target names and descriptions. */
 function parseAntTargets(content: string): AntTarget[] {
+  const seen = new Set<string>();
   const targets: AntTarget[] = [];
-
-  // Match <target name="..." description="..."> patterns
-  const targetRegex = /<target\s+[^>]*name\s*=\s*["']([^"']+)["'][^>]*(?:description\s*=\s*["']([^"']+)["'])?[^>]*>/g;
-  let match;
-  while ((match = targetRegex.exec(content)) !== null) {
-    const name = match[1];
-    const description = match[2];
-    if (name !== undefined && name !== "" && !targets.some((t) => t.name === name)) {
-      targets.push({
-        name,
-        ...(description !== undefined && description !== "" ? { description } : {}),
-      });
+  for (const tag of findTargetTags(content)) {
+    const target = tagToTarget(tag);
+    if (target !== undefined && !seen.has(target.name)) {
+      seen.add(target.name);
+      targets.push(target);
     }
   }
-
-  // Also match targets where description comes before name
-  const altRegex = /<target\s+[^>]*description\s*=\s*["']([^"']+)["'][^>]*name\s*=\s*["']([^"']+)["'][^>]*>/g;
-  while ((match = altRegex.exec(content)) !== null) {
-    const description = match[1];
-    const name = match[2];
-    if (name !== undefined && name !== "" && !targets.some((t) => t.name === name)) {
-      targets.push({
-        name,
-        ...(description !== undefined && description !== "" ? { description } : {}),
-      });
-    }
-  }
-
   return targets;
 }

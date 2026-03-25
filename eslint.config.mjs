@@ -2,6 +2,19 @@ import eslint from "@eslint/js";
 import tseslint from "typescript-eslint";
 
 export default tseslint.config(
+  {
+    ignores: [
+      "out/**",
+      "node_modules/**",
+      ".vscode-test/**",
+      "src/test/fixtures/**",
+      "coverage/**",
+      "website/**",
+      "*.js",
+      "*.mjs",
+      "*.cjs",
+    ],
+  },
   eslint.configs.recommended,
   tseslint.configs.strictTypeChecked,
   tseslint.configs.stylisticTypeChecked,
@@ -162,15 +175,4 @@ export default tseslint.config(
       "complexity": ["error", 10],
     },
   },
-  {
-    ignores: [
-      "out/**",
-      "node_modules/**",
-      ".vscode-test/**",
-      "src/test/fixtures/**",
-      "*.js",
-      "*.mjs",
-      "*.cjs",
-    ],
-  }
 );

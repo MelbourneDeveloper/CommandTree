@@ -19,12 +19,12 @@ export const CATEGORY_DEF: CategoryDef = {
 export async function discoverJustRecipes(workspaceRoot: string, excludePatterns: string[]): Promise<CommandItem[]> {
   const exclude = `{${excludePatterns.join(",")}}`;
   // Just supports: justfile, Justfile, .justfile
-  const [justfiles, Justfiles, dotJustfiles] = await Promise.all([
+  const [simpleJustfiles, uppercaseJustfiles, dotJustfiles] = await Promise.all([
     vscode.workspace.findFiles("**/justfile", exclude),
     vscode.workspace.findFiles("**/Justfile", exclude),
     vscode.workspace.findFiles("**/.justfile", exclude),
   ]);
-  const allFiles = [...justfiles, ...Justfiles, ...dotJustfiles];
+  const allFiles = [...simpleJustfiles, ...uppercaseJustfiles, ...dotJustfiles];
   const commands: CommandItem[] = [];
 
   for (const file of allFiles) {

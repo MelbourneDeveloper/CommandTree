@@ -65,6 +65,103 @@ interface TaskfileTask {
   description?: string;
 }
 
+interface ParseState {
+  inTasks: boolean;
+  sectionIndent: number;
+  currentTask: string | undefined;
+  taskIndent: number;
+}
+
+function leadingSpaces(line: string): number {
+  let count = 0;
+  while (count < line.length && line[count] === " ") {
+    count++;
+  }
+  return count;
+}
+
+function isSkippableLine(trimmed: string): boolean {
+  return trimmed === "" || trimmed.startsWith("#");
+}
+
+function isLeavingTasksSection(state: ParseState, indent: number, trimmed: string): boolean {
+  if (!state.inTasks) {
+    return false;
+  }
+  if (indent > state.sectionIndent) {
+    return false;
+  }
+  if (trimmed.startsWith("-")) {
+    return false;
+  }
+  return trimmed.endsWith(":") && !trimmed.includes(" ");
+}
+
+function extractTaskName(trimmed: string): string | undefined {
+  const colonIdx = trimmed.indexOf(":");
+  if (colonIdx <= 0) {
+    return undefined;
+  }
+  const candidate = trimmed.substring(0, colonIdx);
+  const firstChar = candidate[0];
+  if (firstChar === undefined || !isValidTaskChar(firstChar)) {
+    return undefined;
+  }
+  const allValid = candidate.split("").every(isTaskBodyChar);
+  return allValid ? candidate : undefined;
+}
+
+function isValidTaskChar(ch: string): boolean {
+  return (ch >= "a" && ch <= "z") || (ch >= "A" && ch <= "Z") || ch === "_";
+}
+
+function isTaskBodyChar(ch: string): boolean {
+  return isValidTaskChar(ch) || (ch >= "0" && ch <= "9") || ch === "-" || ch === ":";
+}
+
+function flushPreviousTask(tasks: TaskfileTask[], taskName: string | undefined): void {
+  if (taskName === undefined) {
+    return;
+  }
+  const alreadyExists = tasks.some((t) => t.name === taskName);
+  if (!alreadyExists) {
+    tasks.push({ name: taskName });
+  }
+}
+
+function extractDescription(trimmed: string): string | undefined {
+  const prefixes = ["desc:", "description:"];
+  const matched = prefixes.find((p) => trimmed.startsWith(p));
+  if (matched === undefined) {
+    return undefined;
+  }
+  const raw = trimmed.substring(matched.length).trim();
+  if (raw === "") {
+    return undefined;
+  }
+  return stripQuotes(raw);
+}
+
+function stripQuotes(value: string): string {
+  if (value.length < 2) {
+    return value;
+  }
+  const first = value[0];
+  const last = value[value.length - 1];
+  const isQuoted = (first === "'" || first === '"') && first === last;
+  return isQuoted ? value.substring(1, value.length - 1) : value;
+}
+
+function applyDescription(tasks: TaskfileTask[], currentTask: string, description: string): string | undefined {
+  const existing = tasks.find((t) => t.name === currentTask);
+  if (existing !== undefined) {
+    existing.description = description;
+    return currentTask;
+  }
+  tasks.push({ name: currentTask, description });
+  return undefined;
+}
+
 /**
  * Parses Taskfile.yml to extract task names and descriptions.
  * Uses simple YAML parsing without a full parser.
@@ -72,79 +169,60 @@ interface TaskfileTask {
 function parseTaskfileTasks(content: string): TaskfileTask[] {
   const tasks: TaskfileTask[] = [];
   const lines = content.split("\n");
-
-  let inTasks = false;
-  let currentIndent = 0;
-  let currentTask: string | undefined;
-  let taskIndent = 0;
+  const state: ParseState = { inTasks: false, sectionIndent: 0, currentTask: undefined, taskIndent: 0 };
 
   for (const line of lines) {
-    // Skip empty lines and comments
-    if (line.trim() === "" || line.trim().startsWith("#")) {
-      continue;
-    }
-
-    const indent = line.search(/\S/);
     const trimmed = line.trim();
-
-    // Check if we're entering the tasks: section
-    if (trimmed === "tasks:") {
-      inTasks = true;
-      currentIndent = indent;
+    if (isSkippableLine(trimmed)) {
       continue;
     }
-
-    // Check if we've left the tasks section (another top-level key)
-    if (inTasks && indent <= currentIndent && !trimmed.startsWith("-")) {
-      if (trimmed.endsWith(":") && !trimmed.includes(" ")) {
-        inTasks = false;
-        continue;
-      }
-    }
-
-    if (!inTasks) {
-      continue;
-    }
-
-    // Check for task definition (key ending with :)
-    const taskMatch = /^([a-zA-Z_][a-zA-Z0-9_:-]*):(.*)$/.exec(trimmed);
-    if (taskMatch !== null && indent > currentIndent) {
-      const taskName = taskMatch[1];
-      if (taskName !== undefined && taskName !== "") {
-        // Save previous task if exists
-        if (currentTask !== undefined) {
-          const existing = tasks.find((t) => t.name === currentTask);
-          if (existing === undefined) {
-            tasks.push({ name: currentTask });
-          }
-        }
-        currentTask = taskName;
-        taskIndent = indent;
-      }
-    }
-
-    // Check for desc or description field
-    if (currentTask !== undefined && indent > taskIndent) {
-      const descMatch = /^(?:desc|description):\s*["']?(.+?)["']?\s*$/.exec(trimmed);
-      if (descMatch !== null) {
-        const description = descMatch[1];
-        if (description !== undefined && description !== "") {
-          const existing = tasks.find((t) => t.name === currentTask);
-          if (existing !== undefined) {
-            existing.description = description;
-          } else {
-            tasks.push({ name: currentTask, description });
-            currentTask = undefined;
-          }
-        }
-      }
-    }
+    const indent = leadingSpaces(line);
+    processLine({ tasks, state, indent, trimmed });
   }
 
-  // Don't forget the last task
-  if (currentTask !== undefined && !tasks.some((t) => t.name === currentTask)) {
-    tasks.push({ name: currentTask });
-  }
-
+  flushPreviousTask(tasks, state.currentTask);
   return tasks;
+}
+
+interface LineContext {
+  tasks: TaskfileTask[];
+  state: ParseState;
+  indent: number;
+  trimmed: string;
+}
+
+function processLine({ tasks, state, indent, trimmed }: LineContext): void {
+  if (trimmed === "tasks:") {
+    state.inTasks = true;
+    state.sectionIndent = indent;
+    return;
+  }
+  if (isLeavingTasksSection(state, indent, trimmed)) {
+    state.inTasks = false;
+    return;
+  }
+  if (!state.inTasks) {
+    return;
+  }
+  processTaskSectionLine({ tasks, state, indent, trimmed });
+}
+
+function processTaskSectionLine({ tasks, state, indent, trimmed }: LineContext): void {
+  if (indent > state.sectionIndent) {
+    const taskName = extractTaskName(trimmed);
+    if (taskName !== undefined) {
+      flushPreviousTask(tasks, state.currentTask);
+      state.currentTask = taskName;
+      state.taskIndent = indent;
+      return;
+    }
+  }
+  if (state.currentTask === undefined || indent <= state.taskIndent) {
+    return;
+  }
+  const description = extractDescription(trimmed);
+  if (description === undefined) {
+    return;
+  }
+  state.currentTask = applyDescription(tasks, state.currentTask, description);
 }

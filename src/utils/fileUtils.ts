@@ -28,55 +28,72 @@ export function parseJson<T>(content: string): Result<T, string> {
   }
 }
 
+interface ParserState {
+  readonly content: string;
+  readonly out: string[];
+  pos: number;
+  inString: boolean;
+}
+
+/**
+ * Handles one character while inside a JSON string literal.
+ * Returns true if the character was consumed (caller should continue).
+ */
+function handleStringChar(state: ParserState): boolean {
+  if (!state.inString) {
+    return false;
+  }
+  const ch = state.content[state.pos] ?? "";
+  state.out.push(ch);
+  if (ch === "\\") {
+    state.out.push(state.content[state.pos + 1] ?? "");
+    state.pos += 2;
+    return true;
+  }
+  if (ch === '"') {
+    state.inString = false;
+  }
+  state.pos++;
+  return true;
+}
+
+/**
+ * Handles one character outside a string: comments or literals.
+ */
+function handleNonStringChar(state: ParserState): void {
+  const ch = state.content[state.pos];
+  const next = state.content[state.pos + 1];
+
+  if (ch === '"') {
+    state.inString = true;
+    state.out.push(ch);
+    state.pos++;
+    return;
+  }
+  if (ch === "/" && next === "/") {
+    state.pos = skipUntilNewline(state.content, state.pos);
+    return;
+  }
+  if (ch === "/" && next === "*") {
+    state.pos = skipUntilBlockEnd(state.content, state.pos);
+    return;
+  }
+  state.out.push(ch ?? "");
+  state.pos++;
+}
+
 /**
  * Removes single-line and multi-line comments from JSONC.
  * Uses a character-by-character state machine (no regex).
  */
 export function removeJsonComments(content: string): string {
-  const out: string[] = [];
-  let i = 0;
-  let inString = false;
-
-  while (i < content.length) {
-    const ch = content[i];
-    const next = content[i + 1];
-
-    if (inString) {
-      out.push(ch ?? "");
-      if (ch === "\\") {
-        out.push(next ?? "");
-        i += 2;
-        continue;
-      }
-      if (ch === '"') {
-        inString = false;
-      }
-      i++;
-      continue;
+  const state: ParserState = { content, out: [], pos: 0, inString: false };
+  while (state.pos < content.length) {
+    if (!handleStringChar(state)) {
+      handleNonStringChar(state);
     }
-
-    if (ch === '"') {
-      inString = true;
-      out.push(ch);
-      i++;
-      continue;
-    }
-
-    if (ch === "/" && next === "/") {
-      i = skipUntilNewline(content, i);
-      continue;
-    }
-
-    if (ch === "/" && next === "*") {
-      i = skipUntilBlockEnd(content, i);
-      continue;
-    }
-
-    out.push(ch ?? "");
-    i++;
   }
-
-  return out.join("");
+  return state.out.join("");
 }
 
 function skipUntilNewline(content: string, start: number): number {

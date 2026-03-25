@@ -109,6 +109,50 @@ export async function discoverDockerComposeServices(
   return commands;
 }
 
+/** Counts leading spaces in a line. */
+function leadingSpaces(line: string): number {
+  let count = 0;
+  while (count < line.length && line[count] === " ") {
+    count++;
+  }
+  return count;
+}
+
+/** Returns true if the line should be skipped (empty or comment). */
+function isSkippableLine(trimmed: string): boolean {
+  return trimmed === "" || trimmed.startsWith("#");
+}
+
+/** Returns true if trimmed line is a top-level YAML key (ends with colon, no spaces). */
+function isTopLevelKey(trimmed: string): boolean {
+  return trimmed.endsWith(":") && !trimmed.includes(" ");
+}
+
+/** Checks if a character is valid for a service name start: [a-zA-Z_] */
+function isValidNameStart(ch: string): boolean {
+  return (ch >= "a" && ch <= "z") || (ch >= "A" && ch <= "Z") || ch === "_";
+}
+
+/** Checks if a character is valid within a service name: [a-zA-Z0-9_-] */
+function isValidNameChar(ch: string): boolean {
+  return isValidNameStart(ch) || (ch >= "0" && ch <= "9") || ch === "-";
+}
+
+/** Extracts a service name from a trimmed line like "myservice:" or returns empty string. */
+function extractServiceName(trimmed: string): string {
+  const firstChar = trimmed[0];
+  if (trimmed.length === 0 || firstChar === undefined || !isValidNameStart(firstChar)) {
+    return "";
+  }
+  const colonIdx = trimmed.indexOf(":");
+  if (colonIdx <= 0) {
+    return "";
+  }
+  const candidate = trimmed.substring(0, colonIdx);
+  const isValid = Array.from(candidate).every((ch) => isValidNameChar(ch));
+  return isValid ? candidate : "";
+}
+
 /**
  * Parses docker-compose.yml to extract service names.
  * Uses simple YAML parsing without a full parser.
@@ -116,47 +160,54 @@ export async function discoverDockerComposeServices(
 function parseDockerComposeServices(content: string): string[] {
   const services: string[] = [];
   const lines = content.split("\n");
-
   let inServices = false;
   let servicesIndent = 0;
 
   for (const line of lines) {
-    // Skip empty lines and comments
-    if (line.trim() === "" || line.trim().startsWith("#")) {
-      continue;
-    }
-
-    const indent = line.search(/\S/);
     const trimmed = line.trim();
-
-    // Check if we're entering the services: section
-    if (trimmed === "services:") {
-      inServices = true;
-      servicesIndent = indent;
+    if (isSkippableLine(trimmed)) {
       continue;
     }
-
-    // Check if we've left the services section (another top-level key)
-    if (inServices && indent <= servicesIndent && trimmed.endsWith(":") && !trimmed.includes(" ")) {
-      inServices = false;
-      continue;
-    }
-
-    if (!inServices) {
-      continue;
-    }
-
-    // Check for service definition (key at one indent level below services)
-    if (indent === servicesIndent + 2 || (servicesIndent === 0 && indent === 2)) {
-      const serviceMatch = /^([a-zA-Z_][a-zA-Z0-9_-]*):/.exec(trimmed);
-      if (serviceMatch !== null) {
-        const serviceName = serviceMatch[1];
-        if (serviceName !== undefined && serviceName !== "" && !services.includes(serviceName)) {
-          services.push(serviceName);
-        }
-      }
-    }
+    const indent = leadingSpaces(line);
+    const result = processLine({ trimmed, indent, inServices, servicesIndent, services });
+    inServices = result.inServices;
+    servicesIndent = result.servicesIndent;
   }
 
   return services;
+}
+
+interface ParseState {
+  readonly trimmed: string;
+  readonly indent: number;
+  readonly inServices: boolean;
+  readonly servicesIndent: number;
+  readonly services: string[];
+}
+
+/** Processes a single non-empty, non-comment line and returns updated parser state. */
+function processLine(state: ParseState): { inServices: boolean; servicesIndent: number } {
+  const { trimmed, indent, inServices, servicesIndent, services } = state;
+  if (trimmed === "services:") {
+    return { inServices: true, servicesIndent: indent };
+  }
+  if (inServices && indent <= servicesIndent && isTopLevelKey(trimmed)) {
+    return { inServices: false, servicesIndent };
+  }
+  if (!inServices) {
+    return { inServices, servicesIndent };
+  }
+  const isServiceDepth = indent === servicesIndent + 2 || (servicesIndent === 0 && indent === 2);
+  if (isServiceDepth) {
+    collectServiceName(trimmed, services);
+  }
+  return { inServices, servicesIndent };
+}
+
+/** Extracts a service name from the line and adds it to the list if valid and unique. */
+function collectServiceName(trimmed: string, services: string[]): void {
+  const name = extractServiceName(trimmed);
+  if (name !== "" && !services.includes(name)) {
+    services.push(name);
+  }
 }

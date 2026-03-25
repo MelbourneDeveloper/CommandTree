@@ -112,7 +112,7 @@ async function promptModelPicker(
 function buildVSCodeDeps(): ModelSelectionDeps {
   const config = vscode.workspace.getConfiguration("commandtree");
   return {
-    getSavedId: (): string => config.get<string>("aiModel", ""),
+    getSavedId: (): string => config.get("aiModel", ""),
     fetchById: async (id: string): Promise<readonly ModelRef[]> => await fetchModels({ vendor: "copilot", id }),
     fetchAll: async (): Promise<readonly ModelRef[]> => await fetchModels({ vendor: "copilot" }),
     promptUser: async (): Promise<ModelRef | undefined> => {

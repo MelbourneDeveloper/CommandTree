@@ -135,6 +135,43 @@ export async function registerAllCommands(params: {
   return ok(registered);
 }
 
+interface BatchState {
+  succeeded: number;
+  failed: number;
+  aborted: boolean;
+}
+
+/**
+ * Processes one pending item and updates the batch state.
+ */
+async function processPendingItem(params: {
+  readonly item: PendingItem;
+  readonly model: vscode.LanguageModelChat;
+  readonly handle: DbHandle;
+  readonly state: BatchState;
+}): Promise<void> {
+  const result = await processOneSummary({
+    model: params.model,
+    task: params.item.task,
+    content: params.item.content,
+    hash: params.item.hash,
+    handle: params.handle,
+  });
+  if (result.ok) {
+    params.state.succeeded++;
+    return;
+  }
+  params.state.failed++;
+  logger.error("[SUMMARY] Task failed", {
+    id: params.item.task.id,
+    error: result.error,
+  });
+  if (params.state.failed >= MAX_CONSECUTIVE_FAILURES) {
+    logger.error("[SUMMARY] Too many failures, aborting", { failed: params.state.failed });
+    params.state.aborted = true;
+  }
+}
+
 /**
  * Summarises all tasks that are new or have changed content.
  * Stores summaries in SQLite.
@@ -149,18 +186,14 @@ export async function summariseAllTasks(params: {
   // Step 1: Always register commands in DB (independent of Copilot)
   const regResult = await registerAllCommands(params);
   if (!regResult.ok) {
-    logger.error("[SUMMARY] registerAllCommands failed", {
-      error: regResult.error,
-    });
+    logger.error("[SUMMARY] registerAllCommands failed", { error: regResult.error });
     return err(regResult.error);
   }
 
   // Step 2: Try Copilot — if unavailable, commands are still in DB
   const modelResult = await selectCopilotModel();
   if (!modelResult.ok) {
-    logger.error("[SUMMARY] Copilot model selection failed", {
-      error: modelResult.error,
-    });
+    logger.error("[SUMMARY] Copilot model selection failed", { error: modelResult.error });
     return err(modelResult.error);
   }
 
@@ -179,37 +212,18 @@ export async function summariseAllTasks(params: {
     return ok(0);
   }
 
-  let succeeded = 0;
-  let failed = 0;
-
+  const state: BatchState = { succeeded: 0, failed: 0, aborted: false };
   for (const item of pending) {
-    const result = await processOneSummary({
-      model: modelResult.value,
-      task: item.task,
-      content: item.content,
-      hash: item.hash,
-      handle: dbInit.value,
-    });
-    if (result.ok) {
-      succeeded++;
-    } else {
-      failed++;
-      logger.error("[SUMMARY] Task failed", {
-        id: item.task.id,
-        error: result.error,
-      });
-      if (failed >= MAX_CONSECUTIVE_FAILURES) {
-        logger.error("[SUMMARY] Too many failures, aborting", { failed });
-        break;
-      }
+    await processPendingItem({ item, model: modelResult.value, handle: dbInit.value, state });
+    params.onProgress?.(state.succeeded + state.failed, pending.length, item.task.label);
+    if (state.aborted) {
+      break;
     }
-    params.onProgress?.(succeeded + failed, pending.length, item.task.label);
   }
 
-  logger.info("[SUMMARY] complete", { succeeded, failed });
-
-  if (succeeded === 0 && failed > 0) {
-    return err(`All ${failed} tasks failed to summarise`);
+  logger.info("[SUMMARY] complete", { succeeded: state.succeeded, failed: state.failed });
+  if (state.succeeded === 0 && state.failed > 0) {
+    return err(`All ${state.failed} tasks failed to summarise`);
   }
-  return ok(succeeded);
+  return ok(state.succeeded);
 }

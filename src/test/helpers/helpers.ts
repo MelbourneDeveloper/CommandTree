@@ -189,6 +189,18 @@ export function getTooltipText(item: CommandTreeItem): string {
   return "";
 }
 
+const MOCK_TASK_DEFAULTS: Omit<CommandItem, "cwd"> = {
+  id: "test-task-id",
+  label: "Test Command",
+  type: "shell",
+  command: "echo test",
+  filePath: "/tmp/test.sh",
+  category: "Test Category",
+  description: "A test command",
+  params: [],
+  tags: [],
+};
+
 export function createMockTaskItem(
   overrides: Partial<{
     id: string;
@@ -208,16 +220,7 @@ export function createMockTaskItem(
     tags: string[];
   }> = {}
 ): CommandItem {
-  const base = {
-    id: overrides.id ?? "test-task-id",
-    label: overrides.label ?? "Test Command",
-    type: overrides.type ?? "shell",
-    command: overrides.command ?? "echo test",
-    filePath: overrides.filePath ?? "/tmp/test.sh",
-    category: overrides.category ?? "Test Category",
-    description: overrides.description ?? "A test command",
-    params: overrides.params ?? [],
-    tags: overrides.tags ?? [],
-  };
-  return overrides.cwd !== undefined ? { ...base, cwd: overrides.cwd } : base;
+  const base = { ...MOCK_TASK_DEFAULTS, ...overrides };
+  const { cwd, ...rest } = base;
+  return cwd !== undefined ? { ...rest, cwd } : rest;
 }

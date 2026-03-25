@@ -20,6 +20,7 @@ import { getDb } from "../../db/lifecycle";
 import { getCommandIdsByTag, getTagsForCommand } from "../../db/db";
 import { createCommandNode } from "../../tree/nodeFactory";
 import { isCommandItem } from "../../models/TaskItem";
+import { TagConfig } from "../../config/TagConfig";
 
 const QUICK_TAG = "quick";
 
@@ -296,7 +297,6 @@ suite("Quick Launch E2E Tests (SQLite Junction Table)", () => {
       }
 
       // Verify TagConfig.getOrderedCommandIds and reorderCommands
-      const { TagConfig } = await import("../../config/TagConfig.js");
       const tagConfig = new TagConfig();
       tagConfig.load();
       const configOrderedIds = tagConfig.getOrderedCommandIds(QUICK_TAG);

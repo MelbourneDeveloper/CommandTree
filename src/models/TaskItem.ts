@@ -162,7 +162,7 @@ export class CommandTreeItem extends vscode.TreeItem {
   public readonly data: NodeData;
   public readonly children: CommandTreeItem[];
 
-  constructor(props: CommandTreeItemProps) {
+  public constructor(props: CommandTreeItemProps) {
     super(
       props.label,
       props.children.length > 0 ? vscode.TreeItemCollapsibleState.Collapsed : vscode.TreeItemCollapsibleState.None

@@ -18,7 +18,7 @@ type SortOrder = "folder" | "name" | "type";
  */
 export class CommandTreeProvider implements vscode.TreeDataProvider<CommandTreeItem> {
   private readonly _onDidChangeTreeData = new vscode.EventEmitter<CommandTreeItem | undefined>();
-  readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
+  public readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
 
   private commands: CommandItem[] = [];
   private discoveryResult: DiscoveryResult | null = null;
@@ -27,12 +27,12 @@ export class CommandTreeProvider implements vscode.TreeDataProvider<CommandTreeI
   private readonly tagConfig: TagConfig;
   private readonly workspaceRoot: string;
 
-  constructor(workspaceRoot: string) {
+  public constructor(workspaceRoot: string) {
     this.workspaceRoot = workspaceRoot;
     this.tagConfig = new TagConfig();
   }
 
-  async refresh(): Promise<void> {
+  public async refresh(): Promise<void> {
     this.tagConfig.load();
     const excludePatterns = getExcludePatterns();
     this.discoveryResult = await discoverAllTasks(this.workspaceRoot, excludePatterns);
@@ -76,22 +76,22 @@ export class CommandTreeProvider implements vscode.TreeDataProvider<CommandTreeI
     });
   }
 
-  setTagFilter(tag: string | null): void {
+  public setTagFilter(tag: string | null): void {
     logger.filter("setTagFilter", { tagFilter: tag });
     this.tagFilter = tag;
     this._onDidChangeTreeData.fire(undefined);
   }
 
-  clearFilters(): void {
+  public clearFilters(): void {
     this.tagFilter = null;
     this._onDidChangeTreeData.fire(undefined);
   }
 
-  hasFilter(): boolean {
+  public hasFilter(): boolean {
     return this.tagFilter !== null;
   }
 
-  getAllTags(): string[] {
+  public getAllTags(): string[] {
     const tags = new Set<string>();
     for (const task of this.commands) {
       for (const tag of task.tags) {
@@ -104,7 +104,7 @@ export class CommandTreeProvider implements vscode.TreeDataProvider<CommandTreeI
     return Array.from(tags).sort();
   }
 
-  async addTaskToTag(task: CommandItem, tagName: string): Promise<Result<void, string>> {
+  public async addTaskToTag(task: CommandItem, tagName: string): Promise<Result<void, string>> {
     const result = this.tagConfig.addTaskToTag(task, tagName);
     if (result.ok) {
       await this.refresh();
@@ -112,7 +112,7 @@ export class CommandTreeProvider implements vscode.TreeDataProvider<CommandTreeI
     return result;
   }
 
-  async removeTaskFromTag(task: CommandItem, tagName: string): Promise<Result<void, string>> {
+  public async removeTaskFromTag(task: CommandItem, tagName: string): Promise<Result<void, string>> {
     const result = this.tagConfig.removeTaskFromTag(task, tagName);
     if (result.ok) {
       await this.refresh();
@@ -120,15 +120,15 @@ export class CommandTreeProvider implements vscode.TreeDataProvider<CommandTreeI
     return result;
   }
 
-  getAllTasks(): CommandItem[] {
+  public getAllTasks(): CommandItem[] {
     return this.commands;
   }
 
-  getTreeItem(element: CommandTreeItem): vscode.TreeItem {
+  public getTreeItem(element: CommandTreeItem): vscode.TreeItem {
     return element;
   }
 
-  async getChildren(element?: CommandTreeItem): Promise<CommandTreeItem[]> {
+  public async getChildren(element?: CommandTreeItem): Promise<CommandTreeItem[]> {
     if (!this.discoveryResult) {
       await this.refresh();
     }

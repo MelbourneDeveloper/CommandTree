@@ -1,7 +1,7 @@
 import * as assert from "assert";
 import * as path from "path";
 import type { CommandItem } from "../../models/TaskItem";
-import { groupByFullDir, buildDirTree, needsFolderWrapper } from "../../tree/dirTree";
+import { groupByFullDir, buildDirTree, needsFolderWrapper, simplifyDirLabel, getFolderLabel } from "../../tree/dirTree";
 
 /**
  * TODO: No corresponding section in spec
@@ -189,6 +189,124 @@ suite("Tree Hierarchy Unit Tests", function () {
       const utils = lib.subdirs[0];
       assert.ok(utils !== undefined);
       assert.strictEqual(utils.tasks.length, 1, "utils should have deep.sh");
+    });
+
+    test("needsFolderWrapper returns true when node has subdirs", () => {
+      const tasks = [
+        createMockTask({
+          id: "parent",
+          label: "parent.sh",
+          filePath: path.join(WORKSPACE, "src", "parent.sh"),
+        }),
+        createMockTask({
+          id: "child",
+          label: "child.sh",
+          filePath: path.join(WORKSPACE, "src", "sub", "child.sh"),
+        }),
+      ];
+      const groups = groupByFullDir(tasks, WORKSPACE);
+      const tree = buildDirTree(groups);
+      const src = tree[0];
+      assert.ok(src !== undefined);
+      assert.strictEqual(needsFolderWrapper(src, 1), true, "Node with subdirs needs folder wrapper");
+    });
+
+    test("needsFolderWrapper returns false for single task among multiple roots", () => {
+      const tasks = [
+        createMockTask({
+          id: "a",
+          label: "a.sh",
+          filePath: path.join(WORKSPACE, "dirA", "a.sh"),
+        }),
+        createMockTask({
+          id: "b",
+          label: "b.sh",
+          filePath: path.join(WORKSPACE, "dirB", "b.sh"),
+        }),
+      ];
+      const groups = groupByFullDir(tasks, WORKSPACE);
+      const tree = buildDirTree(groups);
+      assert.strictEqual(tree.length, 2);
+      const node = tree[0];
+      assert.ok(node !== undefined);
+      assert.strictEqual(needsFolderWrapper(node, 2), false, "Single task with multiple roots = no wrapper");
+    });
+  });
+
+  suite("groupByFullDir edge cases", () => {
+    test("task at workspace root gets empty string key", () => {
+      const tasks = [
+        createMockTask({
+          id: "root-task",
+          label: "root.sh",
+          filePath: path.join(WORKSPACE, "root.sh"),
+        }),
+      ];
+      const groups = groupByFullDir(tasks, WORKSPACE);
+      assert.ok(groups.has(""), "Root-level task should map to empty string key");
+      assert.strictEqual(groups.get("")?.length, 1);
+    });
+
+    test("buildDirTree with empty groups returns empty array", () => {
+      const groups = new Map<string, CommandItem[]>();
+      const tree = buildDirTree(groups);
+      assert.strictEqual(tree.length, 0, "Empty groups should produce empty tree");
+    });
+
+    test("dir with no direct tasks still appears in tree", () => {
+      const tasks = [
+        createMockTask({
+          id: "deep",
+          label: "deep.sh",
+          filePath: path.join(WORKSPACE, "a", "b", "deep.sh"),
+        }),
+      ];
+      const groups = groupByFullDir(tasks, WORKSPACE);
+      const tree = buildDirTree(groups);
+      assert.strictEqual(tree.length, 1);
+      const node = tree[0];
+      assert.ok(node !== undefined);
+      assert.strictEqual(node.tasks.length, 1);
+    });
+  });
+
+  suite("simplifyDirLabel", () => {
+    test("returns Root for empty string", () => {
+      assert.strictEqual(simplifyDirLabel(""), "Root");
+    });
+
+    test("returns Root for dot", () => {
+      assert.strictEqual(simplifyDirLabel("."), "Root");
+    });
+
+    test("returns path as-is for short paths", () => {
+      assert.strictEqual(simplifyDirLabel("src/lib"), "src/lib");
+    });
+
+    test("returns path as-is for exactly 3 parts", () => {
+      assert.strictEqual(simplifyDirLabel("src/lib/utils"), "src/lib/utils");
+    });
+
+    test("simplifies paths with more than 3 parts", () => {
+      assert.strictEqual(simplifyDirLabel("src/lib/utils/helpers"), "src/.../helpers");
+    });
+
+    test("simplifies deeply nested paths", () => {
+      assert.strictEqual(simplifyDirLabel("a/b/c/d/e/f"), "a/.../f");
+    });
+  });
+
+  suite("getFolderLabel", () => {
+    test("returns simplified label when parentDir is empty", () => {
+      assert.strictEqual(getFolderLabel("src/lib", ""), "src/lib");
+    });
+
+    test("returns relative part after parent", () => {
+      assert.strictEqual(getFolderLabel("src/lib/utils", "src/lib"), "utils");
+    });
+
+    test("returns nested relative part", () => {
+      assert.strictEqual(getFolderLabel("a/b/c/d", "a/b"), "c/d");
     });
   });
 });

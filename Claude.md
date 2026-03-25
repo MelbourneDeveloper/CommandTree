@@ -15,7 +15,6 @@ You are working with many other agents. Make sure there is effective cooperation
 - **Functional style** - Prefer pure functions, avoid classes where possible
 - **No suppressing warnings** - Fix them properly
 - **No REGEX** It is absolutely ⛔️ illegal, and no text matching in general
-- **Don't run long runnings tasks** like docker builds, tests. Ask the user to do it!!
 - **Expressions over assignments** - Prefer const and immutable patterns
 - **Named parameters** - Use object params for functions with 3+ args
 - **Keep files under 450 LOC and functions under 20 LOC**

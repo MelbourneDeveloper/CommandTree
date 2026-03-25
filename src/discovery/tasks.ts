@@ -46,44 +46,62 @@ export async function discoverVsCodeTasks(workspaceRoot: string, excludePatterns
     }
 
     const tasksConfig = result.value;
-    const inputs = parseInputs(tasksConfig.inputs);
-
     if (tasksConfig.tasks === undefined || !Array.isArray(tasksConfig.tasks)) {
       continue;
     }
 
-    for (const task of tasksConfig.tasks) {
-      let label = task.label;
-      if (label === undefined && task.type === "npm" && task.script !== undefined) {
-        label = `npm: ${task.script}`;
-      }
-      if (label === undefined) {
-        continue;
-      }
-
-      const taskParams = findTaskInputs(task, inputs);
-
-      const taskItem: MutableCommandItem = {
-        id: generateCommandId("vscode", file.fsPath, label),
-        label,
-        type: "vscode",
-        category: "VS Code Tasks",
-        command: label,
-        cwd: workspaceRoot,
-        filePath: file.fsPath,
-        tags: [],
-      };
-      if (taskParams.length > 0) {
-        taskItem.params = taskParams;
-      }
-      if (task.detail !== undefined && typeof task.detail === "string" && task.detail !== "") {
-        taskItem.description = task.detail;
-      }
-      commands.push(taskItem);
-    }
+    const inputs = parseInputs(tasksConfig.inputs);
+    const fileCommands = tasksConfig.tasks.flatMap((task) => buildTaskCommand({ task, inputs, file, workspaceRoot }));
+    commands.push(...fileCommands);
   }
 
   return commands;
+}
+
+function buildTaskCommand({
+  task,
+  inputs,
+  file,
+  workspaceRoot,
+}: {
+  task: VscodeTaskDef;
+  inputs: Map<string, ParamDef>;
+  file: vscode.Uri;
+  workspaceRoot: string;
+}): CommandItem[] {
+  const label = resolveTaskLabel(task);
+  if (label === undefined) {
+    return [];
+  }
+
+  const taskParams = findTaskInputs(task, inputs);
+  const taskItem: MutableCommandItem = {
+    id: generateCommandId("vscode", file.fsPath, label),
+    label,
+    type: "vscode",
+    category: "VS Code Tasks",
+    command: label,
+    cwd: workspaceRoot,
+    filePath: file.fsPath,
+    tags: [],
+  };
+  if (taskParams.length > 0) {
+    taskItem.params = taskParams;
+  }
+  if (task.detail !== undefined && typeof task.detail === "string" && task.detail !== "") {
+    taskItem.description = task.detail;
+  }
+  return [taskItem];
+}
+
+function resolveTaskLabel(task: VscodeTaskDef): string | undefined {
+  if (task.label !== undefined) {
+    return task.label;
+  }
+  if (task.type === "npm" && task.script !== undefined) {
+    return `npm: ${task.script}`;
+  }
+  return undefined;
 }
 
 /**
@@ -111,17 +129,14 @@ function parseInputs(inputs: TaskInput[] | undefined): Map<string, ParamDef> {
 /**
  * Finds input references in a task definition.
  */
+const INPUT_PREFIX = "${input:";
+const INPUT_SUFFIX = "}";
+
 function findTaskInputs(task: VscodeTaskDef, inputs: Map<string, ParamDef>): ParamDef[] {
   const params: ParamDef[] = [];
   const taskStr = JSON.stringify(task);
 
-  const inputRegex = /\$\{input:(\w+)\}/g;
-  let match;
-  while ((match = inputRegex.exec(taskStr)) !== null) {
-    const inputId = match[1];
-    if (inputId === undefined) {
-      continue;
-    }
+  for (const inputId of extractInputIds(taskStr)) {
     const param = inputs.get(inputId);
     if (param !== undefined && !params.some((p) => p.name === param.name)) {
       params.push(param);
@@ -129,4 +144,25 @@ function findTaskInputs(task: VscodeTaskDef, inputs: Map<string, ParamDef>): Par
   }
 
   return params;
+}
+
+function extractInputIds(text: string): string[] {
+  const ids: string[] = [];
+  let searchFrom = 0;
+
+  for (;;) {
+    const start = text.indexOf(INPUT_PREFIX, searchFrom);
+    if (start === -1) {
+      break;
+    }
+    const idStart = start + INPUT_PREFIX.length;
+    const end = text.indexOf(INPUT_SUFFIX, idStart);
+    if (end === -1) {
+      break;
+    }
+    ids.push(text.slice(idStart, end));
+    searchFrom = end + INPUT_SUFFIX.length;
+  }
+
+  return ids;
 }

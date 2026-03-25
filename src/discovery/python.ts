@@ -66,16 +66,29 @@ export async function discoverPythonScripts(workspaceRoot: string, excludePatter
  * Checks if a Python file is runnable (has shebang or __main__ block).
  */
 function isRunnablePythonScript(content: string): boolean {
-  // Has shebang
   if (content.startsWith("#!") && content.includes("python")) {
     return true;
   }
+  return hasMainBlock(content);
+}
 
-  // Has if __name__ == "__main__" or if __name__ == '__main__'
-  if (/if\s+__name__\s*==\s*['"]__main__['"]/.test(content)) {
-    return true;
+function hasMainBlock(content: string): boolean {
+  const lines = content.split("\n");
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed.startsWith("if")) {
+      continue;
+    }
+    if (!trimmed.includes("__name__")) {
+      continue;
+    }
+    if (!trimmed.includes("__main__")) {
+      continue;
+    }
+    if (trimmed.includes("==")) {
+      return true;
+    }
   }
-
   return false;
 }
 
@@ -86,50 +99,150 @@ function isRunnablePythonScript(content: string): boolean {
  */
 function parsePythonParams(content: string): ParamDef[] {
   const params: ParamDef[] = [];
-
-  // Parse @param comments (same as shell)
-  const paramRegex = /^#\s*@param\s+(\w+)\s+(.*)$/gm;
-  let match;
-  while ((match = paramRegex.exec(content)) !== null) {
-    const paramName = match[1];
-    const descText = match[2];
-    if (paramName === undefined || descText === undefined) {
+  const lines = content.split("\n");
+  for (const line of lines) {
+    const trimmed = line.trim();
+    const commentParam = parseCommentParam(trimmed);
+    if (commentParam !== undefined) {
+      params.push(commentParam);
       continue;
     }
-
-    const defaultRegex = /\(default:\s*([^)]+)\)/i;
-    const defaultMatch = defaultRegex.exec(descText);
-    const defaultVal = defaultMatch?.[1]?.trim();
-    const param: ParamDef = {
-      name: paramName,
-      description: descText.replace(/\(default:[^)]+\)/i, "").trim(),
-      ...(defaultVal !== undefined && defaultVal !== "" ? { default: defaultVal } : {}),
-    };
-    params.push(param);
+    const argParam = parseArgparseParam(trimmed);
+    if (argParam !== undefined && !params.some((p) => p.name === argParam.name)) {
+      params.push(argParam);
+    }
   }
-
-  // Parse argparse arguments
-  const argparseRegex = /add_argument\s*\(\s*['"]--?(\w+)['"]\s*(?:,\s*[^)]*help\s*=\s*['"]([^'"]+)['"])?/g;
-  while ((match = argparseRegex.exec(content)) !== null) {
-    const argName = match[1];
-    const helpText = match[2];
-    if (argName === undefined) {
-      continue;
-    }
-
-    // Avoid duplicates
-    if (params.some((p) => p.name === argName)) {
-      continue;
-    }
-
-    const param: ParamDef = {
-      name: argName,
-      ...(helpText !== undefined && helpText !== "" ? { description: helpText } : {}),
-    };
-    params.push(param);
-  }
-
   return params;
+}
+
+function parseCommentParam(trimmed: string): ParamDef | undefined {
+  if (!trimmed.startsWith("#")) {
+    return undefined;
+  }
+  const withoutHash = trimmed.slice(1).trim();
+  if (!withoutHash.startsWith("@param")) {
+    return undefined;
+  }
+  const afterTag = withoutHash.slice("@param".length).trim();
+  const spaceIdx = afterTag.indexOf(" ");
+  if (spaceIdx < 0) {
+    return undefined;
+  }
+  const paramName = afterTag.slice(0, spaceIdx);
+  const descText = afterTag.slice(spaceIdx + 1);
+  return buildParamWithDefault(paramName, descText);
+}
+
+function buildParamWithDefault(name: string, descText: string): ParamDef {
+  const defaultVal = extractDefault(descText);
+  const cleanDesc = removeDefaultAnnotation(descText).trim();
+  return {
+    name,
+    description: cleanDesc,
+    ...(defaultVal !== undefined && defaultVal !== "" ? { default: defaultVal } : {}),
+  };
+}
+
+function extractDefault(text: string): string | undefined {
+  const marker = "(default:";
+  const start = text.toLowerCase().indexOf(marker);
+  if (start < 0) {
+    return undefined;
+  }
+  const end = text.indexOf(")", start + marker.length);
+  if (end < 0) {
+    return undefined;
+  }
+  return text.slice(start + marker.length, end).trim();
+}
+
+function removeDefaultAnnotation(text: string): string {
+  const marker = "(default:";
+  const start = text.toLowerCase().indexOf(marker);
+  if (start < 0) {
+    return text;
+  }
+  const end = text.indexOf(")", start + marker.length);
+  if (end < 0) {
+    return text;
+  }
+  return (text.slice(0, start) + text.slice(end + 1)).trim();
+}
+
+function parseArgparseParam(trimmed: string): ParamDef | undefined {
+  const marker = "add_argument(";
+  const idx = trimmed.indexOf(marker);
+  if (idx < 0) {
+    return undefined;
+  }
+  const argsStr = trimmed.slice(idx + marker.length);
+  const argName = extractArgName(argsStr);
+  if (argName === undefined) {
+    return undefined;
+  }
+  const helpText = extractHelpText(argsStr);
+  return {
+    name: argName,
+    ...(helpText !== undefined && helpText !== "" ? { description: helpText } : {}),
+  };
+}
+
+function extractArgName(argsStr: string): string | undefined {
+  const firstQuote = findQuoteStart(argsStr);
+  if (firstQuote < 0) {
+    return undefined;
+  }
+  const quote = argsStr[firstQuote];
+  if (quote === undefined) {
+    return undefined;
+  }
+  const endQuote = argsStr.indexOf(quote, firstQuote + 1);
+  if (endQuote < 0) {
+    return undefined;
+  }
+  const raw = argsStr.slice(firstQuote + 1, endQuote);
+  return stripLeadingDashes(raw);
+}
+
+function findQuoteStart(s: string): number {
+  const single = s.indexOf("'");
+  const double = s.indexOf('"');
+  if (single < 0) {
+    return double;
+  }
+  if (double < 0) {
+    return single;
+  }
+  return Math.min(single, double);
+}
+
+function stripLeadingDashes(s: string): string {
+  let i = 0;
+  while (i < s.length && s[i] === "-") {
+    i++;
+  }
+  return s.slice(i);
+}
+
+function extractHelpText(argsStr: string): string | undefined {
+  const helpIdx = argsStr.indexOf("help=");
+  if (helpIdx < 0) {
+    return undefined;
+  }
+  const afterHelp = argsStr.slice(helpIdx + "help=".length);
+  const quoteStart = findQuoteStart(afterHelp);
+  if (quoteStart < 0) {
+    return undefined;
+  }
+  const quote = afterHelp[quoteStart];
+  if (quote === undefined) {
+    return undefined;
+  }
+  const endQuote = afterHelp.indexOf(quote, quoteStart + 1);
+  if (endQuote < 0) {
+    return undefined;
+  }
+  return afterHelp.slice(quoteStart + 1, endQuote);
 }
 
 /**
@@ -137,66 +250,112 @@ function parsePythonParams(content: string): ParamDef[] {
  */
 function parsePythonDescription(content: string): string | undefined {
   const lines = content.split("\n");
+  const meaningful = skipPreambleLines(lines);
+  return parseDescriptionFromLines(meaningful);
+}
 
-  // Look for module docstring (triple quotes at start)
+function skipPreambleLines(lines: readonly string[]): string[] {
+  const result: string[] = [];
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (isSkippablePreamble(trimmed)) {
+      continue;
+    }
+    if (trimmed === "" && result.length === 0) {
+      continue;
+    }
+    result.push(trimmed);
+  }
+  return result;
+}
+
+function parseDescriptionFromLines(lines: readonly string[]): string | undefined {
   let inDocstring = false;
   let docstringQuote = "";
 
-  for (const line of lines) {
-    const trimmed = line.trim();
-
-    // Skip shebang and encoding declarations
-    if (trimmed.startsWith("#!") || trimmed.startsWith("# -*-") || trimmed.startsWith("# coding")) {
-      continue;
-    }
-
-    // Skip empty lines at the start
+  for (const trimmed of lines) {
     if (trimmed === "") {
       continue;
     }
-
-    // Check for docstring start
-    if (trimmed.startsWith('"""') || trimmed.startsWith("'''")) {
-      docstringQuote = trimmed.substring(0, 3);
-
-      // Single line docstring
-      if (trimmed.length > 6 && trimmed.endsWith(docstringQuote)) {
-        return trimmed.slice(3, -3).trim();
-      }
-
-      // Multi-line docstring - get first line
-      inDocstring = true;
-      const firstLine = trimmed.slice(3).trim();
-      if (firstLine !== "") {
-        return firstLine;
-      }
-      continue;
-    }
-
-    // Inside docstring - get first non-empty line
     if (inDocstring) {
-      if (trimmed.includes(docstringQuote)) {
-        // End of docstring
-        const desc = trimmed.replace(docstringQuote, "").trim();
-        return desc === "" ? undefined : desc;
+      return resolveDocstringLine(trimmed, docstringQuote);
+    }
+
+    const docResult = tryParseDocstringStart(trimmed);
+    if (docResult !== undefined) {
+      if (docResult.description !== undefined) {
+        return docResult.description;
       }
-      if (trimmed !== "") {
-        return trimmed;
-      }
+      inDocstring = true;
+      docstringQuote = docResult.quote;
       continue;
     }
 
-    // Regular comment
     if (trimmed.startsWith("#")) {
-      const desc = trimmed.replace(/^#\s*/, "").trim();
-      if (!desc.startsWith("@") && desc !== "") {
-        return desc;
-      }
+      return extractCommentDescription(trimmed);
     }
-
-    // Not a comment or docstring - stop looking
     break;
   }
-
   return undefined;
+}
+
+interface DocstringStart {
+  readonly quote: string;
+  readonly description: string | undefined;
+}
+
+function tryParseDocstringStart(trimmed: string): DocstringStart | undefined {
+  const tripleQuote = detectTripleQuote(trimmed);
+  if (tripleQuote === undefined) {
+    return undefined;
+  }
+  const singleLine = parseSingleLineDocstring(trimmed, tripleQuote);
+  if (singleLine !== undefined) {
+    return { quote: tripleQuote, description: singleLine };
+  }
+  const firstLine = trimmed.slice(3).trim();
+  const desc = firstLine !== "" ? firstLine : undefined;
+  return { quote: tripleQuote, description: desc };
+}
+
+function isSkippablePreamble(trimmed: string): boolean {
+  return trimmed.startsWith("#!") || trimmed.startsWith("# -*-") || trimmed.startsWith("# coding");
+}
+
+function detectTripleQuote(trimmed: string): string | undefined {
+  if (trimmed.startsWith('"""')) {
+    return '"""';
+  }
+  if (trimmed.startsWith("'''")) {
+    return "'''";
+  }
+  return undefined;
+}
+
+function parseSingleLineDocstring(trimmed: string, quote: string): string | undefined {
+  if (trimmed.length > 6 && trimmed.endsWith(quote)) {
+    return trimmed.slice(3, -3).trim();
+  }
+  return undefined;
+}
+
+function resolveDocstringLine(trimmed: string, docstringQuote: string): string | undefined {
+  if (trimmed.includes(docstringQuote)) {
+    const idx = trimmed.indexOf(docstringQuote);
+    const desc = (trimmed.slice(0, idx) + trimmed.slice(idx + docstringQuote.length)).trim();
+    return desc === "" ? undefined : desc;
+  }
+  return trimmed !== "" ? trimmed : undefined;
+}
+
+function extractCommentDescription(trimmed: string): string | undefined {
+  let afterHash = trimmed.slice(1);
+  if (afterHash.startsWith(" ")) {
+    afterHash = afterHash.slice(1);
+  }
+  const desc = afterHash.trim();
+  if (desc.startsWith("@") || desc === "") {
+    return undefined;
+  }
+  return desc;
 }

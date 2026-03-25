@@ -18,6 +18,14 @@ interface ProjectInfo {
   isExecutable: boolean;
 }
 
+interface CreateProjectTasksParams {
+  filePath: string;
+  projectDir: string;
+  category: string;
+  projectName: string;
+  info: ProjectInfo;
+}
+
 const TEST_SDK_PACKAGE = "Microsoft.NET.Test.Sdk";
 const TEST_FRAMEWORKS = ["xunit", "nunit", "mstest"];
 const EXECUTABLE_OUTPUT_TYPES = ["Exe", "WinExe"];
@@ -46,7 +54,9 @@ export async function discoverDotnetProjects(workspaceRoot: string, excludePatte
     const category = simplifyPath(file.fsPath, workspaceRoot);
     const projectName = path.basename(file.fsPath, path.extname(file.fsPath));
 
-    commands.push(...createProjectTasks(file.fsPath, projectDir, category, projectName, projectInfo));
+    commands.push(
+      ...createProjectTasks({ filePath: file.fsPath, projectDir, category, projectName, info: projectInfo })
+    );
   }
 
   return commands;
@@ -62,13 +72,13 @@ function analyzeProject(content: string): ProjectInfo {
   return { isTestProject, isExecutable };
 }
 
-function createProjectTasks(
-  filePath: string,
-  projectDir: string,
-  category: string,
-  projectName: string,
-  info: ProjectInfo
-): CommandItem[] {
+function createProjectTasks({
+  filePath,
+  projectDir,
+  category,
+  projectName,
+  info,
+}: CreateProjectTasksParams): CommandItem[] {
   const commands: CommandItem[] = [];
 
   commands.push({

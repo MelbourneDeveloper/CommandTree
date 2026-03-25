@@ -8,28 +8,28 @@ class Logger {
   private readonly channel: vscode.OutputChannel;
   private enabled = true;
 
-  constructor() {
+  public constructor() {
     this.channel = vscode.window.createOutputChannel("CommandTree Debug");
   }
 
   /**
    * Enables or disables logging
    */
-  setEnabled(enabled: boolean): void {
+  public setEnabled(enabled: boolean): void {
     this.enabled = enabled;
   }
 
   /**
    * Shows the output channel
    */
-  show(): void {
+  public show(): void {
     this.channel.show();
   }
 
   /**
    * Logs an info message
    */
-  info(message: string, data?: unknown): void {
+  public info(message: string, data?: unknown): void {
     if (!this.enabled) {
       return;
     }
@@ -44,7 +44,7 @@ class Logger {
   /**
    * Logs a warning message
    */
-  warn(message: string, data?: unknown): void {
+  public warn(message: string, data?: unknown): void {
     if (!this.enabled) {
       return;
     }
@@ -59,7 +59,7 @@ class Logger {
   /**
    * Logs an error message
    */
-  error(message: string, data?: unknown): void {
+  public error(message: string, data?: unknown): void {
     if (!this.enabled) {
       return;
     }
@@ -74,7 +74,7 @@ class Logger {
   /**
    * Logs filter operations
    */
-  filter(operation: string, details: Record<string, unknown>): void {
+  public filter(operation: string, details: Record<string, unknown>): void {
     if (!this.enabled) {
       return;
     }

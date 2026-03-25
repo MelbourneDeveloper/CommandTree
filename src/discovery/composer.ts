@@ -28,61 +28,72 @@ export async function discoverComposerScripts(
 ): Promise<CommandItem[]> {
   const exclude = `{${excludePatterns.join(",")}}`;
 
-  // Check if any PHP source files exist before processing
   const phpFiles = await vscode.workspace.findFiles("**/*.php", exclude);
   if (phpFiles.length === 0) {
-    return []; // No PHP source code, skip Composer scripts
+    return [];
   }
 
   const files = await vscode.workspace.findFiles("**/composer.json", exclude);
-  const commands: CommandItem[] = [];
+  const nested = await Promise.all(files.map(async (file) => await extractScriptsFromFile(file, workspaceRoot)));
+  return nested.flat();
+}
 
-  for (const file of files) {
-    const contentResult = await readFile(file);
-    if (!contentResult.ok) {
-      continue; // Skip unreadable composer.json
-    }
+function isLifecycleHook(name: string): boolean {
+  return name.startsWith("pre-") || name.startsWith("post-");
+}
 
-    const composerResult = parseJson<ComposerJson>(contentResult.value);
-    if (!composerResult.ok) {
-      continue; // Skip malformed composer.json
-    }
+interface BuildCommandItemParams {
+  name: string;
+  command: string | string[];
+  descriptions: Record<string, string>;
+  filePath: string;
+  composerDir: string;
+  category: string;
+}
 
-    const composer = composerResult.value;
-    if (composer.scripts === undefined || typeof composer.scripts !== "object") {
-      continue;
-    }
+function buildCommandItem(params: BuildCommandItemParams): CommandItem {
+  const description = params.descriptions[params.name] ?? getCommandPreview(params.command);
+  const task: MutableCommandItem = {
+    id: generateCommandId("composer", params.filePath, params.name),
+    label: params.name,
+    type: "composer",
+    category: params.category,
+    command: `composer run-script ${params.name}`,
+    cwd: params.composerDir,
+    filePath: params.filePath,
+    tags: [],
+  };
+  if (description !== "") {
+    task.description = description;
+  }
+  return task;
+}
 
-    const composerDir = path.dirname(file.fsPath);
-    const category = simplifyPath(file.fsPath, workspaceRoot);
-    const descriptions = composer["scripts-descriptions"] ?? {};
-
-    for (const [name, command] of Object.entries(composer.scripts)) {
-      // Skip lifecycle hooks (pre-*, post-*)
-      if (name.startsWith("pre-") || name.startsWith("post-")) {
-        continue;
-      }
-
-      const description = descriptions[name] ?? getCommandPreview(command);
-
-      const task: MutableCommandItem = {
-        id: generateCommandId("composer", file.fsPath, name),
-        label: name,
-        type: "composer",
-        category,
-        command: `composer run-script ${name}`,
-        cwd: composerDir,
-        filePath: file.fsPath,
-        tags: [],
-      };
-      if (description !== "") {
-        task.description = description;
-      }
-      commands.push(task);
-    }
+async function extractScriptsFromFile(file: vscode.Uri, workspaceRoot: string): Promise<CommandItem[]> {
+  const contentResult = await readFile(file);
+  if (!contentResult.ok) {
+    return [];
   }
 
-  return commands;
+  const composerResult = parseJson<ComposerJson>(contentResult.value);
+  if (!composerResult.ok) {
+    return [];
+  }
+
+  const composer = composerResult.value;
+  if (composer.scripts === undefined || typeof composer.scripts !== "object") {
+    return [];
+  }
+
+  const composerDir = path.dirname(file.fsPath);
+  const category = simplifyPath(file.fsPath, workspaceRoot);
+  const descriptions = composer["scripts-descriptions"] ?? {};
+
+  return Object.entries(composer.scripts)
+    .filter(([name]) => !isLifecycleHook(name))
+    .map(([name, command]) =>
+      buildCommandItem({ name, command, descriptions, filePath: file.fsPath, composerDir, category })
+    );
 }
 
 /**

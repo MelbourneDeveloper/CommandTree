@@ -7,6 +7,7 @@ import type { CommandItem } from "./models/TaskItem";
 import { TaskRunner } from "./runners/TaskRunner";
 import { QuickTasksProvider } from "./QuickTasksProvider";
 import { logger } from "./utils/logger";
+import type { DbHandle } from "./db/db";
 import { initDb, getDb, disposeDb } from "./db/lifecycle";
 import { addTagToCommand, removeTagFromCommand, getCommandIdsByTag } from "./db/db";
 import { summariseAllTasks, registerAllCommands } from "./semantic/summaryPipeline";
@@ -297,9 +298,60 @@ function matchesPattern(task: CommandItem, pattern: string | TagPattern): boolea
   return true;
 }
 
+interface TagConfig {
+  readonly tags?: Record<string, Array<string | TagPattern>>;
+}
+
+function collectMatchedIds(
+  patterns: ReadonlyArray<string | TagPattern>,
+  allTasks: readonly CommandItem[]
+): Set<string> {
+  const matched = new Set<string>();
+  for (const pattern of patterns) {
+    for (const task of allTasks) {
+      if (matchesPattern(task, pattern)) {
+        matched.add(task.id);
+      }
+    }
+  }
+  return matched;
+}
+
+function syncTagDiff({
+  handle,
+  tagName,
+  currentIds,
+  matchedIds,
+}: {
+  readonly handle: DbHandle;
+  readonly tagName: string;
+  readonly currentIds: ReadonlySet<string>;
+  readonly matchedIds: ReadonlySet<string>;
+}): void {
+  for (const id of currentIds) {
+    if (!matchedIds.has(id)) {
+      removeTagFromCommand({ handle, commandId: id, tagName });
+    }
+  }
+  for (const id of matchedIds) {
+    if (!currentIds.has(id)) {
+      addTagToCommand({ handle, commandId: id, tagName });
+    }
+  }
+}
+
+function readTagConfig(configPath: string): TagConfig | undefined {
+  if (!fs.existsSync(configPath)) {
+    return undefined;
+  }
+  const content = fs.readFileSync(configPath, "utf8");
+  return JSON.parse(content) as TagConfig;
+}
+
 async function syncTagsFromJson(workspaceRoot: string): Promise<void> {
   const configPath = path.join(workspaceRoot, ".vscode", "commandtree.json");
-  if (!fs.existsSync(configPath)) {
+  const config = readTagConfig(configPath);
+  if (config?.tags === undefined) {
     return;
   }
   const dbResult = getDb();
@@ -310,42 +362,12 @@ async function syncTagsFromJson(workspaceRoot: string): Promise<void> {
     return;
   }
   try {
-    const content = fs.readFileSync(configPath, "utf8");
-    const config = JSON.parse(content) as {
-      tags?: Record<string, Array<string | TagPattern>>;
-    };
-    if (config.tags === undefined) {
-      return;
-    }
     const allTasks = treeProvider.getAllTasks();
     for (const [tagName, patterns] of Object.entries(config.tags)) {
-      const existingIds = getCommandIdsByTag({
-        handle: dbResult.value,
-        tagName,
-      });
+      const existingIds = getCommandIdsByTag({ handle: dbResult.value, tagName });
       const currentIds = existingIds.ok ? new Set(existingIds.value) : new Set<string>();
-      const matchedIds = new Set<string>();
-      for (const pattern of patterns) {
-        for (const task of allTasks) {
-          if (matchesPattern(task, pattern)) {
-            matchedIds.add(task.id);
-          }
-        }
-      }
-      for (const id of currentIds) {
-        if (!matchedIds.has(id)) {
-          removeTagFromCommand({
-            handle: dbResult.value,
-            commandId: id,
-            tagName,
-          });
-        }
-      }
-      for (const id of matchedIds) {
-        if (!currentIds.has(id)) {
-          addTagToCommand({ handle: dbResult.value, commandId: id, tagName });
-        }
-      }
+      const matchedIds = collectMatchedIds(patterns, allTasks);
+      syncTagDiff({ handle: dbResult.value, tagName, currentIds, matchedIds });
     }
     await treeProvider.refresh();
     quickTasksProvider.updateTasks(treeProvider.getAllTasks());
@@ -402,8 +424,8 @@ async function registerDiscoveredCommands(workspaceRoot: string): Promise<void> 
 }
 
 function initAiSummaries(workspaceRoot: string): void {
-  const aiEnabled = vscode.workspace.getConfiguration("commandtree").get<boolean>("enableAiSummaries", true);
-  if (!aiEnabled) {
+  const aiConfig = vscode.workspace.getConfiguration("commandtree").get<boolean>("enableAiSummaries");
+  if (aiConfig === false) {
     return;
   }
   vscode.commands.executeCommand("setContext", "commandtree.aiSummariesEnabled", true);
@@ -444,8 +466,8 @@ async function runSummarisation(workspaceRoot: string): Promise<void> {
 async function syncAndSummarise(workspaceRoot: string): Promise<void> {
   await syncQuickTasks();
   await registerDiscoveredCommands(workspaceRoot);
-  const aiEnabled = vscode.workspace.getConfiguration("commandtree").get<boolean>("enableAiSummaries", true);
-  if (aiEnabled) {
+  const aiConfig = vscode.workspace.getConfiguration("commandtree").get<boolean>("enableAiSummaries");
+  if (aiConfig !== false) {
     await runSummarisation(workspaceRoot);
   }
 }
