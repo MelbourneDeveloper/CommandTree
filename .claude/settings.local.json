@@ -9,7 +9,14 @@
       "Bash(npx tsc:*)",
       "Bash(npm run lint:*)",
       "mcp__too-many-cooks__message",
-      "mcp__too-many-cooks__register"
+      "mcp__too-many-cooks__register",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(find /Users/christianfindlay/Documents/Code/tmc/too-many-cooks -name test*.sh -o -name *test.sh)",
+      "mcp__too-many-cooks__plan",
+      "Bash(npm ci:*)",
+      "Bash(npm run:*)",
+      "Bash(npx cspell:*)"
     ]
   },
   "autoMemoryEnabled": false

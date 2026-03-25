@@ -5,7 +5,11 @@ import {
   parseBatchDescription,
 } from "../../discovery/parsers/powershellParser";
 
-interface ParsedParam { name: string; description?: string; default?: string }
+interface ParsedParam {
+  name: string;
+  description?: string;
+  default?: string;
+}
 
 function paramAt(params: readonly ParsedParam[], index: number): ParsedParam {
   const p = params[index];
@@ -30,7 +34,7 @@ suite("PowerShell Parser Unit Tests", () => {
     });
 
     test("extracts default values from @param comments", () => {
-      const content = '# @param env The environment (default: dev)\nparam($env)';
+      const content = "# @param env The environment (default: dev)\nparam($env)";
       const params = parsePowerShellParams(content);
       assert.strictEqual(params.length, 1);
       assert.strictEqual(paramAt(params, 0).name, "env");

@@ -139,7 +139,6 @@ suite("TreeView E2E Tests", () => {
           assert.ok(!seenTask, "Folder node must not appear after a file node — folders come first");
         }
       }
-
     });
   });
 

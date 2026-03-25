@@ -1,6 +1,6 @@
 {
   "title": "CommandTree",
-  "description": "One sidebar. Every command. AI-powered.",
+  "description": "One sidebar for every command in your VS Code workspace. AI-powered.",
   "url": "https://commandtree.dev",
   "stylesheet": "/assets/css/styles.css",
   "author": "Christian Findlay",

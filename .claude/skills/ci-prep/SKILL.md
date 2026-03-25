@@ -1,25 +1,25 @@
 ---
 name: ci-prep
-description: Prepare the codebase for CI. Runs formatting, linting, spell check, build, unit tests, e2e tests, and coverage checks iteratively until everything passes. Use before submitting a PR or when the user wants to ensure CI will pass.
+description: Prepare the codebase for CI. Reads the CI workflow, builds a checklist, then loops through format/lint/build/test/coverage until every single check passes. Use before submitting a PR or when the user wants to ensure CI will pass.
 argument-hint: "[optional focus area]"
 allowed-tools: Read, Grep, Glob, Edit, Write, Bash
 ---
 
 # CI Prep — Get the Codebase PR-Ready
 
-You MUST NOT STOP until every check passes and coverage threshold is met. This is a loop, not a checklist you run once.
+You MUST NOT STOP until every check passes and coverage threshold is met.
 
-## Step 0: Read the CI Pipeline
+## Step 1: Read the CI Pipeline and Build Your Checklist
 
-Read the CI workflow file to understand exactly what CI will run:
+Read the CI workflow file:
 
 ```bash
 cat .github/workflows/ci.yml
 ```
 
-Parse every step. The CI pipeline is the source of truth for what must pass. Do NOT assume you know the steps — read them fresh every time.
+Parse EVERY step in the workflow. Extract the exact commands CI runs. Build yourself a numbered checklist of every check you need to pass. This is YOUR checklist — derived from the actual CI config, not from assumptions. The CI pipeline changes over time so you MUST read it fresh and build your list from what you find.
 
-## Step 1: Coordinate with Other Agents
+## Step 2: Coordinate with Other Agents
 
 You are likely working alongside other agents who are editing files concurrently. Before making changes:
 
@@ -29,59 +29,34 @@ You are likely working alongside other agents who are editing files concurrently
 4. Communicate what you are doing via TMC broadcasts
 5. After each fix cycle, check TMC again — another agent may have broken something
 
-## Step 2: Run the Full CI Check Sequence
+## Step 3: The Loop
 
-Run each CI step in order. Fix failures before moving to the next step. The sequence is derived from Step 0 but typically includes:
+Run through your checklist from Step 1 in order. For each check:
 
-### 2a. Format Check
+1. Run the exact command from CI
+2. If it passes, move to the next check
+3. If it fails, FIX IT. Do NOT suppress warnings, ignore errors, remove assertions, or lower thresholds. Fix the actual code.
+4. Re-run that check to confirm the fix works
+5. Move to the next check
 
-Run the format checker. If it fails, run the formatter to fix, then re-check.
+When you reach the end of the checklist, GO BACK TO THE START AND RUN THE ENTIRE CHECKLIST AGAIN. Other agents are working concurrently and may have broken something you already fixed. A fix for one check may have broken an earlier check.
 
-### 2b. Lint
+**Keep looping through the full checklist until you get a COMPLETE CLEAN RUN with ZERO failures from start to finish.** One clean pass is not enough if you fixed anything during that pass — you need a clean pass where NOTHING needed fixing.
 
-Run the linter. If it fails, fix every lint error. Do NOT suppress or ignore warnings. Re-run until clean.
-
-### 2c. Spell Check
-
-Run the spell checker if CI includes one. Fix any misspellings in source files.
-
-### 2d. Build / Compile
-
-Run the build step. Fix any compilation errors. Re-run until clean.
-
-### 2e. Unit Tests
-
-Run unit tests. If any fail, investigate and fix the root cause. Do NOT delete or weaken assertions. Re-run until all pass.
-
-### 2f. E2E Tests with Coverage
-
-Run e2e tests with coverage collection. If tests fail, fix them. If coverage is below the threshold, identify uncovered code and add tests or fix existing ones.
-
-Note: E2E tests require no other VS Code instance running. If they cannot run in your environment, flag this to the user but still ensure everything else passes.
-
-### 2g. Coverage Threshold
-
-Run the coverage check. If it fails, you need more test coverage. Add assertions to existing tests or write new tests for uncovered paths.
-
-## Step 3: Full Re-run
-
-After fixing everything, run the ENTIRE sequence again from 2a to 2g. Other agents may have made changes while you were fixing things. You MUST verify the final state is clean.
-
-If ANY step fails on re-run, go back to Step 2 and fix it. Repeat until a full clean run completes.
+Do NOT stop after one loop. Do NOT stop after two loops. Keep going until a full pass completes with every single check green on the first try.
 
 ## Step 4: Final Coordination
 
-1. Broadcast on TMC that CI prep is complete
+1. Broadcast on TMC that CI prep is complete and all checks pass
 2. Release any locks you hold
-3. Report the final status to the user
+3. Report the final status to the user with the output of each passing check
 
 ## Rules
 
 - NEVER stop with failing checks. Loop until everything is green.
 - NEVER suppress lint warnings, skip tests, or lower coverage thresholds.
 - NEVER remove assertions to make tests pass.
-- NEVER ignore spell check failures.
 - Fix the CODE, not the checks.
-- If you are stuck on a failure after 3 attempts, ask the user for help. Do NOT silently give up.
+- If you are stuck on a failure after 3 attempts on the same issue, ask the user for help. Do NOT silently give up.
 - Always coordinate with other agents via TMC. Check for messages regularly.
 - Leave the codebase in a state that will pass CI on the first try.
