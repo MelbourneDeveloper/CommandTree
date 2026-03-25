@@ -41,13 +41,13 @@ suite("AI Summary E2E Tests", () => {
       assert.ok(commands.includes("commandtree.selectModel"), "selectModel command must be registered");
     });
 
-    test("Copilot models are available", async function () {
+    test("@exclude-ci Copilot models are available", async function () {
       this.timeout(30000);
       const models = await vscode.lm.selectChatModels({ vendor: "copilot" });
       assert.ok(models.length > 0, "At least one Copilot model must be available — is GitHub Copilot authenticated?");
     });
 
-    test("multiple Copilot models are available for user to pick from", async function () {
+    test("@exclude-ci multiple Copilot models are available for user to pick from", async function () {
       this.timeout(30000);
       const models = await vscode.lm.selectChatModels({ vendor: "copilot" });
       assert.ok(
@@ -61,7 +61,7 @@ suite("AI Summary E2E Tests", () => {
       }
     });
 
-    test("setting aiModel config selects that model for summarisation", async function () {
+    test("@exclude-ci setting aiModel config selects that model for summarisation", async function () {
       this.timeout(120000);
       const models = await vscode.lm.selectChatModels({ vendor: "copilot" });
       assert.ok(models.length > 0, "Need at least one Copilot model — is GitHub Copilot authenticated?");
@@ -104,7 +104,7 @@ suite("AI Summary E2E Tests", () => {
       assert.strictEqual(savedId, "", "aiModel must default to empty string (triggers picker on first use)");
     });
 
-    test("generateSummaries produces actual summaries on tasks", async function () {
+    test("@exclude-ci generateSummaries produces actual summaries on tasks", async function () {
       this.timeout(120000);
       const provider = getCommandTreeProvider();
       const tasksBefore = await collectLeafTasks(provider);
@@ -128,7 +128,7 @@ suite("AI Summary E2E Tests", () => {
       );
     });
 
-    test("summaries appear in tree item tooltips", async function () {
+    test("@exclude-ci summaries appear in tree item tooltips", async function () {
       this.timeout(120000);
       const provider = getCommandTreeProvider();
 
@@ -148,7 +148,7 @@ suite("AI Summary E2E Tests", () => {
       assert.ok(withTooltipSummary.length > 0, "At least one tree item must have a summary in its tooltip");
     });
 
-    test("security warnings are surfaced in tree labels", async function () {
+    test("@exclude-ci security warnings are surfaced in tree labels", async function () {
       this.timeout(120000);
       const provider = getCommandTreeProvider();
 

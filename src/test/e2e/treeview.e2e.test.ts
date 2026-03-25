@@ -143,7 +143,7 @@ suite("TreeView E2E Tests", () => {
   });
 
   suite("AI Summaries", () => {
-    test("Copilot summarisation produces summaries for discovered tasks", async function () {
+    test("@exclude-ci Copilot summarisation produces summaries for discovered tasks", async function () {
       this.timeout(15000);
       const provider = getCommandTreeProvider();
       // AI summaries: extension activation triggers summarisation via Copilot.

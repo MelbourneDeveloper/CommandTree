@@ -35,7 +35,7 @@ jobs:
         run: npm run test:unit
 
       - name: E2E tests with coverage
-        run: xvfb-run -a npm run test:coverage
+        run: xvfb-run -a npx vscode-test --coverage --grep @exclude-ci --invert
 
       - name: Coverage threshold (90%)
         run: npm run coverage:check

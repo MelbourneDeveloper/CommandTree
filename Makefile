@@ -1,4 +1,4 @@
-.PHONY: format lint build package test
+.PHONY: format lint build package test ci
 
 format:
 	npx prettier --write "src/**/*.ts"
@@ -15,3 +15,5 @@ package: build
 test: build
 	npm run test:unit
 	npx vscode-test --coverage
+
+ci: format lint build test package
