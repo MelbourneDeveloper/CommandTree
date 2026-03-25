@@ -5,7 +5,9 @@ import {
   parseBatchDescription,
 } from "../../discovery/parsers/powershellParser";
 
-function paramAt(params: ReadonlyArray<{ name: string; description?: string; default?: string }>, index: number) {
+interface ParsedParam { name: string; description?: string; default?: string }
+
+function paramAt(params: readonly ParsedParam[], index: number): ParsedParam {
   const p = params[index];
   assert.ok(p !== undefined, `Expected param at index ${index}`);
   return p;
