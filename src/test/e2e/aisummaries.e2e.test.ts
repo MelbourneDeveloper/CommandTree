@@ -52,7 +52,7 @@ suite("AI Summary E2E Tests", () => {
       const models = await vscode.lm.selectChatModels({ vendor: "copilot" });
       assert.ok(
         models.length >= 1,
-        `Model picker needs models to show the user — got ${models.length}. Is GitHub Copilot authenticated?`,
+        `Model picker needs models to show the user — got ${models.length}. Is GitHub Copilot authenticated?`
       );
       // Every model must have an id and name for the picker to display
       for (const m of models) {
@@ -85,7 +85,7 @@ suite("AI Summary E2E Tests", () => {
       const withSummary = tasks.filter((t) => t.summary !== undefined && t.summary !== "");
       assert.ok(
         withSummary.length > 0,
-        `Summarisation with model "${firstModel.id}" must produce results — got 0/${tasks.length}`,
+        `Summarisation with model "${firstModel.id}" must produce results — got 0/${tasks.length}`
       );
 
       // Clean up — reset to empty so other tests aren't affected

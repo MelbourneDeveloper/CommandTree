@@ -72,7 +72,9 @@ suite("Model Selection Unit Tests", () => {
       fetchAll: async (): Promise<readonly ModelRef[]> => await Promise.resolve([GPT4, CLAUDE]),
       promptUser: async (models: readonly ModelRef[]): Promise<ModelRef | undefined> =>
         await Promise.resolve(models[0]),
-      saveId: async (): Promise<void> => { await Promise.resolve(); },
+      saveId: async (): Promise<void> => {
+        await Promise.resolve();
+      },
       ...overrides,
     });
 

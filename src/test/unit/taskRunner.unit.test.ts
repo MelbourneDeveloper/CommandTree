@@ -35,10 +35,7 @@ function formatParam(def: ParamDef, value: string): string {
   }
 }
 
-function buildCommand(
-  baseCommand: string,
-  params: Array<{ def: ParamDef; value: string }>
-): string {
+function buildCommand(baseCommand: string, params: Array<{ def: ParamDef; value: string }>): string {
   let command = baseCommand;
   const parts: string[] = [];
 
@@ -75,34 +72,22 @@ suite("TaskRunner Param Formatting Unit Tests", () => {
   });
 
   test("flag format uses custom flag when provided", () => {
-    const result = formatParam(
-      { name: "output", format: "flag", flag: "-o" },
-      "/tmp/out"
-    );
+    const result = formatParam({ name: "output", format: "flag", flag: "-o" }, "/tmp/out");
     assert.strictEqual(result, '-o "/tmp/out"');
   });
 
   test("flag-equals format uses --name=value", () => {
-    const result = formatParam(
-      { name: "config", format: "flag-equals" },
-      "prod"
-    );
+    const result = formatParam({ name: "config", format: "flag-equals" }, "prod");
     assert.strictEqual(result, "--config=prod");
   });
 
   test("flag-equals format uses custom flag", () => {
-    const result = formatParam(
-      { name: "config", format: "flag-equals", flag: "-c" },
-      "prod"
-    );
+    const result = formatParam({ name: "config", format: "flag-equals", flag: "-c" }, "prod");
     assert.strictEqual(result, "-c=prod");
   });
 
   test("dashdash-args format prepends --", () => {
-    const result = formatParam(
-      { name: "extra", format: "dashdash-args" },
-      "--verbose --dry-run"
-    );
+    const result = formatParam({ name: "extra", format: "dashdash-args" }, "--verbose --dry-run");
     assert.strictEqual(result, "-- --verbose --dry-run");
   });
 
