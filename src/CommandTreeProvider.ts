@@ -12,6 +12,9 @@ import { TagConfig } from "./config/TagConfig";
 import { logger } from "./utils/logger";
 import { buildNestedFolderItems } from "./tree/folderTree";
 import { createCommandNode, createCategoryNode } from "./tree/nodeFactory";
+import { getAllRows } from "./db/db";
+import type { CommandRow } from "./db/db";
+import { getDb } from "./db/lifecycle";
 
 type SortOrder = "folder" | "name" | "type";
 
@@ -27,6 +30,7 @@ export class CommandTreeProvider implements vscode.TreeDataProvider<CommandTreeI
   private commands: CommandItem[] = [];
   private discoveryResult: DiscoveryResult | null = null;
   private tagFilter: string | null = null;
+  private summaries: ReadonlyMap<string, CommandRow> = new Map();
   private readonly tagConfig: TagConfig;
   private readonly workspaceRoot: string;
 
@@ -43,7 +47,43 @@ export class CommandTreeProvider implements vscode.TreeDataProvider<CommandTreeI
       excludePatterns,
     );
     this.commands = this.tagConfig.applyTags(flattenTasks(this.discoveryResult));
+    this.loadSummaries();
+    this.commands = this.attachSummaries(this.commands);
     this._onDidChangeTreeData.fire(undefined);
+  }
+
+  private loadSummaries(): void {
+    const dbResult = getDb();
+    if (!dbResult.ok) {
+      return;
+    }
+    const result = getAllRows(dbResult.value);
+    if (!result.ok) {
+      return;
+    }
+    const map = new Map<string, CommandRow>();
+    for (const row of result.value) {
+      map.set(row.commandId, row);
+    }
+    this.summaries = map;
+  }
+
+  private attachSummaries(tasks: CommandItem[]): CommandItem[] {
+    if (this.summaries.size === 0) {
+      return tasks;
+    }
+    return tasks.map((task) => {
+      const record = this.summaries.get(task.id);
+      if (record === undefined) {
+        return task;
+      }
+      const warning = record.securityWarning;
+      return {
+        ...task,
+        summary: record.summary,
+        ...(warning !== null ? { securityWarning: warning } : {}),
+      };
+    });
   }
 
   setTagFilter(tag: string | null): void {

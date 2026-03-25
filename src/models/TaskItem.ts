@@ -91,6 +91,8 @@ export interface CommandItem {
   readonly tags: readonly string[];
   readonly params?: readonly ParamDef[];
   readonly description?: string;
+  readonly summary?: string;
+  readonly securityWarning?: string;
 }
 
 /**
@@ -107,6 +109,8 @@ export interface MutableCommandItem {
   tags: string[];
   params?: ParamDef[];
   description?: string;
+  summary?: string;
+  securityWarning?: string;
 }
 
 /**

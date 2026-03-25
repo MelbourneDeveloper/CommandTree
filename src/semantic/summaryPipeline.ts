@@ -125,7 +125,6 @@ export async function registerAllCommands(params: {
         });
         if (result.ok) { registered++; }
     }
-    logger.info('[REGISTER] Commands registered in DB', { registered });
     return ok(registered);
 }
 
@@ -138,12 +137,8 @@ export async function summariseAllTasks(params: {
     readonly tasks: readonly CommandItem[];
     readonly workspaceRoot: string;
     readonly fs: FileSystemAdapter;
-    readonly onProgress?: (done: number, total: number) => void;
+    readonly onProgress?: (done: number, total: number, label: string) => void;
 }): Promise<Result<number, string>> {
-    logger.info('[SUMMARY] summariseAllTasks START', {
-        taskCount: params.tasks.length,
-    });
-
     // Step 1: Always register commands in DB (independent of Copilot)
     const regResult = await registerAllCommands(params);
     if (!regResult.ok) {
@@ -166,8 +161,6 @@ export async function summariseAllTasks(params: {
         tasks: params.tasks,
         fs: params.fs
     });
-    logger.info('[SUMMARY] findPendingSummaries complete', { pendingCount: pending.length });
-
     if (pending.length === 0) {
         logger.info('[SUMMARY] All summaries up to date');
         return ok(0);
@@ -194,7 +187,7 @@ export async function summariseAllTasks(params: {
                 break;
             }
         }
-        params.onProgress?.(succeeded + failed, pending.length);
+        params.onProgress?.(succeeded + failed, pending.length, item.task.label);
     }
 
     logger.info('[SUMMARY] complete', { succeeded, failed });

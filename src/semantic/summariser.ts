@@ -179,7 +179,6 @@ async function sendToolRequest(
     prompt: string
 ): Promise<Result<SummaryResult, string>> {
     try {
-        logger.info('sendRequest using model', { id: model.id, name: model.name });
         const messages = [vscode.LanguageModelChatMessage.User(prompt)];
         const options: vscode.LanguageModelChatRequestOptions = {
             tools: [ANALYSIS_TOOL],
@@ -240,10 +239,5 @@ export async function summariseScript(params: {
         return err('Empty summary returned');
     }
 
-    logger.info('Generated summary', {
-        label: params.label,
-        summary: result.value.summary,
-        hasWarning: result.value.securityWarning !== ''
-    });
     return result;
 }

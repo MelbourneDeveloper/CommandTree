@@ -13,9 +13,9 @@ import {
   removeTagFromCommand,
   getCommandIdsByTag,
 } from "./db/db";
-import { summariseAllTasks, registerAllCommands } from "./copilot/summaryPipeline";
-import { createVSCodeFileSystem } from "./copilot/vscodeAdapters";
-import { forceSelectModel } from "./copilot/summariser";
+import { summariseAllTasks, registerAllCommands } from "./semantic/summaryPipeline";
+import { createVSCodeFileSystem } from "./semantic/vscodeAdapters";
+import { forceSelectModel } from "./semantic/summariser";
 
 let treeProvider: CommandTreeProvider;
 let quickTasksProvider: QuickTasksProvider;
@@ -308,15 +308,9 @@ function setupFileWatcher(
 }
 
 async function syncQuickTasks(): Promise<void> {
-  logger.info("syncQuickTasks START");
   await treeProvider.refresh();
   const allTasks = treeProvider.getAllTasks();
-  logger.info("syncQuickTasks after refresh", {
-    taskCount: allTasks.length,
-    taskIds: allTasks.map((t) => t.id),
-  });
   quickTasksProvider.updateTasks(allTasks);
-  logger.info("syncQuickTasks END");
 }
 
 interface TagPattern {
@@ -345,12 +339,8 @@ function matchesPattern(
 }
 
 async function syncTagsFromJson(workspaceRoot: string): Promise<void> {
-  logger.info("syncTagsFromJson START", { workspaceRoot });
   const configPath = path.join(workspaceRoot, ".vscode", "commandtree.json");
-  if (!fs.existsSync(configPath)) {
-    logger.info("No commandtree.json found, skipping tag sync", { configPath });
-    return;
-  }
+  if (!fs.existsSync(configPath)) { return; }
   const dbResult = getDb();
   if (!dbResult.ok) {
     logger.warn("DB not available, skipping tag sync", {
@@ -360,20 +350,12 @@ async function syncTagsFromJson(workspaceRoot: string): Promise<void> {
   }
   try {
     const content = fs.readFileSync(configPath, "utf8");
-    logger.info("Read commandtree.json", { contentLength: content.length });
     const config = JSON.parse(content) as {
       tags?: Record<string, Array<string | TagPattern>>;
     };
-    if (config.tags === undefined) {
-      logger.info("No tags in config, skipping");
-      return;
-    }
+    if (config.tags === undefined) { return; }
     const allTasks = treeProvider.getAllTasks();
-    logger.info("Got all tasks for pattern matching", {
-      taskCount: allTasks.length,
-    });
     for (const [tagName, patterns] of Object.entries(config.tags)) {
-      logger.info("Processing tag", { tagName, patternCount: patterns.length });
       const existingIds = getCommandIdsByTag({
         handle: dbResult.value,
         tagName,
@@ -383,27 +365,14 @@ async function syncTagsFromJson(workspaceRoot: string): Promise<void> {
         : new Set<string>();
       const matchedIds = new Set<string>();
       for (const pattern of patterns) {
-        logger.info("Processing pattern", { tagName, pattern });
         for (const task of allTasks) {
           if (matchesPattern(task, pattern)) {
-            logger.info("Pattern matched task", {
-              tagName,
-              pattern,
-              taskId: task.id,
-              taskLabel: task.label,
-            });
             matchedIds.add(task.id);
           }
         }
       }
-      logger.info("Pattern matching complete", {
-        tagName,
-        matchedCount: matchedIds.size,
-        currentCount: currentIds.size,
-      });
       for (const id of currentIds) {
         if (!matchedIds.has(id)) {
-          logger.info("Removing tag from command", { tagName, commandId: id });
           removeTagFromCommand({
             handle: dbResult.value,
             commandId: id,
@@ -413,14 +382,13 @@ async function syncTagsFromJson(workspaceRoot: string): Promise<void> {
       }
       for (const id of matchedIds) {
         if (!currentIds.has(id)) {
-          logger.info("Adding tag to command", { tagName, commandId: id });
           addTagToCommand({ handle: dbResult.value, commandId: id, tagName });
         }
       }
     }
     await treeProvider.refresh();
     quickTasksProvider.updateTasks(treeProvider.getAllTasks());
-    logger.info("Tag sync completed successfully");
+    logger.info("Tag sync complete");
   } catch (e) {
     logger.error("Tag sync failed", {
       error: e instanceof Error ? e.message : "Unknown",
@@ -492,16 +460,16 @@ function initAiSummaries(workspaceRoot: string): void {
 
 async function runSummarisation(workspaceRoot: string): Promise<void> {
   const tasks = treeProvider.getAllTasks();
-  logger.info("[DIAG] runSummarisation called", { taskCount: tasks.length, workspaceRoot });
+  logger.info("[SUMMARY] Starting", { taskCount: tasks.length });
   if (tasks.length === 0) {
-    logger.warn("[DIAG] No tasks to summarise, returning early");
+    logger.warn("[SUMMARY] No tasks to summarise");
     return;
   }
   const summaryResult = await summariseAllTasks({
     tasks,
     workspaceRoot,
     fs: createVSCodeFileSystem(),
-    onProgress: (done, total) => { logger.info("Summary progress", { done, total }); },
+    onProgress: (done, total, label) => { logger.info(`[SUMMARY] ${label}`, { done, total }); },
   });
   if (!summaryResult.ok) {
     logger.error("Summary pipeline failed", { error: summaryResult.error });

@@ -8,7 +8,6 @@ import * as vscode from "vscode";
 import type { CommandItem, Result, CommandTreeItem } from "./models/TaskItem";
 import { isCommandItem } from "./models/TaskItem";
 import { TagConfig } from "./config/TagConfig";
-import { logger } from "./utils/logger";
 import { getDb } from "./db/lifecycle";
 import { getCommandIdsByTag } from "./db/db";
 import { createCommandNode, createPlaceholderNode } from "./tree/nodeFactory";
@@ -46,19 +45,8 @@ export class QuickTasksProvider
    * Updates the list of all tasks and refreshes the view.
    */
   updateTasks(tasks: CommandItem[]): void {
-    logger.quick("updateTasks called", { taskCount: tasks.length });
     this.tagConfig.load();
     this.allTasks = this.tagConfig.applyTags(tasks);
-    const quickCount = this.allTasks.filter((t) =>
-      t.tags.includes(QUICK_TAG),
-    ).length;
-    logger.quick("updateTasks complete", {
-      taskCount: this.allTasks.length,
-      quickTaskCount: quickCount,
-      quickTasks: this.allTasks
-        .filter((t) => t.tags.includes(QUICK_TAG))
-        .map((t) => t.id),
-    });
     this.onDidChangeTreeDataEmitter.fire(undefined);
   }
 
@@ -105,17 +93,7 @@ export class QuickTasksProvider
     if (element !== undefined) {
       return element.children;
     }
-    logger.quick("getChildren called", {
-      allTasksCount: this.allTasks.length,
-      allTasksWithTags: this.allTasks.map((t) => ({
-        id: t.id,
-        label: t.label,
-        tags: t.tags,
-      })),
-    });
-    const items = this.buildQuickItems();
-    logger.quick("Returning quick tasks", { count: items.length });
-    return items;
+    return this.buildQuickItems();
   }
 
   /**
@@ -126,7 +104,6 @@ export class QuickTasksProvider
     const quickTasks = this.allTasks.filter((task) =>
       task.tags.includes(QUICK_TAG),
     );
-    logger.quick("Filtered quick tasks", { count: quickTasks.length });
     if (quickTasks.length === 0) {
       return [
         createPlaceholderNode(

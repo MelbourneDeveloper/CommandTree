@@ -175,7 +175,7 @@ export async function discoverAllTasks(
   workspaceRoot: string,
   excludePatterns: string[],
 ): Promise<DiscoveryResult> {
-  logger.info("Discovery started", { workspaceRoot, excludePatterns });
+  logger.info("Discovery started", { workspaceRoot });
 
   // Run all discoveries in parallel
   const [
@@ -263,17 +263,7 @@ export async function discoverAllTasks(
     dotnet.length +
     markdown.length;
 
-  logger.info("Discovery complete", {
-    totalCount,
-    shell: shell.length,
-    npm: npm.length,
-    make: make.length,
-    launch: launch.length,
-    vscode: vscodeTasks.length,
-    python: python.length,
-    dotnet: dotnet.length,
-    shellTaskIds: shell.map((t) => t.id),
-  });
+  logger.info("Discovery complete", { totalCount });
 
   return result;
 }
