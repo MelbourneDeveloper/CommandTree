@@ -4,7 +4,12 @@ title: AI Summaries on Hover - Know What Every Command Does Before You Run It
 description: CommandTree now shows AI-generated summaries when you hover over any command. Powered by GitHub Copilot, every tooltip tells you exactly what a script does.
 date: 2026-02-08
 author: Christian Findlay
-tags: posts
+tags:
+  - posts
+  - AI summaries
+  - GitHub Copilot
+  - VS Code extension
+  - developer tools
 excerpt: Hover over any command in CommandTree and see a plain-language summary of what it does, powered by GitHub Copilot. Security warnings included.
 ---
 
@@ -16,7 +21,7 @@ You found the script. But what does it actually *do*?
 
 Shell scripts rarely explain themselves. Makefile targets are cryptic. Even npm scripts chain together enough flags and pipes that you have to read the source to know what happens when you hit run.
 
-**CommandTree 0.5.0 fixes that.** Hover over any command and a tooltip tells you exactly what it does, in plain language.
+**CommandTree fixes that.** Hover over any command and a tooltip tells you exactly what it does, in plain language.
 
 ## How It Works
 
@@ -40,4 +45,4 @@ Every core feature of CommandTree, including discovery, execution, tagging, and 
 
 ## Get Started
 
-Update to CommandTree 0.5.0 from the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=nimblesite.commandtree), make sure [GitHub Copilot](https://marketplace.visualstudio.com/items?itemName=GitHub.copilot) is installed, and hover over any command in the tree. For full details, see the [AI Summaries documentation](/docs/ai-summaries/).
+Install CommandTree from the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=nimblesite.commandtree), make sure [GitHub Copilot](https://marketplace.visualstudio.com/items?itemName=GitHub.copilot) is installed, and hover over any command in the tree. For full details, see the [AI Summaries documentation](/docs/ai-summaries/).

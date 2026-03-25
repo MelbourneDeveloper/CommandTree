@@ -9,7 +9,7 @@ eleventyNavigation:
 
 # Getting Started
 
-CommandTree is a free VS Code extension that scans your workspace and surfaces all runnable commands — shell scripts, npm scripts, Makefiles, and 15 other types — in a single tree view sidebar panel.
+CommandTree is a free VS Code extension that scans your workspace and surfaces all runnable commands — shell scripts, npm scripts, Makefiles, and 18 other types — in a single tree view sidebar panel.
 
 ## Installation
 

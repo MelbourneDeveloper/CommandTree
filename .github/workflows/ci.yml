@@ -17,6 +17,9 @@ jobs:
 
       - run: npm ci
 
+      - name: Format check
+        run: npm run format:check
+
       - name: Lint
         run: npm run lint
 
@@ -31,8 +34,11 @@ jobs:
       - name: Unit tests
         run: npm run test:unit
 
-      - name: E2E tests
-        run: xvfb-run -a npm run test:e2e
+      - name: E2E tests with coverage
+        run: xvfb-run -a npm run test:coverage
+
+      - name: Coverage threshold (90%)
+        run: npm run coverage:check
 
   website:
     runs-on: ubuntu-latest

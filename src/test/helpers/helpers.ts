@@ -40,11 +40,6 @@ export async function activateExtension(): Promise<TestContext> {
   };
 }
 
-export function getTreeView(): vscode.TreeView<unknown> | undefined {
-  // The tree view is registered internally, we interact via commands
-  return undefined;
-}
-
 export async function executeCommand<T>(
   command: string,
   ...args: unknown[]
@@ -58,12 +53,6 @@ export async function refreshTasks(): Promise<void> {
   await sleep(500);
 }
 
-export async function filterTasks(_filterText: string): Promise<void> {
-  // We need to mock the input box since we can't interact with UI in tests
-  // Instead, we'll test the filtering logic through the provider directly
-  await executeCommand("commandtree.filter");
-}
-
 export async function filterByTag(_tag: string): Promise<void> {
   // _tag is used for API compatibility - the actual tag filtering happens via UI
   await executeCommand("commandtree.filterByTag");
@@ -71,10 +60,6 @@ export async function filterByTag(_tag: string): Promise<void> {
 
 export async function clearFilter(): Promise<void> {
   await executeCommand("commandtree.clearFilter");
-}
-
-export async function runTask(taskItem: unknown): Promise<void> {
-  await executeCommand("commandtree.run", taskItem);
 }
 
 export async function sleep(ms: number): Promise<void> {
@@ -119,29 +104,9 @@ export function deleteFile(filePath: string): void {
   }
 }
 
-export function readFile(filePath: string): string {
-  const fullPath = getFixturePath(filePath);
-  return fs.readFileSync(fullPath, "utf8");
-}
-
 export function fileExists(filePath: string): boolean {
   const fullPath = getFixturePath(filePath);
   return fs.existsSync(fullPath);
-}
-
-export async function waitForCondition(
-  condition: () => Promise<boolean>,
-  timeout = 5000,
-  interval = 100,
-): Promise<void> {
-  const startTime = Date.now();
-  while (Date.now() - startTime < timeout) {
-    if (await condition()) {
-      return;
-    }
-    await sleep(interval);
-  }
-  throw new Error(`Condition not met within ${timeout}ms`);
 }
 
 export function getCommandTreeProvider(): CommandTreeProvider {
@@ -236,21 +201,6 @@ export function getTooltipText(item: CommandTreeItem): string {
   if (typeof item.tooltip === "string") {
     return item.tooltip;
   }
-  return "";
-}
-
-export async function captureTerminalOutput(
-  terminalName: string,
-  timeout = 5000,
-): Promise<string> {
-  // Find the terminal by name
-  const terminal = vscode.window.terminals.find((t) => t.name === terminalName);
-  if (!terminal) {
-    throw new Error(`Terminal "${terminalName}" not found`);
-  }
-  // Note: VS Code API doesn't provide direct access to terminal output
-  // This is a limitation of the VS Code API
-  await sleep(timeout);
   return "";
 }
 

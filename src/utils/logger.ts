@@ -72,18 +72,6 @@ class Logger {
   }
 
   /**
-   * Logs tag-related operations
-   */
-  tag(operation: string, details: Record<string, unknown>): void {
-    if (!this.enabled) {
-      return;
-    }
-    const timestamp = new Date().toISOString();
-    const detailsStr = JSON.stringify(details);
-    this.channel.appendLine(`[${timestamp}] TAG: ${operation} | ${detailsStr}`);
-  }
-
-  /**
    * Logs filter operations
    */
   filter(operation: string, details: Record<string, unknown>): void {
@@ -97,40 +85,6 @@ class Logger {
     );
   }
 
-  /**
-   * Logs Quick Launch operations
-   */
-  quick(operation: string, details: Record<string, unknown>): void {
-    if (!this.enabled) {
-      return;
-    }
-    const timestamp = new Date().toISOString();
-    const detailsStr = JSON.stringify(details);
-    this.channel.appendLine(
-      `[${timestamp}] QUICK: ${operation} | ${detailsStr}`,
-    );
-  }
-
-  /**
-   * Logs config operations
-   */
-  config(
-    operation: string,
-    details: {
-      path?: string;
-      tags?: Record<string, unknown> | undefined;
-      error?: string;
-    },
-  ): void {
-    if (!this.enabled) {
-      return;
-    }
-    const timestamp = new Date().toISOString();
-    const detailsStr = JSON.stringify(details);
-    this.channel.appendLine(
-      `[${timestamp}] CONFIG: ${operation} | ${detailsStr}`,
-    );
-  }
 }
 
 // Singleton instance

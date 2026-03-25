@@ -375,6 +375,8 @@
     "rebuild": "rm -rf out && tsc -p ./",
     "watch": "tsc -watch -p ./",
     "lint": "eslint src",
+    "format": "prettier --write \"src/**/*.ts\"",
+    "format:check": "prettier --check \"src/**/*.ts\"",
     "pretest": "npm run compile",
     "test": "npm run test:unit && npm run test:e2e",
     "test:unit": "mocha out/test/unit/**/*.test.js",

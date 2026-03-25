@@ -4,7 +4,12 @@ title: Introducing CommandTree - Auto-Discover Every Command in VS Code
 description: Meet CommandTree — the free VS Code extension that discovers every runnable command in your workspace and puts them in one beautiful tree view.
 date: 2026-02-07
 author: Christian Findlay
-tags: posts
+tags:
+  - posts
+  - VS Code extension
+  - command runner
+  - task discovery
+  - workspace automation
 excerpt: Meet CommandTree - the VS Code extension that discovers every runnable command in your workspace and puts them in one beautiful tree view.
 ---
 
@@ -25,11 +30,14 @@ Install CommandTree and a new panel appears in your VS Code sidebar. Every runna
 - Shell scripts (`.sh`, `.bash`, `.zsh`)
 - NPM scripts from every `package.json`
 - Makefile targets
-- VS Code tasks from `tasks.json`
-- Launch configurations from `launch.json`
-- Python scripts
+- VS Code tasks and launch configurations
+- Python and PowerShell scripts
+- Gradle, Cargo, Maven, Ant, and Just
+- Taskfile, Deno, Rake, and Composer
+- Docker Compose services and .NET projects
+- Markdown files
 
-Click the play button. Done.
+That is 19 command types discovered automatically. Click the play button. Done.
 
 ## AI-Powered Summaries
 

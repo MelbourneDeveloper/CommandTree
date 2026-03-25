@@ -8,10 +8,10 @@ import * as vscode from "vscode";
 import type { Result } from "../models/Result";
 import { ok, err } from "../models/Result";
 import { logger } from "../utils/logger";
-import { resolveModel } from "./modelSelection";
+import { resolveModel, pickConcreteModel } from "./modelSelection";
 import type { ModelSelectionDeps, ModelRef } from "./modelSelection";
 export type { ModelRef, ModelSelectionDeps } from "./modelSelection";
-export { resolveModel, AUTO_MODEL_ID } from "./modelSelection";
+export { resolveModel, AUTO_MODEL_ID, pickConcreteModel } from "./modelSelection";
 
 const MAX_CONTENT_LENGTH = 4000;
 const MODEL_RETRY_COUNT = 10;
@@ -150,8 +150,16 @@ export async function selectCopilotModel(): Promise<
     return err("No Copilot models available");
   }
 
-  const model = allModels.find((m) => m.id === result.value.id);
+  const model = pickConcreteModel({
+    models: allModels.map((m) => ({ id: m.id, name: m.name })),
+    preferredId: result.value.id,
+  });
   if (!model) {
+    return err("Selected model no longer available");
+  }
+
+  const resolved = allModels.find((m) => m.id === model.id);
+  if (!resolved) {
     return err("Selected model no longer available");
   }
 
