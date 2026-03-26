@@ -31,7 +31,7 @@ export default defineConfig({
     coverage: {
         include: ['out/**/*.js'],
         exclude: ['out/test/**/*.js'],
-        reporter: ['text', 'lcov', 'html'],
+        reporter: ['text', 'lcov', 'html', 'json-summary'],
         output: './coverage'
     }
 });
