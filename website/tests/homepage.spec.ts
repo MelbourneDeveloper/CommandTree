@@ -50,9 +50,9 @@ test.describe('Homepage', () => {
     }
   });
 
-  test('command types section shows all 19 types', async ({ page }) => {
+  test('command types section shows all 21 types', async ({ page }) => {
     const commandTypes = page.locator('.command-type');
-    await expect(commandTypes).toHaveCount(19);
+    await expect(commandTypes).toHaveCount(21);
 
     const expectedTypes = [
       'Shell Scripts',
@@ -73,6 +73,8 @@ test.describe('Homepage', () => {
       'Composer Scripts',
       'Docker Compose',
       '.NET Projects',
+      'C# Scripts',
+      'F# Scripts',
       'Markdown Files',
     ];
     for (const name of expectedTypes) {

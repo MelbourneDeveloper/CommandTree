@@ -8,7 +8,7 @@
   <img src="website/src/assets/images/CommandTree.gif" alt="CommandTree in action" width="780">
 </p>
 
-CommandTree scans your project and surfaces all runnable commands across 19 tool types in a single tree view. Filter by text or tag, search by meaning with AI-powered semantic search, and run in terminal or debugger.
+CommandTree scans your project and surfaces all runnable commands across 21 tool types in a single tree view. Filter by text or tag, and run in terminal or debugger.
 
 ## AI Summaries (powered by GitHub Copilot)
 
@@ -19,8 +19,7 @@ Summaries are stored locally and only regenerate when the underlying script chan
 ## Features
 
 - **AI Summaries** - GitHub Copilot describes each command in plain language, with security warnings for dangerous operations
-- **AI-Powered Search** - Find commands by meaning, not just name — local embeddings, no data leaves your machine
-- **Auto-discovery** - 19 command types including shell scripts, npm, Make, Python, PowerShell, Gradle, Cargo, Maven, Docker Compose, .NET, and more
+- **Auto-discovery** - 21 command types including shell scripts, npm, Make, Python, PowerShell, Gradle, Cargo, Maven, Docker Compose, .NET, C# Script, F# Script, and more
 - **Quick Launch** - Pin frequently-used commands to a dedicated panel at the top
 - **Tagging** - Right-click any command to add or remove tags
 - **Filtering** - Filter the tree by text search or by tag
@@ -51,6 +50,8 @@ Summaries are stored locally and only regenerate when the underlying script chan
 | Composer Scripts | `composer.json` (PHP) |
 | Docker Compose | `docker-compose.yml` |
 | .NET Projects | `.csproj`, `.fsproj` |
+| C# Scripts | `.csx` files |
+| F# Scripts | `.fsx` files |
 | Markdown Files | `.md` files |
 
 ## Getting Started

@@ -1,7 +1,7 @@
 ---
 layout: layouts/docs.njk
 title: Getting Started with CommandTree - VS Code Command Runner
-description: Install CommandTree for VS Code and discover shell scripts, npm scripts, Makefiles, and 18+ command types automatically in one sidebar.
+description: Install CommandTree for VS Code and discover shell scripts, npm scripts, Makefiles, and 21 command types automatically in one sidebar.
 eleventyNavigation:
   key: Getting Started
   order: 1
@@ -9,7 +9,7 @@ eleventyNavigation:
 
 # Getting Started
 
-CommandTree is a free VS Code extension that scans your workspace and surfaces all runnable commands — shell scripts, npm scripts, Makefiles, and 18 other types — in a single tree view sidebar panel.
+CommandTree is a free VS Code extension that scans your workspace and surfaces all runnable commands — shell scripts, npm scripts, Makefiles, and 20 other types — in a single tree view sidebar panel.
 
 ## Installation
 
@@ -58,6 +58,8 @@ code --install-extension commandtree-*.vsix
 | Composer Scripts | `composer.json` |
 | Docker Compose | `docker-compose.yml` |
 | .NET Projects | `.csproj` / `.fsproj` |
+| C# Scripts | `.csx` files |
+| F# Scripts | `.fsx` files |
 | Markdown Files | `.md` files |
 
 Discovery respects [exclude patterns](/docs/configuration/) in settings and runs in the background. If [GitHub Copilot](https://marketplace.visualstudio.com/items?itemName=GitHub.copilot) is installed, each discovered command is automatically described in plain language — hover over any command to see what it does. Learn more about [how discovery works](/docs/discovery/) and [AI summaries](/docs/ai-summaries/).
@@ -66,7 +68,7 @@ Discovery respects [exclude patterns](/docs/configuration/) in settings and runs
 
 ### What command types does CommandTree discover?
 
-CommandTree discovers 19 command types: shell scripts, npm scripts, Makefile targets, VS Code tasks, launch configurations, Python scripts, PowerShell scripts, Gradle tasks, Cargo tasks, Maven goals, Ant targets, Just recipes, Taskfile tasks, Deno tasks, Rake tasks, Composer scripts, Docker Compose services, .NET projects, and Markdown files.
+CommandTree discovers 21 command types: shell scripts, npm scripts, Makefile targets, VS Code tasks, launch configurations, Python scripts, PowerShell scripts, Gradle tasks, Cargo tasks, Maven goals, Ant targets, Just recipes, Taskfile tasks, Deno tasks, Rake tasks, Composer scripts, Docker Compose services, .NET projects, C# scripts, F# scripts, and Markdown files.
 
 ### Does CommandTree require GitHub Copilot?
 
