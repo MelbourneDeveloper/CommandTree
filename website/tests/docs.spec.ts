@@ -66,7 +66,7 @@ test.describe('Documentation', () => {
     const table = page.locator('table');
     await expect(table).toBeVisible();
     await expect(table).toContainText('commandtree.run');
-    await expect(table).toContainText('commandtree.debug');
+    await expect(table).toContainText('commandtree.runInCurrentTerminal');
   });
 
   test('configuration page loads with all sections', async ({ page }) => {

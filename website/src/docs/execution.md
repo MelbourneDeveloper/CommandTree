@@ -21,7 +21,7 @@ Sends the command to the active terminal. Triggered by the circle-play button or
 
 ## Debug
 
-Launches with the VS Code debugger. Only for launch configurations. Triggered by the bug button or `commandtree.debug`.
+Launch configurations from `.vscode/launch.json` are launched with the VS Code debugger automatically when you run them.
 
 ## Parameterized Commands
 
@@ -33,7 +33,6 @@ Shell scripts with `@param` comments prompt for input before execution. VS Code 
 |---------|-------------|
 | `commandtree.run` | Run command in new terminal |
 | `commandtree.runInCurrentTerminal` | Run in active terminal |
-| `commandtree.debug` | Launch with debugger |
 | `commandtree.refresh` | Reload all commands |
 
 ## Frequently Asked Questions

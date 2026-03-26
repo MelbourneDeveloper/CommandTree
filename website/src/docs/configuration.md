@@ -31,7 +31,6 @@ Right-click any command and choose **Add Tag** to assign a tag. Tags are stored 
 
 | Command | Description |
 |---------|-------------|
-| `commandtree.filter` | Text filter input |
 | `commandtree.filterByTag` | Tag filter picker |
 | `commandtree.clearFilter` | Clear all filters |
 
@@ -47,7 +46,7 @@ Tags are assigned one command at a time via right-click. Tags are stored in the 
 
 ### How do I filter by both text and tag?
 
-Use `commandtree.filter` for text search and `commandtree.filterByTag` for tag-based filtering. Filters can be combined. Use `commandtree.clearFilter` to reset all filters.
+Use `commandtree.filterByTag` for tag-based filtering. Use `commandtree.clearFilter` to reset all filters.
 
 ### What exclude patterns are set by default?
 
