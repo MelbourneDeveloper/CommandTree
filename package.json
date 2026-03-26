@@ -382,7 +382,7 @@
     "test:unit": "mocha out/test/unit/**/*.test.js",
     "test:e2e": "vscode-test",
     "test:coverage": "vscode-test --coverage",
-    "coverage:check": "node -e \"const s=require('./coverage/coverage-summary.json').total,t=90,f=k=>{if(s[k].pct<t){console.error('ERROR: '+k+' '+s[k].pct+'% < '+t+'%');process.exitCode=1}};['lines','functions','branches','statements'].forEach(f)\"",
+    "coverage:check": "node scripts/check-coverage.mjs",
     "clean": "rm -rf node_modules out *.vsix coverage || true",
     "package": "npm run compile && vsce package",
     "uninstall": "code --uninstall-extension nimblesite.commandtree || true",

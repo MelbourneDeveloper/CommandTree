@@ -35,7 +35,11 @@ jobs:
         run: npm run test:unit
 
       - name: E2E tests with coverage
-        run: xvfb-run -a npx vscode-test --coverage --grep @exclude-ci --invert
+        run: xvfb-run -a npx vscode-test --coverage --coverage-reporter json-summary --coverage-reporter text --coverage-reporter html --coverage-reporter lcov --grep @exclude-ci --invert
+
+      - name: Debug coverage output
+        if: always()
+        run: ls -la coverage/ || echo "No coverage directory"
 
       - name: Coverage threshold (90%)
         run: npm run coverage:check
