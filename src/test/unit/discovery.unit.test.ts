@@ -4,6 +4,7 @@ import {
   parsePowerShellDescription,
   parseBatchDescription,
 } from "../../discovery/parsers/powershellParser";
+import { parseMiseToml, parseMiseYaml } from "../../discovery/parsers/miseParser";
 
 interface ParsedParam {
   name: string;
@@ -131,6 +132,110 @@ suite("PowerShell Parser Unit Tests", () => {
       const content = "<#\n#>";
       const desc = parsePowerShellDescription(content);
       assert.strictEqual(desc, undefined);
+    });
+  });
+
+  suite("parseMiseToml", () => {
+    test("parses tasks without [tasks] preamble", () => {
+      const content = [
+        "[tools]",
+        'go = "latest"',
+        "",
+        "[tasks.lint]",
+        'run = "golangci-lint run --fix"',
+        "",
+        "[tasks.test]",
+        'run = "gotestsum --rerun-fails"',
+      ].join("\n");
+      const tasks = parseMiseToml(content);
+      assert.strictEqual(tasks.length, 2);
+      assert.strictEqual(tasks[0]?.name, "lint");
+      assert.strictEqual(tasks[1]?.name, "test");
+    });
+
+    test("parses tasks with [tasks] preamble", () => {
+      const content = [
+        "[tasks]",
+        "[tasks.build]",
+        'run = "cargo build"',
+      ].join("\n");
+      const tasks = parseMiseToml(content);
+      assert.strictEqual(tasks.length, 1);
+      assert.strictEqual(tasks[0]?.name, "build");
+    });
+
+    test("extracts description", () => {
+      const content = [
+        "[tasks.deploy]",
+        'description = "Deploy to production"',
+        'run = "deploy.sh"',
+      ].join("\n");
+      const tasks = parseMiseToml(content);
+      assert.strictEqual(tasks.length, 1);
+      assert.strictEqual(tasks[0]?.description, "Deploy to production");
+    });
+
+    test("handles non-task sections interspersed", () => {
+      const content = [
+        "[tasks.format]",
+        'run = "go fmt ./..."',
+        "",
+        "[env]",
+        'FOO = "bar"',
+        "",
+        "[tasks.build]",
+        'run = "go build ."',
+      ].join("\n");
+      const tasks = parseMiseToml(content);
+      assert.strictEqual(tasks.length, 2);
+      assert.strictEqual(tasks[0]?.name, "format");
+      assert.strictEqual(tasks[1]?.name, "build");
+    });
+
+    test("returns empty for no tasks", () => {
+      const content = [
+        "[tools]",
+        'go = "latest"',
+      ].join("\n");
+      const tasks = parseMiseToml(content);
+      assert.strictEqual(tasks.length, 0);
+    });
+  });
+
+  suite("parseMiseYaml", () => {
+    test("parses task names under tasks key", () => {
+      const content = [
+        "tasks:",
+        "  lint:",
+        "    run: golangci-lint run",
+        "  test:",
+        "    run: gotestsum",
+      ].join("\n");
+      const tasks = parseMiseYaml(content);
+      assert.strictEqual(tasks.length, 2);
+      assert.strictEqual(tasks[0]?.name, "lint");
+      assert.strictEqual(tasks[1]?.name, "test");
+    });
+
+    test("extracts description", () => {
+      const content = [
+        "tasks:",
+        "  deploy:",
+        '    description: "Deploy to prod"',
+        "    run: deploy.sh",
+      ].join("\n");
+      const tasks = parseMiseYaml(content);
+      assert.strictEqual(tasks.length, 1);
+      assert.strictEqual(tasks[0]?.description, "Deploy to prod");
+    });
+
+    test("returns empty for no tasks", () => {
+      const content = [
+        "tools:",
+        "  go: latest",
+      ].join("\n");
+      const tasks = parseMiseYaml(content);
+      assert.strictEqual(tasks.length, 0);
     });
   });
 
