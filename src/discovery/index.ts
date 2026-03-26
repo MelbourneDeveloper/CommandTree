@@ -29,6 +29,7 @@ import {
   ICON_DEF as FSHARP_SCRIPT_ICON,
   CATEGORY_DEF as FSHARP_SCRIPT_CAT,
 } from "./fsharp-script";
+import { discoverMiseTasks, ICON_DEF as MISE_ICON, CATEGORY_DEF as MISE_CAT } from "./mise";
 import { logger } from "../utils/logger";
 
 export const ICON_REGISTRY: Record<CommandType, IconDef> = {
@@ -53,6 +54,7 @@ export const ICON_REGISTRY: Record<CommandType, IconDef> = {
   markdown: MARKDOWN_ICON,
   "csharp-script": CSHARP_SCRIPT_ICON,
   "fsharp-script": FSHARP_SCRIPT_ICON,
+  mise: MISE_ICON,
 };
 
 export const CATEGORY_DEFS: readonly CategoryDef[] = [
@@ -77,6 +79,7 @@ export const CATEGORY_DEFS: readonly CategoryDef[] = [
   MARKDOWN_CAT,
   CSHARP_SCRIPT_CAT,
   FSHARP_SCRIPT_CAT,
+  MISE_CAT,
 ];
 
 export interface DiscoveryResult {
@@ -101,6 +104,7 @@ export interface DiscoveryResult {
   markdown: CommandItem[];
   "csharp-script": CommandItem[];
   "fsharp-script": CommandItem[];
+  mise: CommandItem[];
 }
 
 /**
@@ -132,6 +136,7 @@ export async function discoverAllTasks(workspaceRoot: string, excludePatterns: s
     markdown,
     csharpScript,
     fsharpScript,
+    mise,
   ] = await Promise.all([
     discoverShellScripts(workspaceRoot, excludePatterns),
     discoverNpmScripts(workspaceRoot, excludePatterns),
@@ -154,6 +159,7 @@ export async function discoverAllTasks(workspaceRoot: string, excludePatterns: s
     discoverMarkdownFiles(workspaceRoot, excludePatterns),
     discoverCsharpScripts(workspaceRoot, excludePatterns),
     discoverFsharpScripts(workspaceRoot, excludePatterns),
+    discoverMiseTasks(workspaceRoot, excludePatterns),
   ]);
 
   const result = {
@@ -178,6 +184,7 @@ export async function discoverAllTasks(workspaceRoot: string, excludePatterns: s
     markdown,
     "csharp-script": csharpScript,
     "fsharp-script": fsharpScript,
+    mise,
   };
 
   const totalCount =
@@ -201,7 +208,8 @@ export async function discoverAllTasks(workspaceRoot: string, excludePatterns: s
     dotnet.length +
     markdown.length +
     csharpScript.length +
-    fsharpScript.length;
+    fsharpScript.length +
+    mise.length;
 
   logger.info("Discovery complete", { totalCount });
 
@@ -234,6 +242,7 @@ export function flattenTasks(result: DiscoveryResult): CommandItem[] {
     ...result.markdown,
     ...result["csharp-script"],
     ...result["fsharp-script"],
+    ...result.mise,
   ];
 }
 

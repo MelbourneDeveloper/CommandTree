@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 
-const TASK_FILE_PATTERN = "**/{package.json,Makefile,makefile,tasks.json,launch.json,*.sh,*.py}";
+const TASK_FILE_PATTERN = "**/{package.json,Makefile,makefile,tasks.json,launch.json,*.sh,*.py,mise.toml,.mise.toml,mise.yaml,.mise.yaml}";
 const CONFIG_FILE_PATTERN = "**/.vscode/commandtree.json";
 const TASK_DEBOUNCE_MS = 2000;
 const CONFIG_DEBOUNCE_MS = 1000;

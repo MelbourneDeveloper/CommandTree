@@ -44,7 +44,8 @@ export type CommandType =
   | "dotnet"
   | "markdown"
   | "csharp-script"
-  | "fsharp-script";
+  | "fsharp-script"
+  | "mise";
 
 /**
  * Parameter format types for flexible argument handling across different tools.
