@@ -71,6 +71,8 @@
         "visioncortex",
         "behaviour",
         "docstrings",
+        "golangci",
+        "gotestsum",
         "subproject"
     ]
 }

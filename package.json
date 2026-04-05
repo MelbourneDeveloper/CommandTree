@@ -399,6 +399,7 @@
     "@vscode/test-electron": "^2.5.2",
     "@vscode/vsce": "^3.7.1",
     "c8": "^11.0.0",
+    "cspell": "^9.8.0",
     "eslint": "^10.1.0",
     "glob": "^13.0.6",
     "mocha": "^11.7.5",
