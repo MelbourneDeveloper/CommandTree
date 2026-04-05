@@ -21,10 +21,7 @@ export const CATEGORY_DEF: CategoryDef = {
 /**
  * Discovers Mise tasks from mise configuration files.
  */
-export async function discoverMiseTasks(
-  workspaceRoot: string,
-  excludePatterns: string[]
-): Promise<CommandItem[]> {
+export async function discoverMiseTasks(workspaceRoot: string, excludePatterns: string[]): Promise<CommandItem[]> {
   const exclude = `{${excludePatterns.join(",")}}`;
 
   // Mise supports: mise.toml, .mise.toml, mise.yaml, .mise.yaml
@@ -48,9 +45,8 @@ export async function discoverMiseTasks(
     const miseDir = path.dirname(file.fsPath);
     const category = simplifyPath(file.fsPath, workspaceRoot);
 
-    const tasks = file.fsPath.endsWith(".yaml") || file.fsPath.endsWith(".yml")
-      ? parseMiseYaml(content)
-      : parseMiseToml(content);
+    const tasks =
+      file.fsPath.endsWith(".yaml") || file.fsPath.endsWith(".yml") ? parseMiseYaml(content) : parseMiseToml(content);
 
     for (const task of tasks) {
       const taskCommand: MutableCommandItem = {

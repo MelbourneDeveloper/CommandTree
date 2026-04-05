@@ -154,22 +154,14 @@ suite("PowerShell Parser Unit Tests", () => {
     });
 
     test("parses tasks with [tasks] preamble", () => {
-      const content = [
-        "[tasks]",
-        "[tasks.build]",
-        'run = "cargo build"',
-      ].join("\n");
+      const content = ["[tasks]", "[tasks.build]", 'run = "cargo build"'].join("\n");
       const tasks = parseMiseToml(content);
       assert.strictEqual(tasks.length, 1);
       assert.strictEqual(tasks[0]?.name, "build");
     });
 
     test("extracts description", () => {
-      const content = [
-        "[tasks.deploy]",
-        'description = "Deploy to production"',
-        'run = "deploy.sh"',
-      ].join("\n");
+      const content = ["[tasks.deploy]", 'description = "Deploy to production"', 'run = "deploy.sh"'].join("\n");
       const tasks = parseMiseToml(content);
       assert.strictEqual(tasks.length, 1);
       assert.strictEqual(tasks[0]?.description, "Deploy to production");
@@ -193,10 +185,7 @@ suite("PowerShell Parser Unit Tests", () => {
     });
 
     test("returns empty for no tasks", () => {
-      const content = [
-        "[tools]",
-        'go = "latest"',
-      ].join("\n");
+      const content = ["[tools]", 'go = "latest"'].join("\n");
       const tasks = parseMiseToml(content);
       assert.strictEqual(tasks.length, 0);
     });
@@ -204,13 +193,7 @@ suite("PowerShell Parser Unit Tests", () => {
 
   suite("parseMiseYaml", () => {
     test("parses task names under tasks key", () => {
-      const content = [
-        "tasks:",
-        "  lint:",
-        "    run: golangci-lint run",
-        "  test:",
-        "    run: gotestsum",
-      ].join("\n");
+      const content = ["tasks:", "  lint:", "    run: golangci-lint run", "  test:", "    run: gotestsum"].join("\n");
       const tasks = parseMiseYaml(content);
       assert.strictEqual(tasks.length, 2);
       assert.strictEqual(tasks[0]?.name, "lint");
@@ -218,22 +201,14 @@ suite("PowerShell Parser Unit Tests", () => {
     });
 
     test("extracts description", () => {
-      const content = [
-        "tasks:",
-        "  deploy:",
-        '    description: "Deploy to prod"',
-        "    run: deploy.sh",
-      ].join("\n");
+      const content = ["tasks:", "  deploy:", '    description: "Deploy to prod"', "    run: deploy.sh"].join("\n");
       const tasks = parseMiseYaml(content);
       assert.strictEqual(tasks.length, 1);
       assert.strictEqual(tasks[0]?.description, "Deploy to prod");
     });
 
     test("returns empty for no tasks", () => {
-      const content = [
-        "tools:",
-        "  go: latest",
-      ].join("\n");
+      const content = ["tools:", "  go: latest"].join("\n");
       const tasks = parseMiseYaml(content);
       assert.strictEqual(tasks.length, 0);
     });
