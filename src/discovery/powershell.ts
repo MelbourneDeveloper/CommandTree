@@ -2,7 +2,7 @@ import * as vscode from "vscode";
 import * as path from "path";
 import type { CommandItem, MutableCommandItem, IconDef, CategoryDef } from "../models/TaskItem";
 import { generateCommandId, simplifyPath } from "../models/TaskItem";
-import { readFile } from "../utils/fileUtils";
+import { readFileContent } from "../utils/fileUtils";
 import {
   parsePowerShellParams as parseParams,
   parsePowerShellDescription as parsePsDescription,
@@ -35,12 +35,7 @@ export async function discoverPowerShellScripts(
   const commands: CommandItem[] = [];
 
   for (const file of allFiles) {
-    const result = await readFile(file);
-    if (!result.ok) {
-      continue; // Skip files we can't read
-    }
-
-    const content = result.value;
+    const content = await readFileContent(file);
     const name = path.basename(file.fsPath);
     const ext = path.extname(file.fsPath).toLowerCase();
     const isPowerShell = ext === ".ps1";

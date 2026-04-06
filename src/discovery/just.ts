@@ -2,7 +2,7 @@ import * as vscode from "vscode";
 import * as path from "path";
 import type { CommandItem, ParamDef, MutableCommandItem, IconDef, CategoryDef } from "../models/TaskItem";
 import { generateCommandId, simplifyPath } from "../models/TaskItem";
-import { readFile } from "../utils/fileUtils";
+import { readFileContent } from "../utils/fileUtils";
 
 export const ICON_DEF: IconDef = {
   icon: "checklist",
@@ -28,12 +28,7 @@ export async function discoverJustRecipes(workspaceRoot: string, excludePatterns
   const commands: CommandItem[] = [];
 
   for (const file of allFiles) {
-    const result = await readFile(file);
-    if (!result.ok) {
-      continue; // Skip files we can't read
-    }
-
-    const content = result.value;
+    const content = await readFileContent(file);
     const justDir = path.dirname(file.fsPath);
     const category = simplifyPath(file.fsPath, workspaceRoot);
     const recipes = parseJustRecipes(content);

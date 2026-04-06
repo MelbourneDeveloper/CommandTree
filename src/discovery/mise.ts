@@ -2,7 +2,7 @@ import * as vscode from "vscode";
 import * as path from "path";
 import type { CommandItem, MutableCommandItem, IconDef, CategoryDef } from "../models/TaskItem";
 import { generateCommandId, simplifyPath } from "../models/TaskItem";
-import { readFile } from "../utils/fileUtils";
+import { readFileContent } from "../utils/fileUtils";
 import { parseMiseToml, parseMiseYaml } from "./parsers/miseParser";
 
 export { parseMiseToml, parseMiseYaml } from "./parsers/miseParser";
@@ -36,12 +36,7 @@ export async function discoverMiseTasks(workspaceRoot: string, excludePatterns: 
   const commands: CommandItem[] = [];
 
   for (const file of allFiles) {
-    const result = await readFile(file);
-    if (!result.ok) {
-      continue;
-    }
-
-    const content = result.value;
+    const content = await readFileContent(file);
     const miseDir = path.dirname(file.fsPath);
     const category = simplifyPath(file.fsPath, workspaceRoot);
 

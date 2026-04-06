@@ -2,7 +2,7 @@ import * as vscode from "vscode";
 import * as path from "path";
 import type { CommandItem, MutableCommandItem, IconDef, CategoryDef } from "../models/TaskItem";
 import { generateCommandId, simplifyPath } from "../models/TaskItem";
-import { readFile, parseJson } from "../utils/fileUtils";
+import { readFileContent } from "../utils/fileUtils";
 
 export const ICON_DEF: IconDef = {
   icon: "symbol-interface",
@@ -70,17 +70,8 @@ function buildCommandItem(params: BuildCommandItemParams): CommandItem {
 }
 
 async function extractScriptsFromFile(file: vscode.Uri, workspaceRoot: string): Promise<CommandItem[]> {
-  const contentResult = await readFile(file);
-  if (!contentResult.ok) {
-    return [];
-  }
-
-  const composerResult = parseJson<ComposerJson>(contentResult.value);
-  if (!composerResult.ok) {
-    return [];
-  }
-
-  const composer = composerResult.value;
+  const content = await readFileContent(file);
+  const composer = JSON.parse(content) as ComposerJson;
   if (composer.scripts === undefined || typeof composer.scripts !== "object") {
     return [];
   }

@@ -9,7 +9,7 @@ import { buildNestedFolderItems } from "./tree/folderTree";
 import { createCommandNode, createCategoryNode } from "./tree/nodeFactory";
 import { getAllRows } from "./db/db";
 import type { CommandRow } from "./db/db";
-import { getDb } from "./db/lifecycle";
+import { getDbOrThrow } from "./db/lifecycle";
 
 type SortOrder = "folder" | "name" | "type";
 
@@ -49,11 +49,8 @@ export class CommandTreeProvider implements vscode.TreeDataProvider<CommandTreeI
   }
 
   private loadSummaries(): void {
-    const dbResult = getDb();
-    if (!dbResult.ok) {
-      return;
-    }
-    const rows = getAllRows(dbResult.value);
+    const handle = getDbOrThrow();
+    const rows = getAllRows(handle);
     const map = new Map<string, CommandRow>();
     for (const row of rows) {
       map.set(row.commandId, row);

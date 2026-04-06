@@ -2,7 +2,7 @@ import * as vscode from "vscode";
 import * as path from "path";
 import type { CommandItem, IconDef, CategoryDef } from "../models/TaskItem";
 import { generateCommandId, simplifyPath } from "../models/TaskItem";
-import { readFile } from "../utils/fileUtils";
+import { readFileContent } from "../utils/fileUtils";
 
 export const ICON_DEF: IconDef = { icon: "package", color: "terminal.ansiRed" };
 export const CATEGORY_DEF: CategoryDef = {
@@ -41,12 +41,7 @@ export async function discoverCargoTasks(workspaceRoot: string, excludePatterns:
   const commands: CommandItem[] = [];
 
   for (const file of files) {
-    const result = await readFile(file);
-    if (!result.ok) {
-      continue; // Skip files we can't read
-    }
-
-    const content = result.value;
+    const content = await readFileContent(file);
     const cargoDir = path.dirname(file.fsPath);
     const category = simplifyPath(file.fsPath, workspaceRoot);
 

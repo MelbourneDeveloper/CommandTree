@@ -2,7 +2,7 @@ import * as vscode from "vscode";
 import * as path from "path";
 import type { CommandItem, MutableCommandItem, IconDef, CategoryDef } from "../models/TaskItem";
 import { generateCommandId, simplifyPath } from "../models/TaskItem";
-import { readFile, parseFirstLineComment } from "../utils/fileUtils";
+import { readFileContent, parseFirstLineComment } from "../utils/fileUtils";
 
 export const ICON_DEF: IconDef = {
   icon: "file-code",
@@ -28,13 +28,9 @@ export async function discoverFsharpScripts(workspaceRoot: string, excludePatter
   const commands: CommandItem[] = [];
 
   for (const file of files) {
-    const result = await readFile(file);
-    if (!result.ok) {
-      continue;
-    }
-
+    const content = await readFileContent(file);
     const name = path.basename(file.fsPath);
-    const description = parseFirstLineComment(result.value, COMMENT_PREFIX);
+    const description = parseFirstLineComment(content, COMMENT_PREFIX);
 
     const task: MutableCommandItem = {
       id: generateCommandId("fsharp-script", file.fsPath, name),

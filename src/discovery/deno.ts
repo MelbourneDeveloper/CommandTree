@@ -2,7 +2,7 @@ import * as vscode from "vscode";
 import * as path from "path";
 import type { CommandItem, MutableCommandItem, IconDef, CategoryDef } from "../models/TaskItem";
 import { generateCommandId, simplifyPath } from "../models/TaskItem";
-import { readFile, parseJson, removeJsonComments } from "../utils/fileUtils";
+import { readFileContent, removeJsonComments } from "../utils/fileUtils";
 
 export const ICON_DEF: IconDef = {
   icon: "symbol-namespace",
@@ -39,19 +39,9 @@ export async function discoverDenoTasks(workspaceRoot: string, excludePatterns: 
   const commands: CommandItem[] = [];
 
   for (const file of allFiles) {
-    const contentResult = await readFile(file);
-    if (!contentResult.ok) {
-      continue; // Skip unreadable files
-    }
-
-    // Remove JSONC comments
-    const cleanJson = removeJsonComments(contentResult.value);
-    const denoResult = parseJson<DenoJson>(cleanJson);
-    if (!denoResult.ok) {
-      continue; // Skip malformed deno.json
-    }
-
-    const deno = denoResult.value;
+    const content = await readFileContent(file);
+    const cleanJson = removeJsonComments(content);
+    const deno = JSON.parse(cleanJson) as DenoJson;
     if (deno.tasks === undefined || typeof deno.tasks !== "object") {
       continue;
     }

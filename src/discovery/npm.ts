@@ -2,7 +2,7 @@ import * as vscode from "vscode";
 import * as path from "path";
 import type { CommandItem, IconDef, CategoryDef } from "../models/TaskItem";
 import { generateCommandId, simplifyPath } from "../models/TaskItem";
-import { readFile, parseJson } from "../utils/fileUtils";
+import { readFileContent } from "../utils/fileUtils";
 
 export const ICON_DEF: IconDef = {
   icon: "package",
@@ -25,17 +25,8 @@ export async function discoverNpmScripts(workspaceRoot: string, excludePatterns:
   const commands: CommandItem[] = [];
 
   for (const file of files) {
-    const contentResult = await readFile(file);
-    if (!contentResult.ok) {
-      continue; // Skip unreadable package.json
-    }
-
-    const pkgResult = parseJson<PackageJson>(contentResult.value);
-    if (!pkgResult.ok) {
-      continue; // Skip malformed package.json
-    }
-
-    const pkg = pkgResult.value;
+    const content = await readFileContent(file);
+    const pkg = JSON.parse(content) as PackageJson;
     if (pkg.scripts === undefined || typeof pkg.scripts !== "object") {
       continue;
     }

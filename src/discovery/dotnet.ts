@@ -2,7 +2,7 @@ import * as vscode from "vscode";
 import * as path from "path";
 import type { CommandItem, ParamDef, MutableCommandItem, IconDef, CategoryDef } from "../models/TaskItem";
 import { generateCommandId, simplifyPath } from "../models/TaskItem";
-import { readFile } from "../utils/fileUtils";
+import { readFileContent } from "../utils/fileUtils";
 
 export const ICON_DEF: IconDef = {
   icon: "circuit-board",
@@ -43,12 +43,7 @@ export async function discoverDotnetProjects(workspaceRoot: string, excludePatte
   const commands: CommandItem[] = [];
 
   for (const file of allFiles) {
-    const result = await readFile(file);
-    if (!result.ok) {
-      continue;
-    }
-
-    const content = result.value;
+    const content = await readFileContent(file);
     const projectInfo = analyzeProject(content);
     const projectDir = path.dirname(file.fsPath);
     const category = simplifyPath(file.fsPath, workspaceRoot);

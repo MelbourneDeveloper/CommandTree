@@ -3,7 +3,7 @@ import * as path from "path";
 import type { CommandItem } from "../models/TaskItem";
 import type { DbHandle } from "../db/db";
 import { addTagToCommand, removeTagFromCommand, getCommandIdsByTag } from "../db/db";
-import { getDb } from "../db/lifecycle";
+import { getDbOrThrow } from "../db/lifecycle";
 import { logger } from "../utils/logger";
 
 interface TagPattern {
@@ -90,16 +90,12 @@ export function syncTagsFromConfig({
   if (config?.tags === undefined) {
     return false;
   }
-  const dbResult = getDb();
-  if (!dbResult.ok) {
-    logger.warn("DB not available, skipping tag sync", { error: dbResult.error });
-    return false;
-  }
+  const handle = getDbOrThrow();
   for (const [tagName, patterns] of Object.entries(config.tags)) {
-    const existingIds = getCommandIdsByTag({ handle: dbResult.value, tagName });
+    const existingIds = getCommandIdsByTag({ handle, tagName });
     const currentIds = new Set(existingIds);
     const matchedIds = collectMatchedIds(patterns, allTasks);
-    syncTagDiff({ handle: dbResult.value, tagName, currentIds, matchedIds });
+    syncTagDiff({ handle, tagName, currentIds, matchedIds });
   }
   logger.info("Tag sync complete");
   return true;

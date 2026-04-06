@@ -8,7 +8,7 @@ import * as vscode from "vscode";
 import type { CommandItem, CommandTreeItem } from "./models/TaskItem";
 import { isCommandItem } from "./models/TaskItem";
 import { TagConfig } from "./config/TagConfig";
-import { getDb } from "./db/lifecycle";
+import { getDbOrThrow } from "./db/lifecycle";
 import { getCommandIdsByTag, reorderTagCommands } from "./db/db";
 import { createCommandNode, createPlaceholderNode } from "./tree/nodeFactory";
 
@@ -104,11 +104,8 @@ export class QuickTasksProvider
    * Sorts tasks by display_order from junction table.
    */
   private sortByDisplayOrder(tasks: CommandItem[]): CommandItem[] {
-    const dbResult = getDb();
-    if (!dbResult.ok) {
-      return tasks.sort((a, b) => a.label.localeCompare(b.label));
-    }
-    const orderedIds = getCommandIdsByTag({ handle: dbResult.value, tagName: QUICK_TAG });
+    const handle = getDbOrThrow();
+    const orderedIds = getCommandIdsByTag({ handle, tagName: QUICK_TAG });
     return [...tasks].sort((a, b) => {
       const indexA = orderedIds.indexOf(a.id);
       const indexB = orderedIds.indexOf(b.id);
@@ -147,10 +144,6 @@ export class QuickTasksProvider
     }
 
     const orderedIds = this.fetchOrderedQuickIds();
-    if (orderedIds === undefined) {
-      return;
-    }
-
     const reordered = this.computeReorder({ orderedIds, draggedTask, target });
     if (reordered === undefined) {
       return;
@@ -163,12 +156,9 @@ export class QuickTasksProvider
   /**
    * Fetches ordered command IDs for the quick tag from the DB.
    */
-  private fetchOrderedQuickIds(): string[] | undefined {
-    const dbResult = getDb();
-    if (!dbResult.ok) {
-      return undefined;
-    }
-    return getCommandIdsByTag({ handle: dbResult.value, tagName: QUICK_TAG });
+  private fetchOrderedQuickIds(): string[] {
+    const handle = getDbOrThrow();
+    return getCommandIdsByTag({ handle, tagName: QUICK_TAG });
   }
 
   /**
@@ -205,11 +195,8 @@ export class QuickTasksProvider
    * Persists display_order for each command in the reordered list.
    */
   private persistDisplayOrder(reordered: string[]): void {
-    const dbResult = getDb();
-    if (!dbResult.ok) {
-      return;
-    }
-    reorderTagCommands({ handle: dbResult.value, tagName: QUICK_TAG, orderedCommandIds: reordered });
+    const handle = getDbOrThrow();
+    reorderTagCommands({ handle, tagName: QUICK_TAG, orderedCommandIds: reordered });
   }
 
   /**
