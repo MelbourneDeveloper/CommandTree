@@ -192,10 +192,7 @@ function extractArgName(argsStr: string): string | undefined {
   if (firstQuote < 0) {
     return undefined;
   }
-  const quote = argsStr[firstQuote];
-  if (quote === undefined) {
-    return undefined;
-  }
+  const quote = argsStr[firstQuote]!;
   const endQuote = argsStr.indexOf(quote, firstQuote + 1);
   if (endQuote < 0) {
     return undefined;
@@ -234,10 +231,7 @@ function extractHelpText(argsStr: string): string | undefined {
   if (quoteStart < 0) {
     return undefined;
   }
-  const quote = afterHelp[quoteStart];
-  if (quote === undefined) {
-    return undefined;
-  }
+  const quote = afterHelp[quoteStart]!;
   const endQuote = afterHelp.indexOf(quote, quoteStart + 1);
   if (endQuote < 0) {
     return undefined;

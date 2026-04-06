@@ -42,10 +42,10 @@ function handleStringChar(state: ParserState): boolean {
   if (!state.inString) {
     return false;
   }
-  const ch = state.content[state.pos] ?? "";
+  const ch = state.content[state.pos]!;
   state.out.push(ch);
   if (ch === "\\") {
-    state.out.push(state.content[state.pos + 1] ?? "");
+    state.out.push(state.content[state.pos + 1]!);
     state.pos += 2;
     return true;
   }
@@ -77,7 +77,7 @@ function handleNonStringChar(state: ParserState): void {
     state.pos = skipUntilBlockEnd(state.content, state.pos);
     return;
   }
-  state.out.push(ch ?? "");
+  state.out.push(ch as string);
   state.pos++;
 }
 

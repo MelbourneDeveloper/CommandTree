@@ -13,8 +13,8 @@ import {
   sleep,
   getCommandTreeProvider,
   getLabelString,
-  collectLeafTasks,
   collectLeafItems,
+  collectLeafTasks,
 } from "../helpers/helpers";
 import { type CommandTreeItem, isCommandItem } from "../../models/TaskItem";
 
@@ -150,59 +150,81 @@ suite("TreeView E2E Tests", () => {
     });
   });
 
+  /**
+   * Executes a tree item's click command (simulates what VS Code does on click).
+   */
+  async function executeItemClick(item: CommandTreeItem): Promise<void> {
+    assert.ok(item.command !== undefined, "Item must have a click command");
+    const args = (item.command.arguments ?? []) as [vscode.Uri, ...unknown[]];
+    await vscode.commands.executeCommand(item.command.command, ...args);
+  }
+
   suite("Make Target Line Navigation", () => {
-    test("clicking a make target opens the Makefile at the target's line", async function () {
-      this.timeout(15000);
+    test("clicking 'build' make target opens Makefile at the build target line, not the top", async function () {
+      this.timeout(20000);
+      const provider = getCommandTreeProvider();
+      const allItems = await collectLeafItems(provider);
+      const buildItem = allItems.find((i) => isCommandItem(i.data) && i.data.type === "make" && i.data.label === "build");
+      assert.ok(buildItem !== undefined, "Should find 'build' make target in tree");
+      // Execute the click command — this is what happens when the user taps the item
+      await executeItemClick(buildItem);
+      await sleep(1000);
+
+      // The editor must now be open on the Makefile
+      const editor = vscode.window.activeTextEditor;
+      assert.ok(editor !== undefined, "An editor must be open after clicking the make target");
+      assert.ok(editor.document.uri.fsPath.endsWith("Makefile"), "The open file must be the Makefile");
+
+      // The cursor must be on the build target line (line 5 in fixture, 0-indexed = 4)
+      const cursorLine = editor.selection.active.line;
+      assert.strictEqual(cursorLine, 4, "Cursor must be on line 4 (0-indexed) where 'build:' is defined — not line 0");
+    });
+
+    test("clicking 'clean' make target navigates to a different line than 'build'", async function () {
+      this.timeout(20000);
+      const provider = getCommandTreeProvider();
+      const allItems = await collectLeafItems(provider);
+      const cleanItem = allItems.find((i) => isCommandItem(i.data) && i.data.type === "make" && i.data.label === "clean");
+      assert.ok(cleanItem !== undefined, "Should find 'clean' make target in tree");
+      await executeItemClick(cleanItem);
+      await sleep(1000);
+
+      const editor = vscode.window.activeTextEditor;
+      assert.ok(editor !== undefined, "An editor must be open after clicking the make target");
+      assert.ok(editor.document.uri.fsPath.endsWith("Makefile"), "The open file must be the Makefile");
+
+      // clean: is on line 11 in the fixture (0-indexed = 10)
+      const cursorLine = editor.selection.active.line;
+      assert.strictEqual(cursorLine, 10, "Cursor must be on line 10 (0-indexed) where 'clean:' is defined");
+    });
+
+    test("each make target click navigates to its own line — not all the same line", async function () {
+      this.timeout(30000);
       const provider = getCommandTreeProvider();
       const allItems = await collectLeafItems(provider);
       const makeItems = allItems.filter((i) => isCommandItem(i.data) && i.data.type === "make");
-      assert.ok(makeItems.length > 0, "Should discover at least one make target");
+      assert.ok(makeItems.length >= 3, "Should have at least 3 make targets to compare");
 
+      const lines: number[] = [];
       for (const item of makeItems) {
-        assert.ok(isCommandItem(item.data), "Item data must be a CommandItem");
-        assert.ok(item.data.line !== undefined, `Make target "${item.data.label}" must have a line number`);
-        assert.ok(item.data.line > 0, `Make target "${item.data.label}" line must be positive`);
+        await executeItemClick(item);
+        await sleep(500);
 
-        assert.ok(item.command !== undefined, "Make target must have a click command");
-        assert.strictEqual(item.command.command, "vscode.open", "Click must use vscode.open");
-        const args = item.command.arguments;
-        assert.ok(args !== undefined && args.length === 2, "Click command must have URI and options arguments");
-
-        const uri = args[0] as vscode.Uri;
-        assert.ok(uri.fsPath.endsWith("Makefile"), "URI must point to a Makefile");
-
-        const options = args[1] as { selection: vscode.Range };
-        assert.ok(options.selection !== undefined, "Options must include a selection range");
-        assert.strictEqual(
-          options.selection.start.line,
-          item.data.line - 1,
-          `Selection must start at line ${item.data.line - 1} (0-indexed) for target "${item.data.label}"`
-        );
+        const editor = vscode.window.activeTextEditor;
+        assert.ok(editor !== undefined, "Editor must be open");
+        lines.push(editor.selection.active.line);
       }
-    });
 
-    test("make targets have correct line numbers matching the Makefile", async function () {
-      this.timeout(15000);
-      const provider = getCommandTreeProvider();
-      const allTasks = await collectLeafTasks(provider);
-      const makeTasks = allTasks.filter((t) => t.type === "make");
-
-      // Verify specific targets from the fixture Makefile
-      const allTarget = makeTasks.find((t) => t.label === "all");
-      assert.ok(allTarget !== undefined, "Should find 'all' target");
-      assert.strictEqual(allTarget.line, 3, "'all' target is on line 3 of the fixture Makefile");
-
-      const buildTarget = makeTasks.find((t) => t.label === "build");
-      assert.ok(buildTarget !== undefined, "Should find 'build' target");
-      assert.strictEqual(buildTarget.line, 5, "'build' target is on line 5 of the fixture Makefile");
-
-      const testTarget = makeTasks.find((t) => t.label === "test");
-      assert.ok(testTarget !== undefined, "Should find 'test' target");
-      assert.strictEqual(testTarget.line, 8, "'test' target is on line 8 of the fixture Makefile");
-
-      const cleanTarget = makeTasks.find((t) => t.label === "clean");
-      assert.ok(cleanTarget !== undefined, "Should find 'clean' target");
-      assert.strictEqual(cleanTarget.line, 11, "'clean' target is on line 11 of the fixture Makefile");
+      // If all targets opened at the top of the file, all lines would be 0
+      const uniqueLines = new Set(lines);
+      assert.ok(
+        uniqueLines.size > 1,
+        `Each make target must navigate to its own line — got ${JSON.stringify(lines)} (all same = broken)`
+      );
+      assert.ok(
+        !lines.every((l) => l === 0),
+        "Make targets must NOT all open at line 0 — line navigation is broken"
+      );
     });
   });
 

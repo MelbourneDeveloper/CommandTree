@@ -209,10 +209,10 @@ export function getAllRows(handle: DbHandle): CommandRow[] {
 function rawToCommandRow(row: RawRow): CommandRow {
   return {
     commandId: row["command_id"] as string,
-    contentHash: (row["content_hash"] as string) ?? "",
-    summary: (row["summary"] as string) ?? "",
-    securityWarning: (row["security_warning"] as string | null) ?? null,
-    lastUpdated: (row["last_updated"] as string) ?? "",
+    contentHash: row["content_hash"] as string,
+    summary: row["summary"] as string,
+    securityWarning: row["security_warning"] as string | null,
+    lastUpdated: row["last_updated"] as string,
   };
 }
 
