@@ -120,7 +120,7 @@ export default function(eleventyConfig) {
     }
     const apiLine = "- API Reference: https://commandtree.dev/api/";
     const extras = [
-      "- GitHub: https://github.com/melbournedeveloper/CommandTree",
+      "- GitHub: https://github.com/MelbourneDeveloper/CommandTree",
       "- VS Code Marketplace: https://marketplace.visualstudio.com/items?itemName=nimblesite.commandtree",
     ].join("\n");
     return content.replace(apiLine, extras);
@@ -146,7 +146,7 @@ export default function(eleventyConfig) {
     if (!this.page.outputPath?.endsWith(".html")) {
       return content;
     }
-    const altText = "CommandTree - One sidebar, every command in VS Code. Auto-discover 21 command types with AI-powered summaries.";
+    const altText = "CommandTree - One sidebar, every command in VS Code. Auto-discover 22 command types with AI-powered summaries.";
     const ogImageAltTag = `  <meta property="og:image:alt" content="${altText}">`;
     const twitterImageAltTag = `  <meta name="twitter:image:alt" content="${altText}">`;
     const ogImageHeightTag = 'og:image:height';
@@ -260,7 +260,7 @@ export default function(eleventyConfig) {
       "name": "CommandTree",
       "applicationCategory": "DeveloperApplication",
       "operatingSystem": "Windows, macOS, Linux",
-      "description": "VS Code extension that auto-discovers 21 command types — shell scripts, npm, Make, Gradle, Cargo, Docker Compose, .NET, and more — in one sidebar with AI-powered summaries.",
+      "description": "VS Code extension that auto-discovers 22 command types — shell scripts, npm, Make, Gradle, Cargo, Docker Compose, .NET, and more — in one sidebar with AI-powered summaries.",
       "url": "https://commandtree.dev",
       "downloadUrl": "https://marketplace.visualstudio.com/items?itemName=nimblesite.commandtree",
       "softwareRequirements": "Visual Studio Code",

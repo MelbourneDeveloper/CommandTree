@@ -8,7 +8,7 @@
   <img src="website/src/assets/images/CommandTree.gif" alt="CommandTree in action" width="780">
 </p>
 
-CommandTree scans your project and surfaces all runnable commands across 21 tool types in a single tree view. Filter by text or tag, and run in terminal or debugger.
+CommandTree scans your project and surfaces all runnable commands across 22 tool types in a single tree view. Filter by tag, and run in terminal or debugger.
 
 ## AI Summaries (powered by GitHub Copilot)
 
@@ -19,10 +19,10 @@ Summaries are stored locally and only regenerate when the underlying script chan
 ## Features
 
 - **AI Summaries** - GitHub Copilot describes each command in plain language, with security warnings for dangerous operations
-- **Auto-discovery** - 21 command types including shell scripts, npm, Make, Python, PowerShell, Gradle, Cargo, Maven, Docker Compose, .NET, C# Script, F# Script, and more
+- **Auto-discovery** - 22 command types including shell scripts, npm, Make, Python, PowerShell, Gradle, Cargo, Maven, Docker Compose, .NET, C# Script, F# Script, Mise, and more
 - **Quick Launch** - Pin frequently-used commands to a dedicated panel at the top
 - **Tagging** - Right-click any command to add or remove tags
-- **Filtering** - Filter the tree by text search or by tag
+- **Filtering** - Filter the tree by tag
 - **Run anywhere** - Execute in a new terminal, the current terminal, or launch with the debugger
 - **Folder grouping** - Commands grouped by directory with collapsible nested hierarchy
 - **Parameterized commands** - Prompt for arguments before execution
@@ -44,14 +44,15 @@ Summaries are stored locally and only regenerate when the underlying script chan
 | Maven Goals | `pom.xml` |
 | Ant Targets | `build.xml` |
 | Just Recipes | `justfile` |
-| Taskfile Tasks | `Taskfile.yml` |
+| Taskfile Tasks | `Taskfile.yml`, `Taskfile.yaml` |
 | Deno Tasks | `deno.json`, `deno.jsonc` |
 | Rake Tasks | `Rakefile` (Ruby) |
 | Composer Scripts | `composer.json` (PHP) |
-| Docker Compose | `docker-compose.yml` |
+| Docker Compose | `docker-compose.yml`, `compose.yml` |
 | .NET Projects | `.csproj`, `.fsproj` |
 | C# Scripts | `.csx` files |
 | F# Scripts | `.fsx` files |
+| Mise Tasks | `.mise.toml`, `mise.toml`, `.mise/*.toml` |
 | Markdown Files | `.md` files |
 
 ## Getting Started
@@ -72,7 +73,7 @@ Open a workspace and the CommandTree panel appears in the sidebar. All discovere
 - **Run in current terminal** - Right-click > "Run in Current Terminal"
 - **Debug** - Launch configurations run with the VS Code debugger
 - **Star a command** - Click the star icon to pin it to Quick Launch
-- **Filter** - Use the toolbar icons to filter by text or tag
+- **Filter** - Use the toolbar icons to filter by tag
 - **Tag commands** - Right-click > "Add Tag" to group related commands
 
 ## Settings

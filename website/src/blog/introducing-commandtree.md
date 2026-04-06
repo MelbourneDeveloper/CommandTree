@@ -36,9 +36,10 @@ Install CommandTree and a new panel appears in your VS Code sidebar. Every runna
 - Taskfile, Deno, Rake, and Composer
 - Docker Compose services and .NET projects
 - C# scripts and F# scripts
+- Mise tasks
 - Markdown files
 
-That is 21 command types discovered automatically. Click the play button. Done.
+That is 22 command types discovered automatically. Click the play button. Done.
 
 ## AI-Powered Summaries
 

@@ -29,7 +29,7 @@ Sends the command to the currently active terminal. Triggered by the circle-play
 
 **SPEC-EXEC-030**
 
-Launches the command using the VS Code debugger. Triggered by the bug button or `commandtree.debug` command.
+Launch configurations from `.vscode/launch.json` are launched with the VS Code debugger automatically when you run them.
 
 **Debugging Strategy**: CommandTree leverages VS Code's native debugging capabilities through launch configurations rather than implementing custom debug logic for each language.
 

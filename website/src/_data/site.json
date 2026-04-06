@@ -7,7 +7,7 @@
   "keywords": "VS Code extension, command runner, task runner, script discovery, npm scripts, shell scripts, makefile, workspace automation, developer tools",
   "themeColor": "#2a8c7a",
   "ogImage": "/assets/images/og-image.png",
-  "ogImageAlt": "CommandTree - One sidebar, every command in VS Code. Auto-discover 21 command types with AI-powered summaries.",
+  "ogImageAlt": "CommandTree - One sidebar, every command in VS Code. Auto-discover 22 command types with AI-powered summaries.",
   "ogImageWidth": "1200",
   "ogImageHeight": "630",
   "organization": {

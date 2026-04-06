@@ -24,11 +24,16 @@ All commands are registered with the `commandtree.` prefix:
 | `commandtree.refresh` | Reload all tasks |
 | `commandtree.run` | Run task in new terminal |
 | `commandtree.runInCurrentTerminal` | Run in active terminal |
-| `commandtree.debug` | Launch with debugger |
-| `commandtree.filter` | Text filter input |
 | `commandtree.filterByTag` | Tag filter picker |
 | `commandtree.clearFilter` | Clear all filters |
-| `commandtree.editTags` | Open commandtree.json |
+| `commandtree.addTag` | Add tag to command |
+| `commandtree.removeTag` | Remove tag from command |
+| `commandtree.addToQuick` | Add to quick launch |
+| `commandtree.removeFromQuick` | Remove from quick launch |
+| `commandtree.refreshQuick` | Refresh quick launch view |
+| `commandtree.generateSummaries` | Generate AI summaries |
+| `commandtree.selectModel` | Select AI model |
+| `commandtree.openPreview` | Open markdown preview |
 | `commandtree.addTag` | Add tag to command |
 | `commandtree.removeTag` | Remove tag from command |
 | `commandtree.addToQuick` | Add to quick launch |

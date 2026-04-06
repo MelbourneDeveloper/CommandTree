@@ -1,7 +1,7 @@
 ---
 layout: layouts/docs.njk
-title: Auto-Discovery of 21 Command Types - CommandTree Docs
-description: How CommandTree auto-discovers shell scripts, npm, Make, Gradle, Cargo, Maven, Docker Compose, .NET, C# Script, F# Script, and 21 command types in your VS Code workspace.
+title: Auto-Discovery of 22 Command Types - CommandTree Docs
+description: How CommandTree auto-discovers shell scripts, npm, Make, Gradle, Cargo, Maven, Docker Compose, .NET, C# Script, F# Script, and 22 command types in your VS Code workspace.
 eleventyNavigation:
   key: Command Discovery
   order: 2
@@ -9,7 +9,7 @@ eleventyNavigation:
 
 # Command Discovery
 
-CommandTree auto-discovers 21 command types — including shell scripts, npm scripts, Makefiles, Gradle, Cargo, Maven, Docker Compose, .NET projects, C# scripts, and F# scripts — by recursively scanning your workspace. Discovery respects [exclude patterns](/docs/configuration/) and runs in the background.
+CommandTree auto-discovers 22 command types — including shell scripts, npm scripts, Makefiles, Gradle, Cargo, Maven, Docker Compose, .NET projects, C# scripts, and F# scripts — by recursively scanning your workspace. Discovery respects [exclude patterns](/docs/configuration/) and runs in the background.
 
 ## Shell Scripts
 
@@ -84,7 +84,7 @@ Reads scripts from `composer.json` (PHP).
 
 ## Docker Compose
 
-Discovers services from `docker-compose.yml` / `docker-compose.yaml` files.
+Discovers services from `docker-compose.yml` / `docker-compose.yaml` / `compose.yml` / `compose.yaml` files.
 
 ## .NET Projects
 
@@ -97,6 +97,10 @@ Discovers `.csx` files and runs them via `dotnet script`.
 ## F# Scripts
 
 Discovers `.fsx` files and runs them via `dotnet fsi`.
+
+## Mise Tasks
+
+Discovers tasks from `.mise.toml`, `mise.toml`, and `.mise/*.toml` files.
 
 ## Markdown Files
 
