@@ -134,14 +134,14 @@ suite("Markdown Discovery and Preview E2E Tests", () => {
 
       assert.ok(readmeItem !== undefined && isCommandItem(readmeItem.data), "Should find README.md with task");
 
-      const initialEditorCount = vscode.window.visibleTextEditors.length;
+      const initialTabCount = vscode.window.tabGroups.all.flatMap((g) => g.tabs).length;
 
       await vscode.commands.executeCommand("commandtree.openPreview", readmeItem);
 
       await sleep(2000);
 
-      const finalEditorCount = vscode.window.visibleTextEditors.length;
-      assert.ok(finalEditorCount >= initialEditorCount, "Preview should open a new editor or reuse existing");
+      const finalTabCount = vscode.window.tabGroups.all.flatMap((g) => g.tabs).length;
+      assert.ok(finalTabCount > initialTabCount, "Preview should open a new tab");
     });
 
     test("run command on markdown item opens preview", async function () {
@@ -159,14 +159,14 @@ suite("Markdown Discovery and Preview E2E Tests", () => {
 
       assert.ok(guideItem !== undefined && isCommandItem(guideItem.data), "Should find guide.md with task");
 
-      const initialEditorCount = vscode.window.visibleTextEditors.length;
+      const initialTabCount = vscode.window.tabGroups.all.flatMap((g) => g.tabs).length;
 
       await vscode.commands.executeCommand("commandtree.run", guideItem);
 
       await sleep(2000);
 
-      const finalEditorCount = vscode.window.visibleTextEditors.length;
-      assert.ok(finalEditorCount >= initialEditorCount, "Running markdown item should open preview");
+      const finalTabCount = vscode.window.tabGroups.all.flatMap((g) => g.tabs).length;
+      assert.ok(finalTabCount > initialTabCount, "Running markdown item should open preview");
 
       // Verify markdown uses preview, not terminal (exercises TaskRunner.runMarkdownPreview routing)
       const markdownTerminals = vscode.window.terminals.filter((t) => t.name.includes("guide.md"));
