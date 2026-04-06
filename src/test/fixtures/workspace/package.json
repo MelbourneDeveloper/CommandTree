@@ -5,6 +5,10 @@
     "build": "echo 'Building main project'",
     "test": "echo 'Running tests'",
     "lint": "echo 'Linting code'",
-    "start": "echo 'Starting application'"
+    "start": "echo 'Starting application'",
+    "clean": "rimraf dist coverage .cache",
+    "prebuild": "npm run clean",
+    "postbuild": "echo 'Build complete'",
+    "bench": "vitest bench --reporter=verbose --outputFile=benchmark-results.json --coverage --run --passWithNoTests && echo done"
   }
 }

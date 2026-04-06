@@ -11,5 +11,23 @@ services:
     environment:
       POSTGRES_PASSWORD: secret
 
+  # Cache service
   redis:
     image: redis:7
+
+  app-1:
+    build: ./app
+    depends_on:
+      - db
+      - redis
+
+  cache_store:
+    image: memcached:latest
+    ports:
+      - "11211:11211"
+
+  # Worker service for background jobs
+  worker_2:
+    build: ./worker
+    environment:
+      QUEUE: default

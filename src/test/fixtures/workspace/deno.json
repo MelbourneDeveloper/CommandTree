@@ -5,6 +5,7 @@
     "test": "deno test",
     "lint": "deno lint",
     "fmt": "deno fmt",
-    "check": "deno check main.ts && deno test --coverage && deno lint --compact && echo done with a very long command that should trigger truncation"
+    "check": "deno check main.ts && deno test --coverage && deno lint --compact && echo done with a very long command that should trigger truncation",
+    "bench": "deno bench --allow-read --allow-write --allow-net --allow-env --unstable-kv benchmarks/main_bench.ts"
   }
 }

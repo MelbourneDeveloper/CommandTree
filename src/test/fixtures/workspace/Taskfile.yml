@@ -1,5 +1,9 @@
 version: '3'
 
+# Global variables
+vars:
+  GREETING: Hello
+
 tasks:
   build:
     desc: Build the project
@@ -8,6 +12,7 @@ tasks:
 
   test:
     desc: Run tests
+    deps: [build]
     cmds:
       - echo "Testing..."
 
@@ -15,3 +20,30 @@ tasks:
     desc: Run linter
     cmds:
       - echo "Linting..."
+
+  deploy:
+    description: 'Deploy to production'
+    deps: [build, test]
+    cmds:
+      - echo "Deploying..."
+
+  clean:
+    desc: "Clean build artifacts"
+    vars:
+      OUTPUT_DIR: dist
+    cmds:
+      - echo "Cleaning {{.OUTPUT_DIR}}..."
+
+  format:
+    cmds:
+      - echo "Formatting..."
+
+  generate:
+    desc:
+    cmds:
+      - echo "Generating..."
+
+  setup-env:
+    desc: Setup development environment
+    cmds:
+      - echo "Setting up..."

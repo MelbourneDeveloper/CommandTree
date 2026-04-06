@@ -21,3 +21,19 @@ lint fix="false":
 # Format source code
 format:
     echo "Formatting..."
+
+# Run benchmarks with options
+bench iterations="100" output="json":
+    echo "Running {{iterations}} benchmarks as {{output}}"
+
+# Generate documentation
+docs src dst="./output":
+    echo "Generating docs from {{src}} to {{dst}}"
+
+# Hidden helper
+_setup-deps:
+    echo "Installing dependencies..."
+
+# Check all the things
+check:
+    echo "Checking..."

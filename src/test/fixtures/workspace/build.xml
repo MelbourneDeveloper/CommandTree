@@ -21,4 +21,16 @@
   <target name="" description="Empty name should be skipped">
     <echo message="Skip" />
   </target>
+
+  <target name='package' description='Create distribution package'>
+    <echo message="Packaging..." />
+  </target>
+
+  <target name="validate" description="">
+    <echo message="Validating..." />
+  </target>
+
+  <target name="init">
+    <echo message="Initializing..." />
+  </target>
 </project>
