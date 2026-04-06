@@ -37,11 +37,6 @@ jobs:
           files: "*.vsix"
           generate_release_notes: true
 
-      - name: Publish to Marketplace
-        run: npx vsce publish --skip-duplicate
-        env:
-          VSCE_PAT: ${{ secrets.VSCE_PAT }}
-
   post-release:
     name: Update version & deploy site
     needs: release
@@ -49,6 +44,7 @@ jobs:
     timeout-minutes: 10
     permissions:
       contents: write
+      actions: write
     steps:
       - uses: actions/checkout@v4
         with:
