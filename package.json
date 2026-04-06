@@ -8,11 +8,11 @@
   "publisher": "nimblesite",
   "repository": {
     "type": "git",
-    "url": "https://github.com/MelbourneDeveloper/CommandTree.git"
+    "url": "https://github.com/Nimblesite/CommandTree.git"
   },
   "homepage": "https://commandtree.dev/",
   "bugs": {
-    "url": "https://github.com/MelbourneDeveloper/CommandTree/issues"
+    "url": "https://github.com/Nimblesite/CommandTree/issues"
   },
   "engines": {
     "vscode": "^1.110.0"

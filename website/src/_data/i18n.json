@@ -3,7 +3,9 @@
     "blog": {
       "back": "Back to Blog",
       "title": "Blog",
-      "subtitle": "Latest posts and updates"
+      "subtitle": "Latest posts and updates",
+      "tags": "Tags",
+      "categories": "Categories"
     },
     "nav": {
       "docs": "Documentation",

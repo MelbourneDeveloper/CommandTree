@@ -1,5 +1,74 @@
 # Changelog
 
+## 0.9.0
+
+### Changed
+
+- Repository transferred to the [Nimblesite](https://github.com/Nimblesite/CommandTree) organisation; all links updated
+
+### Fixed
+
+- Release process fixes
+- SEO improvements across the website
+
+## 0.8.0
+
+### Changed
+
+- Maintenance release
+
+## 0.7.0
+
+### Added
+
+- **Mise task discovery** — discovers tasks from `mise.toml`, `.mise.toml`, `mise.yaml`, and `.mise.yaml`, including task descriptions
+- TOML parser now recognises `[tasks.name]` sections without requiring a bare `[tasks]` preamble
+- Pure `parsers/miseParser.ts` extracted for testability
+- Lock recovery spec and `[DISC-PARSE-STRATEGY]` parsing strategy spec
+- Cross-platform `Makefile` with OS detection, help target, and standardised public/private targets
+
+### Changed
+
+- Bumped supported command count to 22 (adds Mise alongside C# Script and F# Script)
+- DB layer simplified — `initSchema`, `registerCommand`, `ensureCommandExists`, `closeDatabase`, tag mutators, `upsertSummary`, etc. now return directly and throw only on unrecoverable errors. New `getDbOrThrow()` replaces repeated `getDb()` + `Result` unwrapping
+- `CommandTreeProvider`, `QuickTasksProvider`, `TagConfig`, `extension.ts`, `TaskRunner`, and `summaryPipeline` simplified by removing `Result` unwrapping boilerplate
+- `CLAUDE.md` / `Agents.md` consolidated with logging standards, spec ID rules, and updated command table
+- `.prettierrc` renamed to `.prettierrc.json` with explicit settings
+- `.gitignore` expanded with universal patterns and secret exclusions
+- Docs reorganised into `docs/specs/` and `docs/plans/`
+- Coverage thresholds updated to reflect current coverage
+- README updated for 22 tool types
+
+### Removed
+
+- `.github/workflows/deploy.yml` (superseded by `release.yml` post-release job)
+- Stale `CoveragePlan.md`
+
+## 0.6.0
+
+### Added
+
+- **C# Script (.csx) discovery** via new `discovery/csharp-script.ts`
+- **F# Script (.fsx) discovery** via new `discovery/fsharp-script.ts`
+- Reusable helpers extracted: `powershellParser.ts`, `nodeFactory.ts`, `tagSync.ts`, `watchers.ts`
+- New unit test suites: `discovery.unit.test.ts`, `modelSelection.unit.test.ts`, `taskRunner.unit.test.ts`, `treehierarchy.unit.test.ts`
+- CI format check, spell check, and 90% coverage threshold
+- Claude skills: `ci-prep`, `fix-bug`
+- Rust LSP plan and spec docs
+
+### Changed
+
+- Refactored `CommandTreeProvider`, `QuickTasksProvider`, and `TagConfig` for reduced complexity and a more functional style
+- Reorganised semantic/db layer — moved `db.ts` from `semantic/` to `db/` and added `lifecycle.ts`
+- Replaced fake/indirect tests with proper E2E coverage
+- Tightened ESLint, Prettier, and `tsconfig` rules
+- Split `SPEC.md` into focused docs
+
+### Removed
+
+- Unused embedding modules: `embedder.ts`, `embeddingPipeline.ts`, `similarity.ts`, `store.ts`, plus related types and index
+- Copilot-dependent tests excluded from CI
+
 ## 0.5.0
 
 ### Added
@@ -39,7 +108,7 @@
 
 ### Added
 
-- See [Release 0.2.0](https://github.com/MelbourneDeveloper/CommandTree/releases/tag/v0.2.0)
+- See [Release 0.2.0](https://github.com/Nimblesite/CommandTree/releases/tag/v0.2.0)
 
 ## 0.1.0 - Initial Release
 

@@ -5,7 +5,6 @@ description: CommandTree now shows AI-generated summaries when you hover over an
 date: 2026-02-08
 author: Christian Findlay
 tags:
-  - posts
   - AI summaries
   - GitHub Copilot
   - VS Code extension

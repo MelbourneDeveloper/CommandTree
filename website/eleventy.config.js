@@ -20,6 +20,175 @@ export default function(eleventyConfig) {
   eleventyConfig.addPassthroughCopy({ "src/favicon.ico": "favicon.ico" });
   eleventyConfig.addPassthroughCopy({ "src/site.webmanifest": "site.webmanifest" });
 
+  eleventyConfig.addFilter("sortByDateDesc", (items) => {
+    if (!items) { return []; }
+    return [...items].sort((a, b) => new Date(b.date) - new Date(a.date));
+  });
+
+  const cardSnippet = `<article class="blog-post">
+    <a href="{{ cardHref }}" class="post-title">{{ cardTitle }}</a>
+    <div class="post-meta">{{ cardMeta | safe }}</div>
+    {% if cardExcerpt %}<p class="post-excerpt">{{ cardExcerpt }}</p>{% endif %}
+    {% if cardTags and cardTags | length > 0 %}
+    <div class="post-tags">
+      {% for t in cardTags %}{% if t != 'post' and t != 'posts' %}<a href="/blog/tags/{{ t | slugify }}/" class="tag">{{ t }}</a>{% endif %}{% endfor %}
+    </div>
+    {% endif %}
+  </article>`;
+
+  const blogIndexOverride = `---
+layout: layouts/base.njk
+title: Blog
+permalink: /blog/
+---
+<div class="blog-container">
+  <header class="blog-header">
+    <h1>Blog</h1>
+    <p class="blog-subtitle">Latest posts and updates</p>
+  </header>
+  <nav class="blog-nav">
+    <a href="/blog/tags/" class="blog-nav-link">Tags</a>
+    <a href="/blog/categories/" class="blog-nav-link">Categories</a>
+  </nav>
+  <div class="post-list">
+  {% for post in collections.posts | sortByDateDesc %}
+    {% set cardHref = post.url %}
+    {% set cardTitle = post.data.title %}
+    {% set cardMeta %}<time datetime="{{ post.date | isoDate }}">{{ post.date | dateFormat }}</time>{% if post.data.author %} &middot; {{ post.data.author }}{% endif %}{% endset %}
+    {% set cardExcerpt = post.data.excerpt or post.data.description %}
+    {% set cardTags = post.data.tags %}
+    ${cardSnippet}
+  {% endfor %}
+  </div>
+</div>`;
+
+  const tagsIndexOverride = `---
+layout: layouts/base.njk
+title: Tags
+permalink: /blog/tags/
+---
+<div class="blog-container">
+  <header class="blog-header">
+    <h1>Tags</h1>
+    <p class="blog-subtitle">Browse blog posts by tag</p>
+  </header>
+  <nav class="blog-nav">
+    <a href="/blog/" class="blog-nav-link">All posts</a>
+    <a href="/blog/categories/" class="blog-nav-link">Categories</a>
+  </nav>
+  <ul class="taxonomy-grid">
+  {% for tag in collections.tagList %}
+    {% set count = collections.postsByTag[tag] | length %}
+    <li><a href="/blog/tags/{{ tag | slugify }}/" class="taxonomy-card">
+      <span class="taxonomy-name">{{ tag | capitalize }}</span>
+      <span class="taxonomy-count">{{ count }} post{% if count != 1 %}s{% endif %}</span>
+    </a></li>
+  {% endfor %}
+  </ul>
+</div>`;
+
+  const categoriesIndexOverride = `---
+layout: layouts/base.njk
+title: Categories
+permalink: /blog/categories/
+---
+<div class="blog-container">
+  <header class="blog-header">
+    <h1>Categories</h1>
+    <p class="blog-subtitle">Browse blog posts by category</p>
+  </header>
+  <nav class="blog-nav">
+    <a href="/blog/" class="blog-nav-link">All posts</a>
+    <a href="/blog/tags/" class="blog-nav-link">Tags</a>
+  </nav>
+  <ul class="taxonomy-grid">
+  {% for category in collections.categoryList %}
+    {% set count = collections.postsByCategory[category] | length %}
+    <li><a href="/blog/categories/{{ category | slugify }}/" class="taxonomy-card">
+      <span class="taxonomy-name">{{ category | capitalize }}</span>
+      <span class="taxonomy-count">{{ count }} post{% if count != 1 %}s{% endif %}</span>
+    </a></li>
+  {% endfor %}
+  </ul>
+  {% if (collections.categoryList | length) == 0 %}
+  <p style="text-align:center;color:var(--color-muted);">No categories yet.</p>
+  {% endif %}
+</div>`;
+
+  const tagsPagesOverride = `---
+pagination:
+  data: collections.tagList
+  size: 1
+  alias: tag
+permalink: /blog/tags/{{ tag | slugify }}/
+layout: layouts/base.njk
+eleventyComputed:
+  title: "Posts tagged '{{ tag | capitalize }}'"
+  description: "All blog posts tagged with {{ tag | capitalize }}."
+---
+<div class="blog-container">
+  <header class="blog-header">
+    <h1>Posts tagged "{{ tag | capitalize }}"</h1>
+    <p><a href="/blog/tags/">&larr; All tags</a></p>
+  </header>
+  <div class="post-list">
+  {% for post in collections.postsByTag[tag] | sortByDateDesc %}
+    {% set cardHref = post.url %}
+    {% set cardTitle = post.data.title %}
+    {% set cardMeta %}<time datetime="{{ post.date | isoDate }}">{{ post.date | dateFormat }}</time>{% if post.data.author %} &middot; {{ post.data.author }}{% endif %}{% endset %}
+    {% set cardExcerpt = post.data.excerpt or post.data.description %}
+    {% set cardTags = post.data.tags %}
+    ${cardSnippet}
+  {% endfor %}
+  </div>
+</div>`;
+
+  const categoriesPagesOverride = `---
+pagination:
+  data: collections.categoryList
+  size: 1
+  alias: category
+permalink: /blog/categories/{{ category | slugify }}/
+layout: layouts/base.njk
+eleventyComputed:
+  title: "{{ category | capitalize }}"
+  description: "All blog posts in the {{ category }} category."
+---
+<div class="blog-container">
+  <header class="blog-header">
+    <h1>{{ category | capitalize }}</h1>
+    <p><a href="/blog/categories/">&larr; All categories</a></p>
+  </header>
+  <div class="post-list">
+  {% for post in collections.postsByCategory[category] | sortByDateDesc %}
+    {% set cardHref = post.url %}
+    {% set cardTitle = post.data.title %}
+    {% set cardMeta %}<time datetime="{{ post.date | isoDate }}">{{ post.date | dateFormat }}</time>{% if post.data.author %} &middot; {{ post.data.author }}{% endif %}{% endset %}
+    {% set cardExcerpt = post.data.excerpt or post.data.description %}
+    {% set cardTags = post.data.tags %}
+    ${cardSnippet}
+  {% endfor %}
+  </div>
+</div>`;
+
+  const blogOverrides = {
+    "blog/index.njk": blogIndexOverride,
+    "blog/tags.njk": tagsIndexOverride,
+    "blog/categories.njk": categoriesIndexOverride,
+    "blog/tags-pages.njk": tagsPagesOverride,
+    "blog/categories-pages.njk": categoriesPagesOverride,
+  };
+  // Register as an inline plugin so it runs AFTER the techdoc plugin
+  // (plugins are processed in addPlugin order, after the user config callback).
+  // This lets us delete the techdoc-registered virtual templates and replace
+  // them with our customised versions.
+  eleventyConfig.addPlugin(function blogOverridesPlugin(ec) {
+    for (const [path, content] of Object.entries(blogOverrides)) {
+      delete ec.virtualTemplates[path];
+      ec.addTemplate(path, content);
+    }
+  });
+
   const faviconLinks = [
     '  <link rel="icon" href="/favicon.ico" sizes="48x48">',
     '  <link rel="icon" href="/assets/images/favicon.svg" type="image/svg+xml">',
@@ -72,7 +241,21 @@ export default function(eleventyConfig) {
     "/blog/ai-summaries-hover/": '/assets/images/ai-summary-banner.png',
   };
 
+  const blogHeroLogos = {
+    "/blog/mise-tasks-vscode/": {
+      src: '/assets/images/mise-logo-light.svg',
+      alt: 'mise-en-place logo',
+    },
+  };
+
   const makeBanner = (href) => {
+    const logo = blogHeroLogos[href];
+    if (logo) {
+      return '<div class="blog-hero-banner">\n'
+        + '  <div class="blog-hero-glow"></div>\n'
+        + `  <img src="${logo.src}" alt="${logo.alt}" class="blog-hero-logo blog-hero-logo--wide">\n`
+        + '</div>';
+    }
     const img = blogHeroImages[href];
     if (!img) { return blogHeroDefault; }
     return '<div class="blog-hero-banner">\n'
@@ -95,6 +278,24 @@ export default function(eleventyConfig) {
     }).join("");
   };
 
+  // Returns true for pages that list ACTUAL BLOG POSTS (which deserve hero
+  // banners on each card). The /blog/tags/ and /blog/categories/ index pages
+  // list tags/categories — not posts — so they must NOT get banners.
+  const isPostListingUrl = (url) => {
+    if (!url) { return false; }
+    if (url === "/blog/") { return true; }
+    const prefixes = ["/blog/tags/", "/blog/categories/"];
+    for (const prefix of prefixes) {
+      if (!url.startsWith(prefix)) { continue; }
+      if (!url.endsWith("/")) { continue; }
+      const slug = url.slice(prefix.length, -1);
+      if (slug.length === 0) { continue; }
+      if (slug.includes("/")) { continue; }
+      return true;
+    }
+    return false;
+  };
+
   eleventyConfig.addTransform("blogHero", function(content) {
     if (!this.page.outputPath?.endsWith(".html")) {
       return content;
@@ -102,7 +303,7 @@ export default function(eleventyConfig) {
     if (!this.page.url?.startsWith("/blog/")) {
       return content;
     }
-    if (this.page.url === "/blog/") {
+    if (isPostListingUrl(this.page.url)) {
       return addBannersToCards(content);
     }
     if (content.includes('blog-hero-banner')) {
@@ -120,7 +321,7 @@ export default function(eleventyConfig) {
     }
     const apiLine = "- API Reference: https://commandtree.dev/api/";
     const extras = [
-      "- GitHub: https://github.com/MelbourneDeveloper/CommandTree",
+      "- GitHub: https://github.com/Nimblesite/CommandTree",
       "- VS Code Marketplace: https://marketplace.visualstudio.com/items?itemName=nimblesite.commandtree",
     ].join("\n");
     return content.replace(apiLine, extras);

@@ -30,7 +30,7 @@ code --install-extension nimblesite.commandtree
 ## Building from Source
 
 ```bash
-git clone https://github.com/MelbourneDeveloper/CommandTree.git
+git clone https://github.com/Nimblesite/CommandTree.git
 cd CommandTree
 npm install
 npm run package

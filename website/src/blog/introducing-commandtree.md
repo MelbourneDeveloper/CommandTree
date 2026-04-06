@@ -5,10 +5,7 @@ description: Meet CommandTree — the free VS Code extension that discovers ever
 date: 2026-02-07
 author: Christian Findlay
 tags:
-  - posts
   - VS Code extension
-  - command runner
-  - task discovery
   - workspace automation
 excerpt: Meet CommandTree - the VS Code extension that discovers every runnable command in your workspace and puts them in one beautiful tree view.
 ---
