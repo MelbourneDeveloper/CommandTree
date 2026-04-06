@@ -123,9 +123,11 @@ export class TaskRunner {
 
   /**
    * Opens a markdown file in preview mode.
+   * Uses showPreviewToSide so each run reliably opens a dedicated preview tab
+   * instead of reusing an unlocked preview already open for another file.
    */
   private async runMarkdownPreview(task: CommandItem): Promise<void> {
-    await vscode.commands.executeCommand("markdown.showPreview", vscode.Uri.file(task.filePath));
+    await vscode.commands.executeCommand("markdown.showPreviewToSide", vscode.Uri.file(task.filePath));
   }
 
   /**
