@@ -5,7 +5,7 @@
  */
 
 import * as vscode from "vscode";
-import type { CommandItem, Result, CommandTreeItem } from "./models/TaskItem";
+import type { CommandItem, CommandTreeItem } from "./models/TaskItem";
 import { isCommandItem } from "./models/TaskItem";
 import { TagConfig } from "./config/TagConfig";
 import { getDb } from "./db/lifecycle";
@@ -50,28 +50,22 @@ export class QuickTasksProvider
    * SPEC: quick-launch
    * Adds a command to the quick list.
    */
-  public addToQuick(task: CommandItem): Result<void, string> {
-    const result = this.tagConfig.addTaskToTag(task, QUICK_TAG);
-    if (result.ok) {
-      this.tagConfig.load();
-      this.allTasks = this.tagConfig.applyTags(this.allTasks);
-      this.onDidChangeTreeDataEmitter.fire(undefined);
-    }
-    return result;
+  public addToQuick(task: CommandItem): void {
+    this.tagConfig.addTaskToTag(task, QUICK_TAG);
+    this.tagConfig.load();
+    this.allTasks = this.tagConfig.applyTags(this.allTasks);
+    this.onDidChangeTreeDataEmitter.fire(undefined);
   }
 
   /**
    * SPEC: quick-launch
    * Removes a command from the quick list.
    */
-  public removeFromQuick(task: CommandItem): Result<void, string> {
-    const result = this.tagConfig.removeTaskFromTag(task, QUICK_TAG);
-    if (result.ok) {
-      this.tagConfig.load();
-      this.allTasks = this.tagConfig.applyTags(this.allTasks);
-      this.onDidChangeTreeDataEmitter.fire(undefined);
-    }
-    return result;
+  public removeFromQuick(task: CommandItem): void {
+    this.tagConfig.removeTaskFromTag(task, QUICK_TAG);
+    this.tagConfig.load();
+    this.allTasks = this.tagConfig.applyTags(this.allTasks);
+    this.onDidChangeTreeDataEmitter.fire(undefined);
   }
 
   /**
@@ -110,22 +104,8 @@ export class QuickTasksProvider
    * Sorts tasks by display_order from junction table.
    */
   private sortByDisplayOrder(tasks: CommandItem[]): CommandItem[] {
-    const dbResult = getDb();
-    /* istanbul ignore if -- DB is always initialised before tree views render */
-    if (!dbResult.ok) {
-      return tasks.sort((a, b) => a.label.localeCompare(b.label));
-    }
-
-    const orderedIdsResult = getCommandIdsByTag({
-      handle: dbResult.value,
-      tagName: QUICK_TAG,
-    });
-    /* istanbul ignore if -- getCommandIdsByTag SELECT cannot fail with valid DB */
-    if (!orderedIdsResult.ok) {
-      return tasks.sort((a, b) => a.label.localeCompare(b.label));
-    }
-
-    const orderedIds = orderedIdsResult.value;
+    const handle = getDb();
+    const orderedIds = getCommandIdsByTag({ handle, tagName: QUICK_TAG });
     return [...tasks].sort((a, b) => {
       const indexA = orderedIds.indexOf(a.id);
       const indexB = orderedIds.indexOf(b.id);

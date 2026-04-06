@@ -4,8 +4,7 @@
  * All tag data stored in SQLite tags table (junction table design).
  */
 
-import type { CommandItem, Result } from "../models/TaskItem";
-import { err } from "../models/TaskItem";
+import type { CommandItem } from "../models/TaskItem";
 import { getDb } from "../db/lifecycle";
 import {
   addTagToCommand,
@@ -23,32 +22,16 @@ export class TagConfig {
    * Loads all tag assignments from SQLite junction table.
    */
   public load(): void {
-    const dbResult = getDb();
-    /* istanbul ignore if -- DB is always initialised before tag config loads */
-    if (!dbResult.ok) {
-      this.commandTagsMap = new Map();
-      return;
-    }
-
-    const tagNamesResult = getAllTagNames(dbResult.value);
-    /* istanbul ignore if -- getAllTagNames SELECT cannot fail with valid DB */
-    if (!tagNamesResult.ok) {
-      this.commandTagsMap = new Map();
-      return;
-    }
+    const handle = getDb();
+    const tagNames = getAllTagNames(handle);
 
     const map = new Map<string, string[]>();
-    for (const tagName of tagNamesResult.value) {
-      const commandIdsResult = getCommandIdsByTag({
-        handle: dbResult.value,
-        tagName,
-      });
-      if (commandIdsResult.ok) {
-        for (const commandId of commandIdsResult.value) {
-          const tags = map.get(commandId) ?? [];
-          tags.push(tagName);
-          map.set(commandId, tags);
-        }
+    for (const tagName of tagNames) {
+      const commandIds = getCommandIdsByTag({ handle, tagName });
+      for (const commandId of commandIds) {
+        const tags = map.get(commandId) ?? [];
+        tags.push(tagName);
+        map.set(commandId, tags);
       }
     }
     this.commandTagsMap = map;
@@ -70,59 +53,28 @@ export class TagConfig {
    * Gets all tag names.
    */
   public getTagNames(): string[] {
-    const dbResult = getDb();
-    /* istanbul ignore if -- DB is always initialised before tag operations */
-    if (!dbResult.ok) {
-      return [];
-    }
-    const result = getAllTagNames(dbResult.value);
-    return result.ok ? result.value : [];
+    const handle = getDb();
+    return getAllTagNames(handle);
   }
 
   /**
    * SPEC: tagging/management
    * Adds a task to a tag by creating junction record with exact command ID.
    */
-  public addTaskToTag(task: CommandItem, tagName: string): Result<void, string> {
-    const dbResult = getDb();
-    /* istanbul ignore if -- DB is always initialised before tag operations */
-    if (!dbResult.ok) {
-      return err(dbResult.error);
-    }
-
-    const result = addTagToCommand({
-      handle: dbResult.value,
-      commandId: task.id,
-      tagName,
-    });
-
-    if (result.ok) {
-      this.load();
-    }
-    return result;
+  public addTaskToTag(task: CommandItem, tagName: string): void {
+    const handle = getDb();
+    addTagToCommand({ handle, commandId: task.id, tagName });
+    this.load();
   }
 
   /**
    * SPEC: tagging/management
    * Removes a task from a tag by deleting junction record.
    */
-  public removeTaskFromTag(task: CommandItem, tagName: string): Result<void, string> {
-    const dbResult = getDb();
-    /* istanbul ignore if -- DB is always initialised before tag operations */
-    if (!dbResult.ok) {
-      return err(dbResult.error);
-    }
-
-    const result = removeTagFromCommand({
-      handle: dbResult.value,
-      commandId: task.id,
-      tagName,
-    });
-
-    if (result.ok) {
-      this.load();
-    }
-    return result;
+  public removeTaskFromTag(task: CommandItem, tagName: string): void {
+    const handle = getDb();
+    removeTagFromCommand({ handle, commandId: task.id, tagName });
+    this.load();
   }
 
   /**
@@ -130,38 +82,17 @@ export class TagConfig {
    * Gets ordered command IDs for a tag (ordered by display_order).
    */
   public getOrderedCommandIds(tagName: string): string[] {
-    const dbResult = getDb();
-    /* istanbul ignore if -- DB is always initialised before tag operations */
-    if (!dbResult.ok) {
-      return [];
-    }
-    const result = getCommandIdsByTag({
-      handle: dbResult.value,
-      tagName,
-    });
-    return result.ok ? result.value : [];
+    const handle = getDb();
+    return getCommandIdsByTag({ handle, tagName });
   }
 
   /**
    * SPEC: quick-launch
    * Reorders commands for a tag by updating display_order in junction table.
    */
-  public reorderCommands(tagName: string, orderedCommandIds: string[]): Result<void, string> {
-    const dbResult = getDb();
-    /* istanbul ignore if -- DB is always initialised before tag operations */
-    if (!dbResult.ok) {
-      return err(dbResult.error);
-    }
-
-    const result = reorderTagCommands({
-      handle: dbResult.value,
-      tagName,
-      orderedCommandIds,
-    });
-
-    if (result.ok) {
-      this.load();
-    }
-    return result;
+  public reorderCommands(tagName: string, orderedCommandIds: string[]): void {
+    const handle = getDb();
+    reorderTagCommands({ handle, tagName, orderedCommandIds });
+    this.load();
   }
 }

@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import type { CommandItem, Result, CategoryDef } from "./models/TaskItem";
+import type { CommandItem, CategoryDef } from "./models/TaskItem";
 import type { CommandTreeItem } from "./models/TaskItem";
 import type { DiscoveryResult } from "./discovery";
 import { discoverAllTasks, flattenTasks, getExcludePatterns, CATEGORY_DEFS } from "./discovery";
@@ -43,18 +43,10 @@ export class CommandTreeProvider implements vscode.TreeDataProvider<CommandTreeI
   }
 
   private loadSummaries(): void {
-    const dbResult = getDb();
-    /* istanbul ignore if -- DB is always initialised before tree views render */
-    if (!dbResult.ok) {
-      return;
-    }
-    const result = getAllRows(dbResult.value);
-    /* istanbul ignore if -- getAllRows SELECT cannot fail with a valid DB handle */
-    if (!result.ok) {
-      return;
-    }
+    const handle = getDb();
+    const rows = getAllRows(handle);
     const map = new Map<string, CommandRow>();
-    for (const row of result.value) {
+    for (const row of rows) {
       map.set(row.commandId, row);
     }
     this.summaries = map;
@@ -106,20 +98,14 @@ export class CommandTreeProvider implements vscode.TreeDataProvider<CommandTreeI
     return Array.from(tags).sort();
   }
 
-  public async addTaskToTag(task: CommandItem, tagName: string): Promise<Result<void, string>> {
-    const result = this.tagConfig.addTaskToTag(task, tagName);
-    if (result.ok) {
-      await this.refresh();
-    }
-    return result;
+  public async addTaskToTag(task: CommandItem, tagName: string): Promise<void> {
+    this.tagConfig.addTaskToTag(task, tagName);
+    await this.refresh();
   }
 
-  public async removeTaskFromTag(task: CommandItem, tagName: string): Promise<Result<void, string>> {
-    const result = this.tagConfig.removeTaskFromTag(task, tagName);
-    if (result.ok) {
-      await this.refresh();
-    }
-    return result;
+  public async removeTaskFromTag(task: CommandItem, tagName: string): Promise<void> {
+    this.tagConfig.removeTaskFromTag(task, tagName);
+    await this.refresh();
   }
 
   public getAllTasks(): CommandItem[] {

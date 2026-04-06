@@ -302,8 +302,7 @@ suite("Quick Launch E2E Tests (SQLite Junction Table)", () => {
       const configOrderedIds = tagConfig.getOrderedCommandIds(QUICK_TAG);
       assert.ok(configOrderedIds.length >= 3, "getOrderedCommandIds should return at least 3 IDs");
       const reversed = [...configOrderedIds].reverse();
-      const reorderResult = tagConfig.reorderCommands(QUICK_TAG, reversed);
-      assert.ok(reorderResult.ok, "reorderCommands should succeed");
+      tagConfig.reorderCommands(QUICK_TAG, reversed);
       const newOrderedIds = tagConfig.getOrderedCommandIds(QUICK_TAG);
       const firstReversed = reversed[0];
       const lastReversed = reversed[reversed.length - 1];

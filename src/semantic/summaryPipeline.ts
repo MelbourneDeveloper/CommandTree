@@ -6,8 +6,8 @@
 
 import type * as vscode from "vscode";
 import type { CommandItem } from "../models/TaskItem";
-import type { Result } from "../models/Result";
 import { ok, err } from "../models/Result";
+import type { Result } from "../models/Result";
 import { logger } from "../utils/logger";
 import { computeContentHash } from "../db/db";
 import type { FileSystemAdapter } from "./adapters";
@@ -50,10 +50,9 @@ async function findPendingSummaries(params: {
     const hash = computeContentHash(content);
     const existing = getRow({ handle: params.handle, commandId: task.id });
     const needsSummary =
-      !existing.ok ||
-      existing.value === undefined ||
-      existing.value.summary === "" ||
-      existing.value.contentHash !== hash;
+      existing === undefined ||
+      existing.summary === "" ||
+      existing.contentHash !== hash;
     if (needsSummary) {
       pending.push({ task, content, hash });
     }
@@ -96,13 +95,14 @@ async function processOneSummary(params: {
   }
 
   const warning = result.securityWarning === "" ? null : result.securityWarning;
-  return upsertSummary({
+  upsertSummary({
     handle: params.handle,
     commandId: params.task.id,
     contentHash: params.hash,
     summary: result.summary,
     securityWarning: warning,
   });
+  return ok(undefined);
 }
 
 /**
@@ -114,23 +114,18 @@ export async function registerAllCommands(params: {
   readonly workspaceRoot: string;
   readonly fs: FileSystemAdapter;
 }): Promise<Result<number, string>> {
-  const dbInit = initDb(params.workspaceRoot);
-  if (!dbInit.ok) {
-    return err(dbInit.error);
-  }
+  const handle = initDb(params.workspaceRoot);
 
   let registered = 0;
   for (const task of params.tasks) {
     const content = await readTaskContent({ task, fs: params.fs });
     const hash = computeContentHash(content);
-    const result = registerCommand({
-      handle: dbInit.value,
+    registerCommand({
+      handle,
       commandId: task.id,
       contentHash: hash,
     });
-    if (result.ok) {
-      registered++;
-    }
+    registered++;
   }
   return ok(registered);
 }
@@ -197,13 +192,10 @@ export async function summariseAllTasks(params: {
     return err(modelResult.error);
   }
 
-  const dbInit = initDb(params.workspaceRoot);
-  if (!dbInit.ok) {
-    return err(dbInit.error);
-  }
+  const handle = initDb(params.workspaceRoot);
 
   const pending = await findPendingSummaries({
-    handle: dbInit.value,
+    handle,
     tasks: params.tasks,
     fs: params.fs,
   });
@@ -214,7 +206,7 @@ export async function summariseAllTasks(params: {
 
   const state: BatchState = { succeeded: 0, failed: 0, aborted: false };
   for (const item of pending) {
-    await processPendingItem({ item, model: modelResult.value, handle: dbInit.value, state });
+    await processPendingItem({ item, model: modelResult.value, handle, state });
     params.onProgress?.(state.succeeded + state.failed, pending.length, item.task.label);
     if (state.aborted) {
       break;

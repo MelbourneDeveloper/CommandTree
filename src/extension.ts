@@ -24,7 +24,6 @@ export interface ExtensionExports {
 export async function activate(context: vscode.ExtensionContext): Promise<ExtensionExports | undefined> {
   const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
   logger.info("Extension activating", { workspaceRoot });
-  /* istanbul ignore if -- e2e tests always run with a workspace open */
   if (workspaceRoot === undefined || workspaceRoot === "") {
     logger.warn("No workspace root found, extension not activating");
     return;
@@ -38,7 +37,6 @@ export async function activate(context: vscode.ExtensionContext): Promise<Extens
   setupFileWatchers({
     context,
     onTaskFileChange: () => {
-      /* istanbul ignore next -- async Result-based functions do not throw */
       syncAndSummarise(workspaceRoot).catch((e: unknown) => {
         logger.error("Sync failed", {
           error: e instanceof Error ? e.message : "Unknown",
@@ -46,7 +44,6 @@ export async function activate(context: vscode.ExtensionContext): Promise<Extens
       });
     },
     onConfigChange: () => {
-      /* istanbul ignore next -- async Result-based functions do not throw */
       syncTagsFromJson(workspaceRoot).catch((e: unknown) => {
         logger.error("Config sync failed", {
           error: e instanceof Error ? e.message : "Unknown",
@@ -62,11 +59,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<Extens
 }
 
 function initDatabase(workspaceRoot: string): void {
-  const result = initDb(workspaceRoot);
-  /* istanbul ignore if -- DB always initialises successfully in test environment */
-  if (!result.ok) {
-    logger.warn("SQLite init failed", { error: result.error });
-  }
+  initDb(workspaceRoot);
 }
 
 function registerTreeViews(context: vscode.ExtensionContext): void {
@@ -304,7 +297,6 @@ async function registerDiscoveredCommands(workspaceRoot: string): Promise<void> 
   }
 }
 
-/* istanbul ignore next -- requires Copilot auth, not available in CI */
 function initAiSummaries(workspaceRoot: string): void {
   const aiConfig = vscode.workspace.getConfiguration("commandtree").get<boolean>("enableAiSummaries");
   if (aiConfig === false) {
@@ -318,7 +310,6 @@ function initAiSummaries(workspaceRoot: string): void {
   });
 }
 
-/* istanbul ignore next -- requires Copilot auth, not available in CI */
 async function runSummarisation(workspaceRoot: string): Promise<void> {
   const tasks = treeProvider.getAllTasks();
   logger.info("[SUMMARY] Starting", { taskCount: tasks.length });
@@ -359,7 +350,6 @@ function updateFilterContext(): void {
   vscode.commands.executeCommand("setContext", "commandtree.hasFilter", treeProvider.hasFilter());
 }
 
-/* istanbul ignore next -- called by VS Code on shutdown, not reachable during tests */
 export function deactivate(): void {
   disposeDb();
 }
