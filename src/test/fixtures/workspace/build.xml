@@ -13,4 +13,12 @@
   <target name="test" description="Run tests">
     <echo message="Running tests..." />
   </target>
+
+  <target name="deploy">
+    <echo message="Deploying..." />
+  </target>
+
+  <target name="" description="Empty name should be skipped">
+    <echo message="Skip" />
+  </target>
 </project>

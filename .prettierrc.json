@@ -1,0 +1,13 @@
+{
+  "_agent_pmo": "5547fd2",
+  "tabWidth": 2,
+  "useTabs": false,
+  "printWidth": 120,
+  "semi": true,
+  "singleQuote": false,
+  "trailingComma": "es5",
+  "bracketSpacing": true,
+  "arrowParens": "always",
+  "endOfLine": "lf",
+  "bracketSameLine": false
+}

@@ -4,6 +4,23 @@
 
 CommandTree recursively scans the workspace for runnable commands grouped by type. Discovery respects exclude patterns configured in settings. It does this in the background on low priority.
 
+## Parsing Strategy
+
+**[DISC-PARSE-STRATEGY]**
+
+Discovery modules MUST follow this hierarchy for parsing file formats:
+
+1. **VS Code built-in APIs** — Use when VS Code already parses the format natively. These are 100% reliable, handle edge cases (JSONC comments, variable substitution, input prompts), and produce zero maintenance burden. Examples:
+   - `vscode.tasks.fetchTasks()` for tasks.json
+   - `vscode.workspace.getConfiguration("launch")` for launch.json
+   - `JSON.parse()` for standard JSON files (npm, composer, deno)
+
+2. **No parsing** — If the format is simple enough that line-by-line text scanning works (shell comments, Python shebangs, Makefile targets), use that directly. No AST, no state machine.
+
+3. **Never** — Do NOT write ad-hoc parsers for structured formats (YAML, XML, TOML). If VS Code doesn't provide a built-in API and a proper parser library is needed, add one as a dependency.
+
+**Rationale**: Ad-hoc parsing of structured formats creates exponential branch complexity, is impossible to fully test, and silently breaks on valid input the author didn't anticipate. VS Code's built-in parsers are maintained by Microsoft, handle all edge cases, and cost zero lines of code.
+
 ## Shell Scripts
 
 **SPEC-DISC-010**

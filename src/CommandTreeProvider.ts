@@ -9,7 +9,7 @@ import { buildNestedFolderItems } from "./tree/folderTree";
 import { createCommandNode, createCategoryNode } from "./tree/nodeFactory";
 import { getAllRows } from "./db/db";
 import type { CommandRow } from "./db/db";
-import { getDb } from "./db/lifecycle";
+import { getDbOrThrow } from "./db/lifecycle";
 
 type SortOrder = "folder" | "name" | "type";
 
@@ -33,17 +33,23 @@ export class CommandTreeProvider implements vscode.TreeDataProvider<CommandTreeI
   }
 
   public async refresh(): Promise<void> {
+    logger.info("CommandTreeProvider.refresh() starting");
     this.tagConfig.load();
+    logger.info("Tag config loaded, getting exclude patterns");
     const excludePatterns = getExcludePatterns();
+    logger.info("Exclude patterns", { excludePatterns });
     this.discoveryResult = await discoverAllTasks(this.workspaceRoot, excludePatterns);
+    logger.info("Discovery result received, flattening tasks");
     this.commands = this.tagConfig.applyTags(flattenTasks(this.discoveryResult));
+    logger.info("Tasks flattened and tagged", { count: this.commands.length });
     this.loadSummaries();
     this.commands = this.attachSummaries(this.commands);
+    logger.info("Summaries attached, firing tree change event");
     this._onDidChangeTreeData.fire(undefined);
   }
 
   private loadSummaries(): void {
-    const handle = getDb();
+    const handle = getDbOrThrow();
     const rows = getAllRows(handle);
     const map = new Map<string, CommandRow>();
     for (const row of rows) {
@@ -118,10 +124,13 @@ export class CommandTreeProvider implements vscode.TreeDataProvider<CommandTreeI
 
   public async getChildren(element?: CommandTreeItem): Promise<CommandTreeItem[]> {
     if (!this.discoveryResult) {
+      logger.info("getChildren: no discovery result yet, triggering refresh");
       await this.refresh();
     }
     if (!element) {
-      return this.buildRootCategories();
+      const roots = this.buildRootCategories();
+      logger.info("getChildren: root categories built", { categoryCount: roots.length });
+      return roots;
     }
     return element.children;
   }

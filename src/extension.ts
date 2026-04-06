@@ -28,10 +28,20 @@ export async function activate(context: vscode.ExtensionContext): Promise<Extens
     logger.warn("No workspace root found, extension not activating");
     return;
   }
-  initDatabase(workspaceRoot);
+  try {
+    logger.info("Initialising database");
+    initDatabase(workspaceRoot);
+    logger.info("Database initialised, creating providers");
+  } catch (e: unknown) {
+    logger.error("Database init FAILED", {
+      error: e instanceof Error ? e.message : String(e),
+      stack: e instanceof Error ? e.stack : undefined,
+    });
+  }
   treeProvider = new CommandTreeProvider(workspaceRoot);
   quickTasksProvider = new QuickTasksProvider();
   taskRunner = new TaskRunner();
+  logger.info("Registering tree views and commands");
   registerTreeViews(context);
   registerCommands(context);
   setupFileWatchers({
@@ -51,10 +61,29 @@ export async function activate(context: vscode.ExtensionContext): Promise<Extens
       });
     },
   });
-  await syncQuickTasks();
-  await registerDiscoveredCommands(workspaceRoot);
-  await syncTagsFromJson(workspaceRoot);
+  try {
+    logger.info("Starting syncQuickTasks (initial refresh)");
+    await syncQuickTasks();
+    logger.info("syncQuickTasks complete", { taskCount: treeProvider.getAllTasks().length });
+  } catch (e: unknown) {
+    logger.error("syncQuickTasks FAILED", {
+      error: e instanceof Error ? e.message : String(e),
+      stack: e instanceof Error ? e.stack : undefined,
+    });
+  }
+  try {
+    await registerDiscoveredCommands(workspaceRoot);
+    logger.info("Syncing tags from JSON");
+    await syncTagsFromJson(workspaceRoot);
+  } catch (e: unknown) {
+    logger.error("Post-discovery steps FAILED", {
+      error: e instanceof Error ? e.message : String(e),
+      stack: e instanceof Error ? e.stack : undefined,
+    });
+  }
+  logger.info("Initialising AI summaries");
   initAiSummaries(workspaceRoot);
+  logger.info("Extension activation complete");
   return { commandTreeProvider: treeProvider, quickTasksProvider };
 }
 

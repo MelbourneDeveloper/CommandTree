@@ -16,7 +16,7 @@ import {
   getLabelString,
 } from "../helpers/helpers";
 import type { CommandTreeProvider, QuickTasksProvider } from "../helpers/helpers";
-import { getDb } from "../../db/lifecycle";
+import { getDbOrThrow } from "../../db/lifecycle";
 import { getCommandIdsByTag, getTagsForCommand } from "../../db/db";
 import { createCommandNode } from "../../tree/nodeFactory";
 import { isCommandItem } from "../../models/TaskItem";
@@ -74,7 +74,7 @@ suite("Quick Launch E2E Tests (SQLite Junction Table)", () => {
       await sleep(1000);
 
       // Verify stored in database with 'quick' tag
-      const handle = getDb();
+      const handle = getDbOrThrow();
 
       const tags = getTagsForCommand({
         handle,
@@ -110,7 +110,7 @@ suite("Quick Launch E2E Tests (SQLite Junction Table)", () => {
       await vscode.commands.executeCommand("commandtree.addToQuick", addItem);
       await sleep(1000);
 
-      const handle = getDb();
+      const handle = getDbOrThrow();
 
       // Verify quick tag exists
       let tags = getTagsForCommand({
@@ -214,7 +214,7 @@ suite("Quick Launch E2E Tests (SQLite Junction Table)", () => {
       await vscode.commands.executeCommand("commandtree.addToQuick", item);
       await sleep(1000);
 
-      const handle = getDb();
+      const handle = getDbOrThrow();
 
       const initialIds = getCommandIdsByTag({
         handle,
@@ -265,7 +265,7 @@ suite("Quick Launch E2E Tests (SQLite Junction Table)", () => {
       await sleep(1000);
 
       // Check database directly for display_order values
-      const handle = getDb();
+      const handle = getDbOrThrow();
 
       const orderedIds = getCommandIdsByTag({
         handle,

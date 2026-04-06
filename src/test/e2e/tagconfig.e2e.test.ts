@@ -10,7 +10,7 @@ import * as assert from "assert";
 import * as vscode from "vscode";
 import { activateExtension, sleep, getCommandTreeProvider } from "../helpers/helpers";
 import type { CommandTreeProvider } from "../helpers/helpers";
-import { getDb } from "../../db/lifecycle";
+import { getDbOrThrow } from "../../db/lifecycle";
 import { getCommandIdsByTag, getTagsForCommand } from "../../db/db";
 
 // SPEC: tagging
@@ -40,7 +40,7 @@ suite("Junction Table Tagging E2E Tests", () => {
     await sleep(500);
 
     // Verify tag stored in database with exact command ID
-    const handle = getDb();
+    const handle = getDbOrThrow();
 
     const tags = getTagsForCommand({
       handle,
@@ -72,7 +72,7 @@ suite("Junction Table Tagging E2E Tests", () => {
     await vscode.commands.executeCommand("commandtree.addTag", task, testTag);
     await sleep(500);
 
-    const handle = getDb();
+    const handle = getDbOrThrow();
 
     // Verify tag exists
     let tags = getTagsForCommand({
@@ -108,7 +108,7 @@ suite("Junction Table Tagging E2E Tests", () => {
     await vscode.commands.executeCommand("commandtree.addTag", task, testTag);
     await sleep(500);
 
-    const handle = getDb();
+    const handle = getDbOrThrow();
 
     const tags1 = getTagsForCommand({
       handle,
@@ -150,7 +150,7 @@ suite("Junction Table Tagging E2E Tests", () => {
     await sleep(500);
 
     // Verify database has exact ID for task1 only
-    const handle = getDb();
+    const handle = getDbOrThrow();
 
     const taggedIds = getCommandIdsByTag({
       handle,
@@ -183,7 +183,7 @@ suite("Junction Table Tagging E2E Tests", () => {
     }
 
     // Verify pattern matching: "scripts" tag applies to shell tasks (type: "shell" pattern)
-    const handle = getDb();
+    const handle = getDbOrThrow();
     const scriptsIds = getCommandIdsByTag({
       handle,
       tagName: "scripts",

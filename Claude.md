@@ -1,168 +1,201 @@
-# CLAUDE.md - CommandTree Extension
+<!-- agent-pmo:5547fd2 -->
+# CommandTree — Agent Instructions
 
 ⚠️ CRITICAL: **Reduce token usage.** Check file size before loading. Write less. Delete fluff and dead code. Alert user when context is loaded with pointless files. ⚠️ 
 
-## Too Many Cooks
+> Read this entire file before writing any code.
+> These rules are NON-NEGOTIABLE. Violations will be rejected in review.
 
-You are working with many other agents. Make sure there is effective cooperation
-- Register on TMC immediately
-- Don't edit files that are locked; lock files when editing
-- COMMUNICATE REGULARLY AND COORDINATE WITH OTHERS THROUGH MESSAGES
+## Project Overview
 
-## Coding Rules
+CommandTree is a VS Code extension that discovers and organizes runnable tasks (npm scripts, Makefiles, shell scripts, launch configs, etc.) into a unified tree view sidebar. It supports tagging, quick launch, AI-generated summaries, and 20+ task discovery providers.
 
-- **Zero duplication - TOP PRIORITY** - Always search for existing code before adding. Move; don't copy files. Add assertions to tests rather than duplicating tests. AIM FOR LESS CODE!
-- **No string literals** - Named constants only, and it ONE location
-- DO NOT USE GIT
-- **Functional style** - Prefer pure functions, avoid classes where possible
-- **No suppressing warnings** - Fix them properly
-- Text matching (including Regex) is illegal. Use a proper parser/treesitter. If text matching is absolutely necessary, prefer Regex
-- **Expressions over assignments** - Prefer const and immutable patterns
-- **Named parameters** - Use object params for functions with 3+ args
-- **Keep files under 450 LOC and functions under 20 LOC**
-- **No commented-out code** - Delete it
-- **No placeholders** - If incomplete, leave LOUD compilation error with TODO
+**Primary language(s):** TypeScript
+**Build command:** `make ci`
+**Test command:** `make test`
+**Lint command:** `make lint`
 
-### Typescript
+## Too Many Cooks (Multi-Agent Coordination)
+
+If the TMC server is available:
+1. Register immediately: descriptive name, intent, files you will touch
+2. Before editing any file: lock it via TMC
+3. Broadcast your plan before starting work
+4. Check messages every few minutes
+5. Release locks immediately when done
+6. Never edit a locked file — wait or find another approach
+
+## Hard Rules — Universal (no exceptions)
+
+- **DO NOT use git commands.** No `git add`, `git commit`, `git push`, `git checkout`, `git merge`, `git rebase`, or any other git command. CI and GitHub Actions handle git.
+- **ZERO DUPLICATION.** Before writing any code, search the codebase for existing implementations. Move code, don't copy it.
+- **NO THROWING EXCEPTIONS.** Return `Result<T,E>` or the language equivalent. Exceptions are only for unrecoverable bugs (panic-level).
+- **NO REGEX on structured data.** Never parse JSON, YAML, TOML, code, or any structured format with regex. Use proper parsers, AST tools, or library functions. If text matching is absolutely necessary, prefer Regex.
+- **NO PLACEHOLDERS.** If something isn't implemented, leave a loud compilation error with TODO. Never write code that silently does nothing.
+- **Functions < 20 lines.** Refactor aggressively. If a function exceeds 20 lines, split it.
+- **Files < 450 lines.** If a file exceeds 450 lines, extract modules.
+- **100% test coverage is the goal.** Never delete or skip tests. Never remove assertions.
+- **Prefer E2E/integration tests.** Unit tests are acceptable only for isolating problems.
+- **No suppressing linter warnings.** Fix the code, not the linter.
+- **Pure functions** over statements. Prefer const and immutable patterns.
+- **No string literals** — Named constants only, in ONE location.
+- **Named parameters** — Use object params for functions with 3+ args.
+- **No commented-out code** — Delete it.
+- **Every spec section MUST have a unique, hierarchical, non-numeric ID.** Format: `[GROUP-TOPIC]` or `[GROUP-TOPIC-DETAIL]` (e.g., `[AUTH-TOKEN-VERIFY]`, `[CI-TIMEOUT]`). The first word is the **group** — all sections in the same group MUST be adjacent in the spec's TOC. NEVER use sequential numbers like `[SPEC-001]`. All code, tests, and design docs that implement or relate to a spec section MUST reference its ID in a comment.
+
+## Logging Standards
+
+- **Use a structured logging library.** Never use `console.log` for diagnostics. Use a proper structured logging library.
+- **Log at entry/exit of all significant operations.** Use appropriate levels: `error`, `warn`, `info`, `debug`, `trace`.
+- **Structured fields over string interpolation.** Log `{ "userId": 42, "action": "checkout" }` not `"User 42 performed checkout"`.
+- **VS Code extensions:** Write detailed logs to a file in the extension's state folder. Basic errors and diagnostics MUST also appear in the extension's VS Code Output Channel so users can see them without hunting for files.
+- **NEVER log personal data.** No names, emails, addresses, phone numbers, IP addresses, or any PII.
+- **NEVER log secrets.** No API keys, tokens, passwords, connection strings, or credentials.
+
+### Logging Library
+
+| Language | Library | Notes |
+|----------|---------|-------|
+| TypeScript/Node | `pino` | JSON structured logging; use `pino-pretty` for dev |
+
+## Hard Rules — TypeScript
+
 - **CENTRALIZE global state** Keep it in one type/file.
-- **TypeScript strict mode** - No `any`, no implicit types, turn all lints up to error
-- **Regularly run the linter** - Fix lint errors IMMEDIATELY
-- **Decouple providers from the VSCODE SDK** - No vscode sdk use within the providers
-- **Ignoring lints = ⛔️ illegal** - Fix violations immediately
-- **No throwing** - Only return `Result<T,E>`
+- **TypeScript strict mode** — No `any`, no implicit types, turn all lints up to error
+- No `!` (non-null assertion) — use optional chaining or explicit guards
+- No implicit `any` — all function parameters and return types must be annotated
+- No `// @ts-ignore` or `// @ts-nocheck`
+- No `as Type` casts without a comment explaining why it's safe
+- Strict mode always on (`tsconfig.json` must have `"strict": true`)
+- No throwing — return `Result<T, E>` using a discriminated union
+- **Regularly run the linter** — Fix lint errors IMMEDIATELY
+- **Decouple providers from the VSCODE SDK** — No vscode sdk use within the providers
+- **Ignoring lints = illegal** — Fix violations immediately
 
 ### CSS
-- **Minimize duplication** - fewer classes is better
-- **Don't include section in class name** - name them after what they are - not the section they sit in
 
-## Testing
+- **Minimize duplication** — fewer classes is better
+- **Don't include section in class name** — name them after what they are - not the section they sit in
 
-⚠️ NEVER KILL VSCODE PROCESSES
+## Testing Rules
 
-#### Rules
-- **Prefer e2e tests over unit tests** - only unit tests for isolating bugs
-- Separate e2e tests from unit tests by file. They should not be in the same file together.
+- **Never delete a failing test.** Fix the code or fix the test expectation — never delete.
+- **Never skip a test** without a ticket number and expiry date in the skip reason.
+- **Assertions must be specific.** `assert.ok(true)` without a condition is illegal.
+- **No try/catch in tests** that swallows the exception and asserts success.
+- **Tests must be deterministic.** No sleep(), no relying on timing, no random state.
+- **E2E tests: black-box only.** Only interact via VS Code commands or UI. Never call provider methods directly.
+- NEVER KILL VSCODE PROCESSES
+- Separate e2e tests from unit tests by file
 - Tests must prove USER INTERACTIONS work
 - E2E tests should have multiple user interactions each and loads of assertions
 - Prefer adding assertions to existing tests rather than adding new tests
 - Test files in `src/test/suite/*.test.ts`
 - Run tests: `npm test`
-- NEVER remove assertions
-- FAILING TEST = ✅ OK. TEST THAT DOESN'T ENFORCE BEHAVIOR = ⛔️ ILLEGAL
+- FAILING TEST = OK. TEST THAT DOESN'T ENFORCE BEHAVIOR = ILLEGAL
 - Unit test = No VSCODE instance needed = isolation only test
 
 ### Automated (E2E) Testing
 
 **AUTOMATED TESTING IS BLACK BOX TESTING ONLY**
-Only test the UI **THROUGH the UI**. Do not run command etc. to coerce the state. You are testing the UI, not the code.
+Only test the UI **THROUGH the UI**. Do not run commands etc. to coerce the state.
 
 - Tests run in actual VS Code window via `@vscode/test-electron`
-- Automated tests must not modify internal state or call functions that do. They must only use the extension through the UI. 
- * - ❌ Calling internal methods like provider.updateTasks()
- * - ❌ Calling provider.refresh() directly
- * - ❌ Manipulating internal state directly
- * - ❌ Using any method not exposed via VS Code commands
- * - ❌ Using commands that should just happen as part of normal use. e.g.: `await vscode.commands.executeCommand('commandtree.refresh');`
- * - ❌ `executeCommand('commandtree.addToQuick', item)` - TAP the item via the DOM!!!
+- Automated tests must not modify internal state or call functions that do:
+  - No calling internal methods like provider.updateTasks()
+  - No calling provider.refresh() directly
+  - No manipulating internal state directly
+  - No using any method not exposed via VS Code commands
+  - No using commands that should just happen as part of normal use (e.g., commandtree.refresh)
 
 ### Test First Process
 - Write test that fails because of bug/missing feature
 - Run tests to verify that test fails because of this reason
 - Adjust test and repeat until you see failure for the reason above
 - Add missing feature or fix bug
-- Run tests to verify test passes.
+- Run tests to verify test passes
 - Repeat and fix until test passes WITHOUT changing the test
 
-**Every test MUST:**
-1. Assert on the ACTUAL OBSERVABLE BEHAVIOR (UI state, view contents, return values)
-2. Fail if the feature is broken
-3. Test the full flow, not just side effects like config files
+### Fake Tests Are Illegal
 
-### ⛔️ FAKE TESTS ARE ILLEGAL
+A "fake test" is any test that passes without actually verifying behavior:
+- `assert.ok(true, 'Should work')` — asserts true unconditionally
+- `try { await doSomething(); } catch { } assert.ok(true)` — no assertion on actual behavior
+- Only checking config file, not actual UI/view behavior
+- Empty catch with success assertion
 
-**A "fake test" is any test that passes without actually verifying behavior. These are STRICTLY FORBIDDEN:**
+## Website
 
-```typescript
-// ❌ ILLEGAL - asserts true unconditionally
-assert.ok(true, 'Should work');
+**Optimise for SEO and AI**: always pay attention to this when writing content
 
-// ❌ ILLEGAL - no assertion on actual behavior
-try { await doSomething(); } catch { }
-assert.ok(true, 'Did not crash');
+[Top ways to ensure content performs well in Google's AI experiences](https://developers.google.com/search/blog/2025/05/succeeding-in-ai-search)
+[SEO Starter Guide](https://developers.google.com/search/docs/fundamentals/seo-starter-guide)
+[How to optimise AI overviews](https://studiohawk.com.au/blog/how-to-optimise-ai-overviews/)
+[Optimizing content for AI search](https://about.ads.microsoft.com/en/blog/post/october-2025/optimizing-your-content-for-inclusion-in-ai-search-answers)
+[Implementing Social Media Preview Cards](https://documentation.platformos.com/use-cases/implementing-social-media-preview-cards)
 
-// ❌ ILLEGAL - only checks config file, not actual UI/view behavior
-writeConfig({ quick: ['task1'] });
-const config = readConfig();
-assert.ok(config.quick.includes('task1')); // This doesn't test the FEATURE
+## Build Commands (cross-platform via GNU Make)
 
-// ❌ ILLEGAL - empty catch with success assertion
-try { await command(); } catch { /* swallow */ }
-assert.ok(true, 'Command ran');
+```bash
+make build          # compile everything
+make test           # run tests with coverage
+make lint           # run all linters
+make fmt            # format all code
+make fmt-check      # check formatting (CI uses this)
+make clean          # remove build artifacts
+make check          # lint + test (pre-commit)
+make ci             # fmt-check + lint + spellcheck + test + build + package
+make coverage       # generate and open coverage report
+make coverage-check # assert coverage thresholds
+make spellcheck     # run cspell spell checker
+make package        # build VSIX package
+make setup          # post-create dev environment setup
 ```
 
 ## Critical Docs
 
-### Vscode SDK
+### VS Code SDK
 [VSCode Extension API](https://code.visualstudio.com/api/)
 [VSCode Extension Testing API](https://code.visualstudio.com/api/extension-guides/testing)
 [VSCODE Language Model API](https://code.visualstudio.com/api/extension-guides/ai/language-model)
 [Language Model Tool API](https://code.visualstudio.com/api/extension-guides/ai/tools)
-[AI extensibility in VS Cod](https://code.visualstudio.com/api/extension-guides/ai/ai-extensibility-overview)
+[AI extensibility in VS Code](https://code.visualstudio.com/api/extension-guides/ai/ai-extensibility-overview)
 [AI language models in VS Code](https://code.visualstudio.com/docs/copilot/customization/language-models)
 
-### Website
-
-https://developers.google.com/search/blog/2025/05/succeeding-in-ai-search
-https://developers.google.com/search/docs/fundamentals/seo-starter-guide
-
-https://studiohawk.com.au/blog/how-to-optimise-ai-overviews/
-https://about.ads.microsoft.com/en/blog/post/october-2025/optimizing-your-content-for-inclusion-in-ai-search-answers
-
-https://documentation.platformos.com/use-cases/implementing-social-media-preview-cards
-
-## Project Structure
+## Repo Structure
 
 ```
 CommandTree/
+├── .claude/skills/          # Agent skills
+├── .github/
+│   ├── workflows/
+│   │   ├── ci.yml
+│   │   ├── release.yml
+│   │   └── deploy-pages.yml
+│   └── pull_request_template.md
+├── docs/
+│   ├── specs/               # Behavior specifications
+│   └── plans/               # Goal-oriented plans with TODO checklists
 ├── src/
-│   ├── extension.ts          # Entry point, command registration
-│   ├── CommandTreeProvider.ts   # TreeDataProvider implementation
+│   ├── extension.ts         # Entry point, command registration
+│   ├── CommandTreeProvider.ts  # TreeDataProvider implementation
 │   ├── config/
-│   │   └── TagConfig.ts      # Tag configuration from commandtree.json
-│   ├── discovery/
-│   │   ├── index.ts          # Discovery orchestration
-│   │   ├── shell.ts          # Shell scripts (.sh, .bash, .zsh)
-│   │   ├── npm.ts            # NPM scripts (package.json)
-│   │   ├── make.ts           # Makefile targets
-│   │   ├── launch.ts         # VS Code launch configs
-│   │   ├── tasks.ts          # VS Code tasks
-│   │   ├── python.ts         # Python scripts (.py)
-│   │   ├── powershell.ts     # PowerShell scripts (.ps1)
-│   │   ├── gradle.ts         # Gradle tasks
-│   │   ├── cargo.ts          # Cargo (Rust) tasks
-│   │   ├── maven.ts          # Maven goals (pom.xml)
-│   │   ├── ant.ts            # Ant targets (build.xml)
-│   │   ├── just.ts           # Just recipes (justfile)
-│   │   ├── taskfile.ts       # Taskfile tasks (Taskfile.yml)
-│   │   ├── deno.ts           # Deno tasks (deno.json)
-│   │   ├── rake.ts           # Rake tasks (Rakefile)
-│   │   ├── composer.ts       # Composer scripts (composer.json)
-│   │   ├── docker.ts         # Docker Compose services
-│   │   ├── dotnet.ts         # .NET projects (.csproj)
-│   │   ├── csharp-script.ts  # C# scripts (.csx)
-│   │   ├── fsharp-script.ts  # F# scripts (.fsx)
-│   │   ├── mise.ts           # Mise tasks
-│   │   └── markdown.ts       # Markdown files (.md)
+│   │   └── TagConfig.ts     # Tag configuration from commandtree.json
+│   ├── discovery/           # 20+ task discovery providers
 │   ├── models/
-│   │   └── TaskItem.ts       # Task data model and TreeItem
+│   │   └── TaskItem.ts      # Task data model and TreeItem
 │   ├── runners/
-│   │   └── TaskRunner.ts     # Task execution logic
+│   │   └── TaskRunner.ts    # Task execution logic
 │   └── test/
-│       └── suite/            # E2E test files
-├── test-fixtures/            # Test workspace files
-├── package.json              # Extension manifest
-├── tsconfig.json             # TypeScript config
-└── .vscode-test.mjs          # Test runner config
+│       └── suite/           # E2E test files
+├── test-fixtures/           # Test workspace files
+├── website/                 # 11ty static site
+├── package.json             # Extension manifest
+├── tsconfig.json            # TypeScript config
+├── eslint.config.mjs        # ESLint flat config
+├── .prettierrc.json         # Prettier config
+├── Makefile                 # Build targets
+└── .vscode-test.mjs         # Test runner config
 ```
 
 ## Commands
@@ -183,10 +216,6 @@ CommandTree/
 | `commandtree.selectModel` | Select AI model |
 | `commandtree.openPreview` | Open markdown preview |
 
-## Build Commands
-
-See [text](package.json)
-
 ## Adding New Task Types
 
 1. Create discovery module in `src/discovery/`
@@ -195,29 +224,6 @@ See [text](package.json)
 4. Add category in `CommandTreeProvider.buildRootCategories()`
 5. Handle execution in `TaskRunner.run()`
 6. Add E2E tests in `src/test/suite/discovery.test.ts`
-
-## VS Code API Patterns
-
-```typescript
-// Register command
-context.subscriptions.push(
-    vscode.commands.registerCommand('commandtree.xxx', handler)
-);
-
-// File watcher
-const watcher = vscode.workspace.createFileSystemWatcher('**/pattern');
-watcher.onDidChange(() => refresh());
-context.subscriptions.push(watcher);
-
-// Tree view
-const treeView = vscode.window.createTreeView('commandtree', {
-    treeDataProvider: provider,
-    showCollapseAll: true
-});
-
-// Context for when clauses
-vscode.commands.executeCommand('setContext', 'commandtree.hasFilter', true);
-```
 
 ## Configuration
 

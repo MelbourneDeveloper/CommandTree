@@ -5,7 +5,7 @@
  */
 
 import type { CommandItem } from "../models/TaskItem";
-import { getDb } from "../db/lifecycle";
+import { getDbOrThrow } from "../db/lifecycle";
 import {
   addTagToCommand,
   removeTagFromCommand,
@@ -22,7 +22,7 @@ export class TagConfig {
    * Loads all tag assignments from SQLite junction table.
    */
   public load(): void {
-    const handle = getDb();
+    const handle = getDbOrThrow();
     const tagNames = getAllTagNames(handle);
 
     const map = new Map<string, string[]>();
@@ -53,8 +53,7 @@ export class TagConfig {
    * Gets all tag names.
    */
   public getTagNames(): string[] {
-    const handle = getDb();
-    return getAllTagNames(handle);
+    return getAllTagNames(getDbOrThrow());
   }
 
   /**
@@ -62,8 +61,7 @@ export class TagConfig {
    * Adds a task to a tag by creating junction record with exact command ID.
    */
   public addTaskToTag(task: CommandItem, tagName: string): void {
-    const handle = getDb();
-    addTagToCommand({ handle, commandId: task.id, tagName });
+    addTagToCommand({ handle: getDbOrThrow(), commandId: task.id, tagName });
     this.load();
   }
 
@@ -72,8 +70,7 @@ export class TagConfig {
    * Removes a task from a tag by deleting junction record.
    */
   public removeTaskFromTag(task: CommandItem, tagName: string): void {
-    const handle = getDb();
-    removeTagFromCommand({ handle, commandId: task.id, tagName });
+    removeTagFromCommand({ handle: getDbOrThrow(), commandId: task.id, tagName });
     this.load();
   }
 
@@ -82,8 +79,7 @@ export class TagConfig {
    * Gets ordered command IDs for a tag (ordered by display_order).
    */
   public getOrderedCommandIds(tagName: string): string[] {
-    const handle = getDb();
-    return getCommandIdsByTag({ handle, tagName });
+    return getCommandIdsByTag({ handle: getDbOrThrow(), tagName });
   }
 
   /**
@@ -91,8 +87,7 @@ export class TagConfig {
    * Reorders commands for a tag by updating display_order in junction table.
    */
   public reorderCommands(tagName: string, orderedCommandIds: string[]): void {
-    const handle = getDb();
-    reorderTagCommands({ handle, tagName, orderedCommandIds });
+    reorderTagCommands({ handle: getDbOrThrow(), tagName, orderedCommandIds });
     this.load();
   }
 }

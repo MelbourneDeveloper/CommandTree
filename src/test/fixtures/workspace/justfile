@@ -13,3 +13,11 @@ deploy env="staging":
 # Private task (won't be shown)
 _internal:
     echo "Internal task"
+
+# Lint code with optional fix
+lint fix="false":
+    echo "Linting with fix={{fix}}"
+
+# Format source code
+format:
+    echo "Formatting..."

@@ -11,6 +11,7 @@ import { TagConfig } from "./config/TagConfig";
 import { getDb } from "./db/lifecycle";
 import { getCommandIdsByTag } from "./db/db";
 import { createCommandNode, createPlaceholderNode } from "./tree/nodeFactory";
+import { logger } from "./utils/logger";
 
 const QUICK_TASK_MIME_TYPE = "application/vnd.commandtree.quicktask";
 const QUICK_TAG = "quick";
@@ -104,8 +105,12 @@ export class QuickTasksProvider
    * Sorts tasks by display_order from junction table.
    */
   private sortByDisplayOrder(tasks: CommandItem[]): CommandItem[] {
-    const handle = getDb();
-    const orderedIds = getCommandIdsByTag({ handle, tagName: QUICK_TAG });
+    const dbResult = getDb();
+    if (!dbResult.ok) {
+      logger.warn("sortByDisplayOrder: DB unavailable", { error: dbResult.error });
+      return [...tasks].sort((a, b) => a.label.localeCompare(b.label));
+    }
+    const orderedIds = getCommandIdsByTag({ handle: dbResult.value, tagName: QUICK_TAG });
     return [...tasks].sort((a, b) => {
       const indexA = orderedIds.indexOf(a.id);
       const indexB = orderedIds.indexOf(b.id);
@@ -157,8 +162,12 @@ export class QuickTasksProvider
    * Fetches ordered command IDs for the quick tag from the DB.
    */
   private fetchOrderedQuickIds(): string[] {
-    const handle = getDb();
-    return getCommandIdsByTag({ handle, tagName: QUICK_TAG });
+    const dbResult = getDb();
+    if (!dbResult.ok) {
+      logger.warn("fetchOrderedQuickIds: DB unavailable", { error: dbResult.error });
+      return [];
+    }
+    return getCommandIdsByTag({ handle: dbResult.value, tagName: QUICK_TAG });
   }
 
   /**
@@ -195,7 +204,12 @@ export class QuickTasksProvider
    * Persists display_order for each command in the reordered list.
    */
   private persistDisplayOrder(reordered: string[]): void {
-    const handle = getDb();
+    const dbResult = getDb();
+    if (!dbResult.ok) {
+      logger.warn("persistDisplayOrder: DB unavailable", { error: dbResult.error });
+      return;
+    }
+    const handle = dbResult.value;
     for (let i = 0; i < reordered.length; i++) {
       const commandId = reordered[i];
       if (commandId !== undefined) {

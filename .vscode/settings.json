@@ -20,5 +20,11 @@
   "editor.codeActionsOnSave": {
     "source.fixAll.eslint": "explicit",
     "commandtree.enableAiSummaries": "explicit"
+  },
+  "workbench.colorCustomizations": {
+    "titleBar.activeBackground": "#2a8c7a",
+    "titleBar.activeForeground": "#ffffff",
+    "titleBar.inactiveBackground": "#1f6e5f",
+    "titleBar.inactiveForeground": "#ffffffcc"
   }
 }

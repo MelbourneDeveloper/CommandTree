@@ -1,62 +1,106 @@
 ---
 name: ci-prep
-description: Prepare the codebase for CI. Reads the CI workflow, builds a checklist, then loops through format/lint/build/test/coverage until every single check passes. Use before submitting a PR or when the user wants to ensure CI will pass.
-argument-hint: "[optional focus area]"
-allowed-tools: Read, Grep, Glob, Edit, Write, Bash
+description: Prepares the current branch for CI by running the exact same steps locally and fixing issues. If CI is already failing, fetches the GH Actions logs first to diagnose. Use before pushing, when CI is red, or when the user says "fix ci".
+argument-hint: "[--failing] [optional job name to focus on]"
 ---
+<!-- agent-pmo:5547fd2 -->
 
-# CI Prep — Get the Codebase PR-Ready
+# CI Prep
 
-You MUST NOT STOP until every check passes and coverage threshold is met.
+Prepare the current state for CI. If CI is already failing, fetch and analyze the logs first.
 
-## Step 1: Read the CI Pipeline and Build Your Checklist
+## Arguments
 
-Read the CI workflow file:
+- `--failing` — Indicates a GitHub Actions run is already failing. When present, you MUST execute **Step 1** before doing anything else.
+- Any other argument is treated as a job name to focus on (but all failures are still reported).
+
+If `--failing` is NOT passed, skip directly to **Step 2**.
+
+## Step 1 — Fetch failed CI logs (only when `--failing`)
+
+You MUST do this before any other work.
 
 ```bash
-cat .github/workflows/ci.yml
+BRANCH=$(git branch --show-current)
+PR_JSON=$(gh pr list --head "$BRANCH" --state open --json number,title,url --limit 1)
 ```
 
-Parse EVERY step in the workflow. Extract the exact commands CI runs. Build yourself a numbered checklist of every check you need to pass. This is YOUR checklist — derived from the actual CI config, not from assumptions. The CI pipeline changes over time so you MUST read it fresh and build your list from what you find.
+If the JSON array is empty, **stop immediately**:
+> No open PR found for branch `$BRANCH`. Create a PR first.
 
-## Step 2: Coordinate with Other Agents
+Otherwise fetch the logs:
 
-You are likely working alongside other agents who are editing files concurrently. Before making changes:
+```bash
+PR_NUMBER=$(echo "$PR_JSON" | jq -r '.[0].number')
+gh pr checks "$PR_NUMBER"
+RUN_ID=$(gh run list --branch "$BRANCH" --limit 1 --json databaseId --jq '.[0].databaseId')
+gh run view "$RUN_ID"
+gh run view "$RUN_ID" --log-failed
+```
 
-1. Check TMC status and messages for active agents and locked files
-2. Do NOT edit files that are locked by other agents
-3. Lock files before editing them yourself
-4. Communicate what you are doing via TMC broadcasts
-5. After each fix cycle, check TMC again — another agent may have broken something
+Read **every line** of `--log-failed` output. For each failure note the exact file, line, and error message. If a job name argument was provided, prioritize that job but still report all failures.
 
-## Step 3: The Loop
+## Step 2 — Analyze the CI workflow
 
-Run through your checklist from Step 1 in order. For each check:
+1. Find the CI workflow file. Look in `.github/workflows/` for `ci.yml`.
+2. Read the workflow file completely. Parse every job and every step.
+3. Extract the ordered list of commands the CI actually runs (e.g., `make fmt-check`, `make lint`, `make spellcheck`, `make test EXCLUDE_CI=true`, `make build`, `make package`).
+4. Note any environment variables, matrix strategies, or conditional steps that affect execution.
 
-1. Run the exact command from CI
-2. If it passes, move to the next check
-3. If it fails, FIX IT. Do NOT suppress warnings, ignore errors, remove assertions, or lower thresholds. Fix the actual code.
-4. Re-run that check to confirm the fix works
-5. Move to the next check
+**Do NOT assume the steps.** Extract what the CI *actually does*.
 
-When you reach the end of the checklist, GO BACK TO THE START AND RUN THE ENTIRE CHECKLIST AGAIN. Other agents are working concurrently and may have broken something you already fixed. A fix for one check may have broken an earlier check.
+## Step 3 — Run each CI step locally, in order
 
-**Keep looping through the full checklist until you get a COMPLETE CLEAN RUN with ZERO failures from start to finish.** One clean pass is not enough if you fixed anything during that pass — you need a clean pass where NOTHING needed fixing.
+Work through failures in this priority order:
 
-Do NOT stop after one loop. Do NOT stop after two loops. Keep going until a full pass completes with every single check green on the first try.
+1. **Formatting** — run `make fmt` first to clear noise
+2. **Compilation errors** — must compile before lint/test
+3. **Lint violations** — fix the code pattern
+4. **Runtime / test failures** — fix source code to satisfy the test
 
-## Step 4: Final Coordination
+For each command extracted from the CI workflow:
 
-1. Broadcast on TMC that CI prep is complete and all checks pass
-2. Release any locks you hold
-3. Report the final status to the user with the output of each passing check
+1. Run the command exactly as CI would run it.
+2. If the step fails, **stop and fix the issues** before continuing to the next step.
+3. After fixing, re-run the same step to confirm it passes.
+4. Move to the next step only after the current one succeeds.
+
+### Hard constraints
+
+- **NEVER modify test files** — fix the source code, not the tests
+- **NEVER add suppressions** (`// eslint-disable`, `// @ts-ignore`)
+- **NEVER use `any` in TypeScript** to silence type errors
+- **NEVER delete or ignore failing tests**
+- **NEVER remove assertions**
+
+If stuck on the same failure after 5 attempts, ask the user for help.
+
+## Step 4 — Report
+
+- List every step that was run and its result (pass/fail/fixed).
+- If any step could not be fixed, report what failed and why.
+- Confirm whether the branch is ready to push.
+
+## Step 5 — Commit/Push (only when `--failing`)
+
+Once all CI steps pass locally:
+
+1. Commit, but DO NOT MARK THE COMMIT WITH YOU AS AN AUTHOR!!! Only the user authors the commit!
+2. Push
+3. Monitor until completion or failure
+4. Upon failure, go back to Step 1
 
 ## Rules
 
-- NEVER stop with failing checks. Loop until everything is green.
-- NEVER suppress lint warnings, skip tests, or lower coverage thresholds.
-- NEVER remove assertions to make tests pass.
-- Fix the CODE, not the checks.
-- If you are stuck on a failure after 3 attempts on the same issue, ask the user for help. Do NOT silently give up.
-- Always coordinate with other agents via TMC. Check for messages regularly.
-- Leave the codebase in a state that will pass CI on the first try.
+- **Always read the CI workflow first.** Never assume what commands CI runs.
+- Do not push if any step fails (unless `--failing` and all steps now pass)
+- Fix issues found in each step before moving to the next
+- Never skip steps or suppress errors
+- If the CI workflow has multiple jobs, run all of them (respecting dependency order)
+- Skip steps that are CI-infrastructure-only (checkout, setup-node, cache steps, artifact uploads) — focus on the actual build/test/lint commands
+
+## Success criteria
+
+- Every command that CI runs has been executed locally and passed
+- All fixes are applied to the working tree
+- The CI passes successfully (if you are correcting an existing failure)

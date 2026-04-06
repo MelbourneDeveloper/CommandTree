@@ -21,6 +21,17 @@
       "label": "Custom Build",
       "type": "shell",
       "command": "echo 'Custom build with ${input:buildConfig} targeting ${input:buildTarget}'"
+    },
+    {
+      "type": "npm",
+      "script": "build",
+      "detail": "Run the npm build script"
+    },
+    {
+      "label": "Lint Check",
+      "type": "shell",
+      "command": "echo 'linting'",
+      "detail": "Run the linter"
     }
   ],
   "inputs": [

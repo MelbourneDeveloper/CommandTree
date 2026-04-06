@@ -13,7 +13,7 @@ import { computeContentHash } from "../db/db";
 import type { FileSystemAdapter } from "./adapters";
 import type { SummaryResult } from "./summariser";
 import { selectCopilotModel, summariseScript } from "./summariser";
-import { initDb } from "../db/lifecycle";
+import { initDb, getDbOrThrow } from "../db/lifecycle";
 import { upsertSummary, getRow, registerCommand } from "../db/db";
 import type { DbHandle } from "../db/db";
 
@@ -114,7 +114,11 @@ export async function registerAllCommands(params: {
   readonly workspaceRoot: string;
   readonly fs: FileSystemAdapter;
 }): Promise<Result<number, string>> {
-  const handle = initDb(params.workspaceRoot);
+  const initResult = await initDb(params.workspaceRoot);
+  if (!initResult.ok) {
+    return err(initResult.error);
+  }
+  const handle = initResult.value;
 
   let registered = 0;
   for (const task of params.tasks) {
@@ -192,7 +196,7 @@ export async function summariseAllTasks(params: {
     return err(modelResult.error);
   }
 
-  const handle = initDb(params.workspaceRoot);
+  const handle = getDbOrThrow();
 
   const pending = await findPendingSummaries({
     handle,

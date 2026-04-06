@@ -1,36 +1,86 @@
-# Dependencies
-node_modules/
+# agent-pmo:5547fd2
+# =============================================================================
+# UNIVERSAL
+# =============================================================================
 
-# Build output
-out/
-*.vsix
-
-# VS Code test artifacts
-.vscode-test/
-
-# Coverage reports
-coverage/
-
-# OS files
+# OS
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
 Thumbs.db
+ehthumbs.db
+Desktop.ini
 
-# Editor
+# IDE / Editor
+.idea/
 *.swp
 *.swo
+*~
+.project
+.classpath
+.settings/
+*.sublime-project
+*.sublime-workspace
 
-.venv/
-
-src/test/fixtures/workspace/.vscode/tasktree.json
-
-.vscode/tasktree.json
-
+# Portfolio-wide tooling
 .too_many_cooks/
-
-
-.playwright-mcp/
-website/_site/
-
 .commandtree/
-
+.playwright-mcp/
+coordination/
 logs/
+nohup.out
+
+# Coverage artifacts (all languages)
+coverage/
+lcov.info
+*.profraw
+*.profdata
+htmlcov/
+.coverage
+coverage.xml
+coverage.out
+coverage-summary.json
+TestResults/
+mutants.out/
+
+# Secrets / local overrides
+.env
+.env.local
+.env.*.local
+*.local
+*.secret
+*.pem
+*.key
+!*.pub.key
+
+# Temporary
+tmp/
+temp/
+scratch/
+
+# =============================================================================
+# TYPESCRIPT / NODE
+# =============================================================================
+node_modules/
+dist/
+out/
+build/
+*.vsix
+*.tgz
+.npm/
+.cache/
+.vscode-test/
+.vscode-test-web/
+.nyc_output/
+
+# =============================================================================
+# PROJECT-SPECIFIC
+# =============================================================================
+.venv/
+website/_site/
+test-results/
+
+
+.claude/skills/website-audit/SKILL.md

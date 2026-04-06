@@ -42,10 +42,10 @@ function handleStringChar(state: ParserState): boolean {
   if (!state.inString) {
     return false;
   }
-  const ch = state.content[state.pos]!;
+  const ch = state.content.charAt(state.pos);
   state.out.push(ch);
   if (ch === "\\") {
-    state.out.push(state.content[state.pos + 1]!);
+    state.out.push(state.content.charAt(state.pos + 1));
     state.pos += 2;
     return true;
   }
@@ -60,8 +60,8 @@ function handleStringChar(state: ParserState): boolean {
  * Handles one character outside a string: comments or literals.
  */
 function handleNonStringChar(state: ParserState): void {
-  const ch = state.content[state.pos];
-  const next = state.content[state.pos + 1];
+  const ch = state.content.charAt(state.pos);
+  const next = state.content.charAt(state.pos + 1);
 
   if (ch === '"') {
     state.inString = true;
@@ -77,7 +77,7 @@ function handleNonStringChar(state: ParserState): void {
     state.pos = skipUntilBlockEnd(state.content, state.pos);
     return;
   }
-  state.out.push(ch as string);
+  state.out.push(ch);
   state.pos++;
 }
 

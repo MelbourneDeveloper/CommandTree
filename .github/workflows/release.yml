@@ -1,3 +1,4 @@
+# agent-pmo:5547fd2
 name: Release
 
 on:
@@ -8,6 +9,7 @@ on:
 jobs:
   release:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       contents: write
     steps:
@@ -34,3 +36,43 @@ jobs:
         with:
           files: "*.vsix"
           generate_release_notes: true
+
+  publish:
+    name: Publish to Marketplace
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: release
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - name: Build
+        run: npm run compile
+
+      - name: Publish to Marketplace
+        run: npx vsce publish --skip-duplicate
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+
+  deploy-pages:
+    name: Trigger website deploy
+    needs: release
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Trigger deploy-pages workflow
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.actions.createWorkflowDispatch({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: 'deploy-pages.yml',
+              ref: 'main',
+            });

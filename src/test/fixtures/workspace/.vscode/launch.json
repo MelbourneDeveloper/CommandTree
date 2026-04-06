@@ -20,6 +20,10 @@
             "request": "launch",
             "name": "Debug Python",
             "program": "${workspaceFolder}/main.py"
+        },
+        {
+            "request": "launch",
+            "name": "Attach Remote"
         }
     ]
 }

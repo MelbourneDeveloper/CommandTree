@@ -90,7 +90,12 @@ export function syncTagsFromConfig({
   if (config?.tags === undefined) {
     return false;
   }
-  const handle = getDb();
+  const dbResult = getDb();
+  if (!dbResult.ok) {
+    logger.warn("syncTagsFromConfig: DB unavailable", { error: dbResult.error });
+    return false;
+  }
+  const handle = dbResult.value;
   for (const [tagName, patterns] of Object.entries(config.tags)) {
     const existingIds = getCommandIdsByTag({ handle, tagName });
     const currentIds = new Set(existingIds);

@@ -18,7 +18,9 @@
       "Bash(npm run:*)",
       "Bash(npx cspell:*)",
       "Bash(gh pr:*)",
-      "Bash(gh run:*)"
+      "Bash(gh run:*)",
+      "Bash(npm test:*)",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); t=d['total']; print\\(f\\\\\"Lines: {t['lines']['pct']}%\\\\nBranches: {t['branches']['pct']}%\\\\nFunctions: {t['functions']['pct']}%\\\\nStatements: {t['statements']['pct']}%\\\\\"\\)\")"
     ]
   },
   "autoMemoryEnabled": false

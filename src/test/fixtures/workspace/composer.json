@@ -3,7 +3,10 @@
   "scripts": {
     "test": "phpunit",
     "lint": "phpcs",
-    "build": "echo Building..."
+    "build": "echo Building...",
+    "deploy": ["composer build", "rsync -avz dist/ server:/app/"],
+    "pre-install-cmd": "echo pre-install",
+    "post-install-cmd": "echo post-install"
   },
   "scripts-descriptions": {
     "test": "Run PHPUnit tests",
