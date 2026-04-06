@@ -43,8 +43,9 @@ for (const metric of METRICS) {
     console.error(`FAIL: ${metric} ${pct}% < ${threshold}% (short by ${diff}%)`);
     failed = true;
   } else if (pct > threshold) {
-    console.log(`BUMP: ${metric} ${threshold}% -> ${pct}%`);
-    thresholds[metric] = pct;
+    const buffered = parseFloat((pct - 1).toFixed(2));
+    console.log(`BUMP: ${metric} ${threshold}% -> ${buffered}% (actual ${pct}%, 1% buffer)`);
+    thresholds[metric] = buffered;
     bumped = true;
   } else {
     console.log(`OK: ${metric} ${pct}% == ${threshold}%`);

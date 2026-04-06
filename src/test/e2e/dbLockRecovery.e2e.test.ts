@@ -28,24 +28,24 @@ function dbPath(workspaceRoot: string): string {
 }
 
 function createLockDir(workspaceRoot: string): void {
-  const lockPath = `${dbPath(workspaceRoot)  }.lock`;
+  const lockPath = `${dbPath(workspaceRoot)}.lock`;
   fs.mkdirSync(lockPath, { recursive: true });
 }
 
 function createJournalFile(workspaceRoot: string): void {
-  const journalPath = `${dbPath(workspaceRoot)  }-journal`;
+  const journalPath = `${dbPath(workspaceRoot)}-journal`;
   fs.mkdirSync(path.dirname(journalPath), { recursive: true });
   fs.writeFileSync(journalPath, "stale journal data");
 }
 
 function createWalFile(workspaceRoot: string): void {
-  const walPath = `${dbPath(workspaceRoot)  }-wal`;
+  const walPath = `${dbPath(workspaceRoot)}-wal`;
   fs.mkdirSync(path.dirname(walPath), { recursive: true });
   fs.writeFileSync(walPath, "stale wal data");
 }
 
 function createShmFile(workspaceRoot: string): void {
-  const shmPath = `${dbPath(workspaceRoot)  }-shm`;
+  const shmPath = `${dbPath(workspaceRoot)}-shm`;
   fs.mkdirSync(path.dirname(shmPath), { recursive: true });
   fs.writeFileSync(shmPath, "stale shm data");
 }
@@ -69,36 +69,36 @@ suite("DB Lock Recovery Unit Tests", () => {
       fs.writeFileSync(db, "");
       createLockDir(workspaceRoot);
 
-      assert.ok(fs.existsSync(`${db  }.lock`), "Lock dir should exist before removal");
+      assert.ok(fs.existsSync(`${db}.lock`), "Lock dir should exist before removal");
       removeLockFiles(db);
-      assert.ok(!fs.existsSync(`${db  }.lock`), "Lock dir should be removed");
+      assert.ok(!fs.existsSync(`${db}.lock`), "Lock dir should be removed");
     });
 
     test("removes -journal file when present", () => {
       const db = dbPath(workspaceRoot);
       createJournalFile(workspaceRoot);
 
-      assert.ok(fs.existsSync(`${db  }-journal`), "Journal should exist before removal");
+      assert.ok(fs.existsSync(`${db}-journal`), "Journal should exist before removal");
       removeLockFiles(db);
-      assert.ok(!fs.existsSync(`${db  }-journal`), "Journal should be removed");
+      assert.ok(!fs.existsSync(`${db}-journal`), "Journal should be removed");
     });
 
     test("removes -wal file when present", () => {
       const db = dbPath(workspaceRoot);
       createWalFile(workspaceRoot);
 
-      assert.ok(fs.existsSync(`${db  }-wal`), "WAL should exist before removal");
+      assert.ok(fs.existsSync(`${db}-wal`), "WAL should exist before removal");
       removeLockFiles(db);
-      assert.ok(!fs.existsSync(`${db  }-wal`), "WAL should be removed");
+      assert.ok(!fs.existsSync(`${db}-wal`), "WAL should be removed");
     });
 
     test("removes -shm file when present", () => {
       const db = dbPath(workspaceRoot);
       createShmFile(workspaceRoot);
 
-      assert.ok(fs.existsSync(`${db  }-shm`), "SHM should exist before removal");
+      assert.ok(fs.existsSync(`${db}-shm`), "SHM should exist before removal");
       removeLockFiles(db);
-      assert.ok(!fs.existsSync(`${db  }-shm`), "SHM should be removed");
+      assert.ok(!fs.existsSync(`${db}-shm`), "SHM should be removed");
     });
 
     test("removes all lock artifacts at once", () => {
@@ -112,10 +112,10 @@ suite("DB Lock Recovery Unit Tests", () => {
 
       removeLockFiles(db);
 
-      assert.ok(!fs.existsSync(`${db  }.lock`), "Lock dir should be removed");
-      assert.ok(!fs.existsSync(`${db  }-journal`), "Journal should be removed");
-      assert.ok(!fs.existsSync(`${db  }-wal`), "WAL should be removed");
-      assert.ok(!fs.existsSync(`${db  }-shm`), "SHM should be removed");
+      assert.ok(!fs.existsSync(`${db}.lock`), "Lock dir should be removed");
+      assert.ok(!fs.existsSync(`${db}-journal`), "Journal should be removed");
+      assert.ok(!fs.existsSync(`${db}-wal`), "WAL should be removed");
+      assert.ok(!fs.existsSync(`${db}-shm`), "SHM should be removed");
     });
 
     test("succeeds when no lock artifacts exist", () => {

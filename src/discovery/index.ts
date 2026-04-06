@@ -114,7 +114,10 @@ export async function discoverAllTasks(workspaceRoot: string, excludePatterns: s
   logger.info("Discovery started", { workspaceRoot, excludePatterns });
 
   // Run all discoveries in parallel, wrapping each to log errors
-  const wrapDiscovery = async (name: string, fn: () => CommandItem[] | Promise<CommandItem[]>): Promise<CommandItem[]> => {
+  const wrapDiscovery = async (
+    name: string,
+    fn: () => CommandItem[] | Promise<CommandItem[]>
+  ): Promise<CommandItem[]> => {
     try {
       const items = await fn();
       if (items.length > 0) {

@@ -164,7 +164,9 @@ suite("TreeView E2E Tests", () => {
       this.timeout(20000);
       const provider = getCommandTreeProvider();
       const allItems = await collectLeafItems(provider);
-      const buildItem = allItems.find((i) => isCommandItem(i.data) && i.data.type === "make" && i.data.label === "build");
+      const buildItem = allItems.find(
+        (i) => isCommandItem(i.data) && i.data.type === "make" && i.data.label === "build"
+      );
       assert.ok(buildItem !== undefined, "Should find 'build' make target in tree");
       // Execute the click command — this is what happens when the user taps the item
       await executeItemClick(buildItem);
@@ -184,7 +186,9 @@ suite("TreeView E2E Tests", () => {
       this.timeout(20000);
       const provider = getCommandTreeProvider();
       const allItems = await collectLeafItems(provider);
-      const cleanItem = allItems.find((i) => isCommandItem(i.data) && i.data.type === "make" && i.data.label === "clean");
+      const cleanItem = allItems.find(
+        (i) => isCommandItem(i.data) && i.data.type === "make" && i.data.label === "clean"
+      );
       assert.ok(cleanItem !== undefined, "Should find 'clean' make target in tree");
       await executeItemClick(cleanItem);
       await sleep(1000);
@@ -221,10 +225,7 @@ suite("TreeView E2E Tests", () => {
         uniqueLines.size > 1,
         `Each make target must navigate to its own line — got ${JSON.stringify(lines)} (all same = broken)`
       );
-      assert.ok(
-        !lines.every((l) => l === 0),
-        "Make targets must NOT all open at line 0 — line navigation is broken"
-      );
+      assert.ok(!lines.every((l) => l === 0), "Make targets must NOT all open at line 0 — line navigation is broken");
     });
   });
 

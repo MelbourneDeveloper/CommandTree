@@ -95,7 +95,7 @@ export class TaskRunner {
    */
   private async runLaunch(task: CommandItem): Promise<void> {
     const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
-        if (workspaceFolder === undefined) {
+    if (workspaceFolder === undefined) {
       showError("No workspace folder found");
       return;
     }
@@ -116,7 +116,7 @@ export class TaskRunner {
 
     if (matchingTask !== undefined) {
       await vscode.tasks.executeTask(matchingTask);
-    }  else {
+    } else {
       showError(`Command not found: ${task.label}`);
     }
   }
@@ -190,7 +190,7 @@ export class TaskRunner {
         this.safeSendText(terminal, command, shellIntegration);
       }
     });
-        setTimeout(() => {
+    setTimeout(() => {
       if (!resolved) {
         resolved = true;
         listener.dispose();
@@ -214,7 +214,7 @@ export class TaskRunner {
       } else {
         terminal.sendText(command);
       }
-    }  catch {
+    } catch {
       showError(`Failed to send command to terminal: ${command}`);
     }
   }

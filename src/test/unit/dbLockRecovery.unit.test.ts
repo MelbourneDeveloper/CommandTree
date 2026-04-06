@@ -13,12 +13,12 @@ import * as os from "os";
  * Replicated from lifecycle.ts to avoid vscode dependency in unit tests.
  * The actual removeLockFiles function lives in src/db/lifecycle.ts.
  */
-function removeLockFiles(dbPath: string): void {
+function removeLockFiles(targetDbPath: string): void {
   const targets = [
-    { path: `${dbPath}.lock`, isDir: true },
-    { path: `${dbPath}-journal`, isDir: false },
-    { path: `${dbPath}-wal`, isDir: false },
-    { path: `${dbPath}-shm`, isDir: false },
+    { path: `${targetDbPath}.lock`, isDir: true },
+    { path: `${targetDbPath}-journal`, isDir: false },
+    { path: `${targetDbPath}-wal`, isDir: false },
+    { path: `${targetDbPath}-shm`, isDir: false },
   ];
   for (const target of targets) {
     if (!fs.existsSync(target.path)) {

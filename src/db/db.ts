@@ -148,10 +148,7 @@ export function registerCommand(params: {
 /**
  * Ensures a command record exists for referential integrity.
  */
-export function ensureCommandExists(params: {
-  readonly handle: DbHandle;
-  readonly commandId: string;
-}): void {
+export function ensureCommandExists(params: { readonly handle: DbHandle; readonly commandId: string }): void {
   registerCommand({
     handle: params.handle,
     commandId: params.commandId,
@@ -187,10 +184,7 @@ export function upsertSummary(params: {
 /**
  * Gets a single command record by command ID.
  */
-export function getRow(params: {
-  readonly handle: DbHandle;
-  readonly commandId: string;
-}): CommandRow | undefined {
+export function getRow(params: { readonly handle: DbHandle; readonly commandId: string }): CommandRow | undefined {
   const row = params.handle.db.get(`SELECT * FROM ${COMMAND_TABLE} WHERE command_id = ?`, [params.commandId]);
   if (row === null) {
     return undefined;
@@ -267,10 +261,7 @@ export function removeTagFromCommand(params: {
  * SPEC: database-schema/tag-operations, tagging/filter
  * Gets all command IDs for a given tag, ordered by display_order.
  */
-export function getCommandIdsByTag(params: {
-  readonly handle: DbHandle;
-  readonly tagName: string;
-}): string[] {
+export function getCommandIdsByTag(params: { readonly handle: DbHandle; readonly tagName: string }): string[] {
   const rows = params.handle.db.all(
     `SELECT ct.command_id
              FROM ${COMMAND_TAGS_TABLE} ct
@@ -286,10 +277,7 @@ export function getCommandIdsByTag(params: {
  * SPEC: database-schema/tag-operations, tagging
  * Gets all tags for a given command.
  */
-export function getTagsForCommand(params: {
-  readonly handle: DbHandle;
-  readonly commandId: string;
-}): string[] {
+export function getTagsForCommand(params: { readonly handle: DbHandle; readonly commandId: string }): string[] {
   const rows = params.handle.db.all(
     `SELECT t.tag_name
              FROM ${TAG_TABLE} t
