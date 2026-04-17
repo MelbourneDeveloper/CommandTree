@@ -15,6 +15,9 @@ import {
   getLabelString,
   collectLeafItems,
   collectLeafTasks,
+  refreshTasks,
+  writeFile,
+  deleteFile,
 } from "../helpers/helpers";
 import { type CommandTreeItem, isCommandItem } from "../../models/TaskItem";
 
@@ -243,6 +246,132 @@ suite("TreeView E2E Tests", () => {
         `Copilot summarisation must produce summaries — got 0 out of ${allTasks.length} tasks. ` +
           "Check for GitHubLoginFailed errors above."
       );
+    });
+  });
+
+  suite("Private Make And Mise Tasks", () => {
+    const makeRelativePath = "private-targets/Makefile";
+    const miseRelativePath = "private-targets/mise.toml";
+    const publicLabels = ["alpha_public", "zeta_public"];
+    const privateLabels = ["_beta_private", "_omega_private"];
+
+    function getThemeColorId(item: CommandTreeItem): string | undefined {
+      const iconPath = item.iconPath;
+      return iconPath instanceof vscode.ThemeIcon ? iconPath.color?.id : undefined;
+    }
+
+    async function getItemsForFile(type: "make" | "mise", relativePath: string): Promise<CommandTreeItem[]> {
+      const provider = getCommandTreeProvider();
+      const items = await collectLeafItems(provider);
+      return items.filter(
+        (item) =>
+          isCommandItem(item.data) && item.data.type === type && item.data.filePath.endsWith(relativePath)
+      );
+    }
+
+    setup(async function () {
+      this.timeout(15000);
+
+      writeFile(
+        makeRelativePath,
+        [
+          "alpha_public:",
+          "\t@echo alpha",
+          "",
+          "zeta_public:",
+          "\t@echo zeta",
+          "",
+          "_beta_private:",
+          "\t@echo beta",
+          "",
+          "_omega_private:",
+          "\t@echo omega",
+        ].join("\n")
+      );
+
+      writeFile(
+        miseRelativePath,
+        [
+          "[tasks.alpha_public]",
+          'run = "echo alpha"',
+          "",
+          "[tasks.zeta_public]",
+          'run = "echo zeta"',
+          "",
+          "[tasks._beta_private]",
+          'run = "echo beta"',
+          "",
+          "[tasks._omega_private]",
+          'run = "echo omega"',
+        ].join("\n")
+      );
+
+      await refreshTasks();
+    });
+
+    teardown(async function () {
+      this.timeout(15000);
+      deleteFile(makeRelativePath);
+      deleteFile(miseRelativePath);
+      await refreshTasks();
+    });
+
+    test("make private targets sort after public ones and render muted", async function () {
+      this.timeout(15000);
+
+      const items = await getItemsForFile("make", makeRelativePath);
+      const labels = items.map((item) => getLabelString(item.label));
+
+      assert.deepStrictEqual(
+        labels,
+        [...publicLabels, ...privateLabels],
+        "Make targets should keep public targets first and move _-prefixed private targets below them"
+      );
+
+      const privateItems = items.filter((item) => privateLabels.includes(getLabelString(item.label)));
+      assert.strictEqual(privateItems.length, privateLabels.length, "Should find all private make targets");
+
+      for (const item of privateItems) {
+        const description = typeof item.description === "string" ? item.description : "";
+        assert.ok(
+          description.includes("private"),
+          `Private make target ${getLabelString(item.label)} should be visibly marked as private`
+        );
+        assert.strictEqual(
+          getThemeColorId(item),
+          "descriptionForeground",
+          `Private make target ${getLabelString(item.label)} should use a muted icon color`
+        );
+      }
+    });
+
+    test("mise private tasks sort after public ones and render muted", async function () {
+      this.timeout(15000);
+
+      const items = await getItemsForFile("mise", miseRelativePath);
+      const labels = items.map((item) => getLabelString(item.label));
+
+      assert.deepStrictEqual(
+        labels,
+        [...publicLabels, ...privateLabels],
+        "Mise tasks should keep public tasks first and move _-prefixed private tasks below them"
+      );
+
+      const privateItems = items.filter((item) => privateLabels.includes(getLabelString(item.label)));
+      assert.strictEqual(privateItems.length, privateLabels.length, "Should find all private mise tasks");
+
+      for (const item of privateItems) {
+        const description = typeof item.description === "string" ? item.description : "";
+        assert.ok(
+          description.includes("private"),
+          `Private mise task ${getLabelString(item.label)} should be visibly marked as private`
+        );
+        assert.strictEqual(
+          getThemeColorId(item),
+          "descriptionForeground",
+          `Private mise task ${getLabelString(item.label)} should use a muted icon color`
+        );
+      }
     });
   });
 });
