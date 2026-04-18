@@ -2,7 +2,7 @@ import type { CommandItem } from "../models/TaskItem";
 import type { CommandTreeItem } from "../models/TaskItem";
 import type { DirNode } from "./dirTree";
 import { groupByFullDir, buildDirTree, needsFolderWrapper, getFolderLabel } from "./dirTree";
-import { createCommandNode, createFolderNode } from "./nodeFactory";
+import { createFolderNode, createTaskNodes } from "./nodeFactory";
 
 /**
  * Renders a DirNode as a folder CommandTreeItem.
@@ -20,7 +20,7 @@ function renderFolder({
 }): CommandTreeItem {
   const label = getFolderLabel(node.dir, parentDir);
   const folderId = `${parentTreeId}/${label}`;
-  const taskItems = sortTasks(node.tasks).map((t) => createCommandNode(t));
+  const taskItems = createTaskNodes(sortTasks(node.tasks));
   const subItems = node.subdirs.map((sub) =>
     renderFolder({
       node: sub,
@@ -66,7 +66,7 @@ export function buildNestedFolderItems({
           })
         );
       }
-      result.push(...sortTasks(node.tasks).map((t) => createCommandNode(t)));
+      result.push(...createTaskNodes(sortTasks(node.tasks)));
     } else if (needsFolderWrapper(node, rootNodes.length)) {
       result.push(
         renderFolder({
@@ -77,7 +77,7 @@ export function buildNestedFolderItems({
         })
       );
     } else {
-      result.push(...sortTasks(node.tasks).map((t) => createCommandNode(t)));
+      result.push(...createTaskNodes(sortTasks(node.tasks)));
     }
   }
 

@@ -1,12 +1,22 @@
 import * as vscode from "vscode";
+import { isPrivateTask } from "../models/TaskItem";
 import type { CommandItem, CommandType, IconDef } from "../models/TaskItem";
 import { CommandTreeItem } from "../models/TaskItem";
 import { ICON_REGISTRY } from "../discovery";
 
 const DEFAULT_FOLDER_ICON = new vscode.ThemeIcon("folder");
+const PRIVATE_TASK_COLOR = new vscode.ThemeColor("descriptionForeground");
+const PRIVATE_TASK_DIVIDER = "---------------- private ----------------";
 
 function toThemeIcon(def: IconDef): vscode.ThemeIcon {
   return new vscode.ThemeIcon(def.icon, new vscode.ThemeColor(def.color));
+}
+
+function getTaskIcon(task: CommandItem): vscode.ThemeIcon {
+  if (isPrivateTask(task)) {
+    return new vscode.ThemeIcon(ICON_REGISTRY[task.type].icon, PRIVATE_TASK_COLOR);
+  }
+  return toThemeIcon(ICON_REGISTRY[task.type]);
 }
 
 function resolveContextValue(task: CommandItem): string {
@@ -48,8 +58,9 @@ function buildTooltip(task: CommandItem): vscode.MarkdownString {
 }
 
 function buildDescription(task: CommandItem): string {
+  const privateMarker = isPrivateTask(task) ? " private" : "";
   const tagStr = task.tags.length > 0 ? ` [${task.tags.join(", ")}]` : "";
-  return `${task.category}${tagStr}`;
+  return `${task.category}${privateMarker}${tagStr}`;
 }
 
 export function createCommandNode(task: CommandItem): CommandTreeItem {
@@ -62,7 +73,7 @@ export function createCommandNode(task: CommandItem): CommandTreeItem {
     id: task.id,
     contextValue: resolveContextValue(task),
     tooltip: buildTooltip(task),
-    iconPath: toThemeIcon(ICON_REGISTRY[task.type]),
+    iconPath: getTaskIcon(task),
     description: buildDescription(task),
     command: {
       command: "vscode.open",
@@ -73,6 +84,17 @@ export function createCommandNode(task: CommandItem): CommandTreeItem {
           : [vscode.Uri.file(task.filePath)],
     },
   });
+}
+
+export function createTaskNodes(tasks: CommandItem[]): CommandTreeItem[] {
+  const firstPrivateIndex = tasks.findIndex((task) => isPrivateTask(task));
+  if (firstPrivateIndex <= 0 || firstPrivateIndex === tasks.length) {
+    return tasks.map((task) => createCommandNode(task));
+  }
+
+  const publicNodes = tasks.slice(0, firstPrivateIndex).map((task) => createCommandNode(task));
+  const privateNodes = tasks.slice(firstPrivateIndex).map((task) => createCommandNode(task));
+  return [...publicNodes, createDividerNode(PRIVATE_TASK_DIVIDER), ...privateNodes];
 }
 
 export function createCategoryNode({
@@ -120,5 +142,15 @@ export function createPlaceholderNode(message: string): CommandTreeItem {
     children: [],
     id: message,
     contextValue: "placeholder",
+  });
+}
+
+export function createDividerNode(label: string): CommandTreeItem {
+  return new CommandTreeItem({
+    label,
+    data: { nodeType: "folder" },
+    children: [],
+    id: `divider:${label}`,
+    contextValue: "divider",
   });
 }

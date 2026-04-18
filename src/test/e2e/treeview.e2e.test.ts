@@ -252,6 +252,7 @@ suite("TreeView E2E Tests", () => {
   suite("Private Make And Mise Tasks", () => {
     const makeRelativePath = "private-targets/Makefile";
     const miseRelativePath = "private-targets/mise.toml";
+    const privateDivider = "---------------- private ----------------";
     const publicLabels = ["alpha_public", "zeta_public"];
     const privateLabels = ["_beta_private", "_omega_private"];
 
@@ -267,6 +268,19 @@ suite("TreeView E2E Tests", () => {
         (item) =>
           isCommandItem(item.data) && item.data.type === type && item.data.filePath.endsWith(relativePath)
       );
+    }
+
+    async function getFolderChildrenForCategory(categoryLabel: string, folderLabel: string): Promise<CommandTreeItem[]> {
+      const provider = getCommandTreeProvider();
+      const categories = await provider.getChildren();
+      const category = categories.find((item) => getLabelString(item.label).includes(categoryLabel));
+      assert.ok(category !== undefined, `Should find category ${categoryLabel}`);
+
+      const children = await provider.getChildren(category);
+      const folder = children.find((item) => getLabelString(item.label) === folderLabel);
+      assert.ok(folder !== undefined, `Should find folder ${folderLabel}`);
+
+      return await provider.getChildren(folder);
     }
 
     setup(async function () {
@@ -321,6 +335,14 @@ suite("TreeView E2E Tests", () => {
 
       const items = await getItemsForFile("make", makeRelativePath);
       const labels = items.map((item) => getLabelString(item.label));
+      const folderChildren = await getFolderChildrenForCategory("Make Targets", "private-targets");
+      const folderLabels = folderChildren.map((item) => getLabelString(item.label));
+
+      assert.deepStrictEqual(
+        folderLabels,
+        [...publicLabels, privateDivider, ...privateLabels],
+        "Make targets should insert a divider between public and _-prefixed private targets"
+      );
 
       assert.deepStrictEqual(
         labels,
@@ -350,6 +372,14 @@ suite("TreeView E2E Tests", () => {
 
       const items = await getItemsForFile("mise", miseRelativePath);
       const labels = items.map((item) => getLabelString(item.label));
+      const folderChildren = await getFolderChildrenForCategory("Mise Tasks", "private-targets");
+      const folderLabels = folderChildren.map((item) => getLabelString(item.label));
+
+      assert.deepStrictEqual(
+        folderLabels,
+        [...publicLabels, privateDivider, ...privateLabels],
+        "Mise tasks should insert a divider between public and _-prefixed private tasks"
+      );
 
       assert.deepStrictEqual(
         labels,
@@ -372,6 +402,93 @@ suite("TreeView E2E Tests", () => {
           `Private mise task ${getLabelString(item.label)} should use a muted icon color`
         );
       }
+    });
+  });
+
+  suite("Make Target Conventions", () => {
+    const makeRelativePath = "make-conventions/Makefile";
+    const privateDivider = "---------------- private ----------------";
+
+    async function getFolderChildrenForCategory(categoryLabel: string, folderLabel: string): Promise<CommandTreeItem[]> {
+      const provider = getCommandTreeProvider();
+      const categories = await provider.getChildren();
+      const category = categories.find((item) => getLabelString(item.label).includes(categoryLabel));
+      assert.ok(category !== undefined, `Should find category ${categoryLabel}`);
+
+      const children = await provider.getChildren(category);
+      const folder = children.find((item) => getLabelString(item.label) === folderLabel);
+      assert.ok(folder !== undefined, `Should find folder ${folderLabel}`);
+
+      return await provider.getChildren(folder);
+    }
+
+    async function getMakeItemsForFile(relativePath: string): Promise<CommandTreeItem[]> {
+      const provider = getCommandTreeProvider();
+      const items = await collectLeafItems(provider);
+      return items.filter(
+        (item) => isCommandItem(item.data) && item.data.type === "make" && item.data.filePath.endsWith(relativePath)
+      );
+    }
+
+    setup(async function () {
+      this.timeout(15000);
+
+      writeFile(
+        makeRelativePath,
+        [
+          ".PHONY: help build _private",
+          "",
+          "aaa_file:",
+          '\t@echo "file target"',
+          "",
+          "help:",
+          '\t@echo "help target"',
+          "",
+          "build:",
+          '\t@echo "build target"',
+          "",
+          "%.o: %.c",
+          '\t@echo "pattern rule"',
+          "",
+          ".DEFAULT:",
+          '\t@echo "special target"',
+          "",
+          "_private:",
+          '\t@echo "private target"',
+        ].join("\n")
+      );
+
+      await refreshTasks();
+    });
+
+    teardown(async function () {
+      this.timeout(15000);
+      deleteFile(makeRelativePath);
+      await refreshTasks();
+    });
+
+    test("make help is pinned to the top, phony targets sort before non-phony ones, and special targets stay hidden", async function () {
+      this.timeout(15000);
+
+      const folderChildren = await getFolderChildrenForCategory("Make Targets", "make-conventions");
+      const folderLabels = folderChildren.map((item) => getLabelString(item.label));
+      const items = await getMakeItemsForFile(makeRelativePath);
+      const labels = items.map((item) => getLabelString(item.label));
+
+      assert.deepStrictEqual(
+        folderLabels,
+        ["help", "build", "aaa_file", privateDivider, "_private"],
+        "Make targets should pin help first, prefer phony public targets over non-phony ones, and separate private targets"
+      );
+
+      assert.deepStrictEqual(
+        labels,
+        ["help", "build", "aaa_file", "_private"],
+        "Only invokable make targets should remain after hiding special and pattern rules"
+      );
+
+      assert.ok(!labels.includes("%.o"), "Pattern rules should be hidden from Make discovery");
+      assert.ok(!labels.includes(".DEFAULT"), "Dot-prefixed special targets should be hidden from Make discovery");
     });
   });
 });

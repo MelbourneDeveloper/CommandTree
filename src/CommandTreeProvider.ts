@@ -1,4 +1,5 @@
 import * as vscode from "vscode";
+import { isPhonyTask, isPrivateTask } from "./models/TaskItem";
 import type { CommandItem, CategoryDef } from "./models/TaskItem";
 import type { CommandTreeItem } from "./models/TaskItem";
 import type { DiscoveryResult } from "./discovery";
@@ -6,7 +7,7 @@ import { discoverAllTasks, flattenTasks, getExcludePatterns, CATEGORY_DEFS } fro
 import { TagConfig } from "./config/TagConfig";
 import { logger } from "./utils/logger";
 import { buildNestedFolderItems } from "./tree/folderTree";
-import { createCommandNode, createCategoryNode } from "./tree/nodeFactory";
+import { createCategoryNode, createTaskNodes } from "./tree/nodeFactory";
 import { getAllRows } from "./db/db";
 import type { CommandRow } from "./db/db";
 import { getDbOrThrow } from "./db/lifecycle";
@@ -166,7 +167,7 @@ export class CommandTreeProvider implements vscode.TreeDataProvider<CommandTreeI
 
   private buildFlatCategory(def: CategoryDef, tasks: CommandItem[]): CommandTreeItem {
     const sorted = this.sortTasks(tasks);
-    const children = sorted.map((t) => createCommandNode(t));
+    const children = createTaskNodes(sorted);
     return createCategoryNode({
       label: `${def.label} (${tasks.length})`,
       children,
@@ -183,15 +184,44 @@ export class CommandTreeProvider implements vscode.TreeDataProvider<CommandTreeI
     return [...tasks].sort(comparator);
   }
 
+  private comparePrivateTasks(a: CommandItem, b: CommandItem): number {
+    return Number(isPrivateTask(a)) - Number(isPrivateTask(b));
+  }
+
+  private compareHelpTasks(a: CommandItem, b: CommandItem): number {
+    const isHelpA = a.type === "make" && a.label === "help";
+    const isHelpB = b.type === "make" && b.label === "help";
+    return Number(isHelpB) - Number(isHelpA);
+  }
+
+  private comparePhonyTasks(a: CommandItem, b: CommandItem): number {
+    return Number(isPhonyTask(b)) - Number(isPhonyTask(a));
+  }
+
+  private compareMakeTaskPriority(a: CommandItem, b: CommandItem): number {
+    if (a.type !== "make" || b.type !== "make") {
+      return 0;
+    }
+    return this.compareHelpTasks(a, b) || this.comparePhonyTasks(a, b);
+  }
+
   private getComparator(): (a: CommandItem, b: CommandItem) => number {
     const order = this.getSortOrder();
     if (order === "folder") {
-      return (a, b) => a.category.localeCompare(b.category) || a.label.localeCompare(b.label);
+      return (a, b) =>
+        a.category.localeCompare(b.category) ||
+        this.comparePrivateTasks(a, b) ||
+        this.compareMakeTaskPriority(a, b) ||
+        a.label.localeCompare(b.label);
     }
     if (order === "type") {
-      return (a, b) => a.type.localeCompare(b.type) || a.label.localeCompare(b.label);
+      return (a, b) =>
+        a.type.localeCompare(b.type) ||
+        this.comparePrivateTasks(a, b) ||
+        this.compareMakeTaskPriority(a, b) ||
+        a.label.localeCompare(b.label);
     }
-    return (a, b) => a.label.localeCompare(b.label);
+    return (a, b) => this.comparePrivateTasks(a, b) || this.compareMakeTaskPriority(a, b) || a.label.localeCompare(b.label);
   }
 
   private applyTagFilter(tasks: CommandItem[]): CommandItem[] {

@@ -96,6 +96,7 @@ export interface CommandItem {
   readonly description?: string;
   readonly summary?: string;
   readonly securityWarning?: string;
+  readonly isPhony?: boolean;
   readonly line?: number;
 }
 
@@ -115,6 +116,7 @@ export interface MutableCommandItem {
   description?: string;
   summary?: string;
   securityWarning?: string;
+  isPhony?: boolean;
   line?: number;
 }
 
@@ -216,4 +218,16 @@ export function simplifyPath(filePath: string, workspaceRoot: string): string {
  */
 export function generateCommandId(type: CommandType, filePath: string, name: string): string {
   return `${type}:${filePath}:${name}`;
+}
+
+function supportsPrivateTaskStyling(type: CommandType): boolean {
+  return type === "make" || type === "mise";
+}
+
+export function isPrivateTask(task: CommandItem): boolean {
+  return supportsPrivateTaskStyling(task.type) && task.label.startsWith("_");
+}
+
+export function isPhonyTask(task: CommandItem): boolean {
+  return task.type === "make" && task.isPhony === true;
 }
