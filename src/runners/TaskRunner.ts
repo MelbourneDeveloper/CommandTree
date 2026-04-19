@@ -22,7 +22,11 @@ function showError(message: string): void {
  */
 export type RunMode = "newTerminal" | "currentTerminal";
 
-const SHELL_INTEGRATION_TIMEOUT_MS = 50;
+// Short opportunistic wait for shell integration to activate. If it does
+// not activate in time we send via `sendText` once the shell process has
+// spawned — `processId` resolving guarantees xterm has been laid out and
+// has `dimensions` (command-execution spec).
+const SHELL_INTEGRATION_TIMEOUT_MS = 500;
 
 /**
  * Executes commands based on their type.
@@ -196,9 +200,20 @@ export class TaskRunner {
       if (!resolved) {
         resolved = true;
         listener.dispose();
-        this.safeSendText(terminal, command);
+        this.sendTextAfterShellReady(terminal, command).catch(() => undefined);
       }
     }, SHELL_INTEGRATION_TIMEOUT_MS);
+  }
+
+  /**
+   * Sends text after the shell process has spawned. Awaiting `processId`
+   * ensures xterm has been laid out and has `dimensions` — without this,
+   * `sendText` can trigger an asynchronous TypeError inside xterm.js
+   * (command-execution spec).
+   */
+  private async sendTextAfterShellReady(terminal: vscode.Terminal, command: string): Promise<void> {
+    await terminal.processId;
+    this.safeSendText(terminal, command);
   }
 
   /**
