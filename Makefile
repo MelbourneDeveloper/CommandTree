@@ -1,14 +1,14 @@
-# agent-pmo:5547fd2
+# agent-pmo:424c8f8
 # =============================================================================
 # Standard Makefile — CommandTree
 # Cross-platform: Linux, macOS, Windows (via GNU Make)
 # =============================================================================
 
-.PHONY: build test lint fmt fmt-check format clean check ci coverage coverage-check setup spellcheck package
+.PHONY: build test lint fmt clean ci setup package test-exclude-ci help
 
-# -----------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
 # OS Detection
-# -----------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
 ifeq ($(OS),Windows_NT)
   SHELL := powershell.exe
   .SHELLFLAGS := -NoProfile -Command
@@ -20,142 +20,94 @@ else
   MKDIR = mkdir -p
 endif
 
-# Coverage threshold (override in CI via env var)
-COVERAGE_THRESHOLD ?= 80
+# ---------------------------------------------------------------------------
+# Coverage — single source of truth is coverage-thresholds.json
+# See REPO-STANDARDS-SPEC [COVERAGE-THRESHOLDS-JSON].
+# ---------------------------------------------------------------------------
+COVERAGE_THRESHOLDS_FILE := coverage-thresholds.json
+
+UNAME := $(shell uname 2>/dev/null)
+VSCODE_TEST_CMD = npx vscode-test --coverage
+VSCODE_TEST_EXCLUDE_CMD = npx vscode-test --coverage --grep @exclude-ci --invert
+ifeq ($(UNAME),Linux)
+VSCODE_TEST = xvfb-run -a $(VSCODE_TEST_CMD)
+VSCODE_TEST_EXCLUDE = xvfb-run -a $(VSCODE_TEST_EXCLUDE_CMD)
+else
+VSCODE_TEST = $(VSCODE_TEST_CMD)
+VSCODE_TEST_EXCLUDE = $(VSCODE_TEST_EXCLUDE_CMD)
+endif
 
 # =============================================================================
-# PRIMARY TARGETS (uniform interface — do not rename)
+# Standard Targets (exactly 7 — see REPO-STANDARDS-SPEC [MAKE-TARGETS])
 # =============================================================================
 
 ## build: Compile/assemble all artifacts
 build:
 	@echo "==> Building..."
-	$(MAKE) _build
+	npx tsc -p ./
 
-## test: Run full test suite with coverage
-test:
-	@echo "==> Testing..."
-	$(MAKE) _test
+## test: Fail-fast tests + coverage + threshold enforcement ([TEST-RULES]).
+test: build
+	@echo "==> Testing (fail-fast + coverage + threshold)..."
+	npm run test:unit
+	$(VSCODE_TEST)
+	$(MAKE) _coverage_check
 
-## lint: Run all linters (fails on any warning)
+## lint: Run all linters/analyzers (read-only). Does NOT format.
 lint:
 	@echo "==> Linting..."
-	$(MAKE) _lint
+	npx eslint src
+	npx cspell "src/**/*.ts"
 
-## fmt: Format all code in-place
+## fmt: Format all code in-place. Pass CHECK=1 for read-only check mode.
 fmt:
-	@echo "==> Formatting..."
-	$(MAKE) _fmt
-
-## fmt-check: Check formatting without modifying
-fmt-check:
-	@echo "==> Checking format..."
-	$(MAKE) _fmt_check
+	@echo "==> Formatting$(if $(CHECK), (check mode),)..."
+	npx prettier $(if $(CHECK),--check,--write) "src/**/*.ts"
 
 ## clean: Remove all build artifacts
 clean:
 	@echo "==> Cleaning..."
-	$(MAKE) _clean
-
-## check: lint + test (pre-commit)
-check: lint test
+	$(RM) out coverage .vscode-test
 
 ## ci: lint + test + build (full CI simulation)
-ci: fmt-check lint spellcheck test build package
+ci: lint test build
 
-## coverage: Generate coverage report
-coverage:
-	@echo "==> Coverage report..."
-	$(MAKE) _coverage
-
-## coverage-check: Assert thresholds (exits non-zero if below)
-coverage-check:
-	@echo "==> Checking coverage thresholds..."
-	$(MAKE) _coverage_check
-
-## setup: Post-create dev environment setup
+## setup: Post-create dev environment setup (devcontainer hook)
 setup:
 	@echo "==> Setting up development environment..."
-	$(MAKE) _setup
+	npm ci
 	@echo "==> Setup complete. Run 'make ci' to validate."
 
-# =============================================================================
-# CUSTOM TARGETS (project-specific)
-# =============================================================================
+# Private recipe — called from `test`. Do not expose as a public target.
+_coverage_check:
+	node tools/check-coverage.mjs
 
-## format: Alias for fmt (backwards compatibility)
-format: fmt
-
-## spellcheck: Run cspell spell checker
-spellcheck:
-	npx cspell "src/**/*.ts"
+# =============================================================================
+# Repo-Specific Targets
+# =============================================================================
 
 ## package: Build VSIX package
 package: build
 	npx vsce package
 
-# =============================================================================
-# TYPESCRIPT/NODE IMPLEMENTATION
-# =============================================================================
-
-UNAME := $(shell uname 2>/dev/null)
-EXCLUDE_CI ?= false
-
-VSCODE_TEST_CMD = npx vscode-test --coverage
-ifeq ($(EXCLUDE_CI),true)
-VSCODE_TEST_CMD += --grep @exclude-ci --invert
-endif
-
-ifeq ($(UNAME),Linux)
-VSCODE_TEST = xvfb-run -a $(VSCODE_TEST_CMD)
-else
-VSCODE_TEST = $(VSCODE_TEST_CMD)
-endif
-
-_build:
-	npx tsc -p ./
-
-_test: _build
+## test-exclude-ci: Run tests EXCLUDING those tagged @exclude-ci (fail-fast + coverage + threshold)
+test-exclude-ci: build
+	@echo "==> Testing (excluding @exclude-ci, fail-fast + coverage + threshold)..."
 	npm run test:unit
-	$(VSCODE_TEST)
-	node tools/check-coverage.mjs
+	$(VSCODE_TEST_EXCLUDE)
+	$(MAKE) _coverage_check
 
-_lint:
-	npx eslint src
-
-_fmt:
-	npx prettier --write "src/**/*.ts"
-
-_fmt_check:
-	npx prettier --check "src/**/*.ts"
-
-_clean:
-	$(RM) out coverage .vscode-test
-
-_coverage:
-	@echo "==> HTML report: coverage/index.html"
-
-_coverage_check:
-	node tools/check-coverage.mjs
-
-_setup:
-	npm ci
-
-# =============================================================================
-# HELP
-# =============================================================================
+## help: List available targets
 help:
-	@echo "Available targets:"
-	@echo "  build          - Compile/assemble all artifacts"
-	@echo "  test           - Run full test suite with coverage"
-	@echo "  lint           - Run all linters (errors mode)"
-	@echo "  fmt            - Format all code in-place"
-	@echo "  fmt-check      - Check formatting (no modification)"
-	@echo "  clean          - Remove build artifacts"
-	@echo "  check          - lint + test (pre-commit)"
-	@echo "  ci             - fmt-check + lint + spellcheck + test + build + package"
-	@echo "  coverage       - Generate and open coverage report"
-	@echo "  coverage-check - Assert coverage thresholds"
-	@echo "  spellcheck     - Run cspell spell checker"
-	@echo "  package        - Build VSIX package"
-	@echo "  setup          - Post-create dev environment setup"
+	@echo "Standard targets:"
+	@echo "  build    - Compile TypeScript"
+	@echo "  test     - Fail-fast tests + coverage + threshold enforcement"
+	@echo "  lint     - ESLint + cspell (read-only)"
+	@echo "  fmt      - Prettier (CHECK=1 for verify-only)"
+	@echo "  clean    - Remove build artifacts"
+	@echo "  ci       - lint + test + build"
+	@echo "  setup    - Post-create dev environment setup"
+	@echo ""
+	@echo "Repo-specific:"
+	@echo "  package          - Build VSIX package"
+	@echo "  test-exclude-ci  - Run tests excluding those tagged @exclude-ci"

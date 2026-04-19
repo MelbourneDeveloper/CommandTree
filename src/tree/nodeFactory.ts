@@ -3,10 +3,11 @@ import { isPrivateTask } from "../models/TaskItem";
 import type { CommandItem, CommandType, IconDef } from "../models/TaskItem";
 import { CommandTreeItem } from "../models/TaskItem";
 import { ICON_REGISTRY } from "../discovery";
+import { buildPrivateTaskUri } from "./PrivateTaskDecorationProvider";
 
 const DEFAULT_FOLDER_ICON = new vscode.ThemeIcon("folder");
 const PRIVATE_TASK_COLOR = new vscode.ThemeColor("descriptionForeground");
-const PRIVATE_TASK_DIVIDER = "---------------- private ----------------";
+const PRIVATE_TASK_DIVIDER = "─────────────────────────";
 
 function toThemeIcon(def: IconDef): vscode.ThemeIcon {
   return new vscode.ThemeIcon(def.icon, new vscode.ThemeColor(def.color));
@@ -83,6 +84,7 @@ export function createCommandNode(task: CommandItem): CommandTreeItem {
           ? [vscode.Uri.file(task.filePath), { selection: new vscode.Range(task.line - 1, 0, task.line - 1, 0) }]
           : [vscode.Uri.file(task.filePath)],
     },
+    ...(isPrivateTask(task) ? { resourceUri: buildPrivateTaskUri(task.id) } : {}),
   });
 }
 

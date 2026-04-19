@@ -252,7 +252,7 @@ suite("TreeView E2E Tests", () => {
   suite("Private Make And Mise Tasks", () => {
     const makeRelativePath = "private-targets/Makefile";
     const miseRelativePath = "private-targets/mise.toml";
-    const privateDivider = "---------------- private ----------------";
+    const privateDivider = "─────────────────────────";
     const publicLabels = ["alpha_public", "zeta_public"];
     const privateLabels = ["_beta_private", "_omega_private"];
 
@@ -265,12 +265,14 @@ suite("TreeView E2E Tests", () => {
       const provider = getCommandTreeProvider();
       const items = await collectLeafItems(provider);
       return items.filter(
-        (item) =>
-          isCommandItem(item.data) && item.data.type === type && item.data.filePath.endsWith(relativePath)
+        (item) => isCommandItem(item.data) && item.data.type === type && item.data.filePath.endsWith(relativePath)
       );
     }
 
-    async function getFolderChildrenForCategory(categoryLabel: string, folderLabel: string): Promise<CommandTreeItem[]> {
+    async function getFolderChildrenForCategory(
+      categoryLabel: string,
+      folderLabel: string
+    ): Promise<CommandTreeItem[]> {
       const provider = getCommandTreeProvider();
       const categories = await provider.getChildren();
       const category = categories.find((item) => getLabelString(item.label).includes(categoryLabel));
@@ -364,6 +366,11 @@ suite("TreeView E2E Tests", () => {
           "descriptionForeground",
           `Private make target ${getLabelString(item.label)} should use a muted icon color`
         );
+        assert.strictEqual(
+          item.resourceUri?.scheme,
+          "commandtree-private",
+          `Private make target ${getLabelString(item.label)} must carry a private resourceUri so the label renders muted`
+        );
       }
     });
 
@@ -401,15 +408,23 @@ suite("TreeView E2E Tests", () => {
           "descriptionForeground",
           `Private mise task ${getLabelString(item.label)} should use a muted icon color`
         );
+        assert.strictEqual(
+          item.resourceUri?.scheme,
+          "commandtree-private",
+          `Private mise task ${getLabelString(item.label)} must carry a private resourceUri so the label renders muted`
+        );
       }
     });
   });
 
   suite("Make Target Conventions", () => {
     const makeRelativePath = "make-conventions/Makefile";
-    const privateDivider = "---------------- private ----------------";
+    const privateDivider = "─────────────────────────";
 
-    async function getFolderChildrenForCategory(categoryLabel: string, folderLabel: string): Promise<CommandTreeItem[]> {
+    async function getFolderChildrenForCategory(
+      categoryLabel: string,
+      folderLabel: string
+    ): Promise<CommandTreeItem[]> {
       const provider = getCommandTreeProvider();
       const categories = await provider.getChildren();
       const category = categories.find((item) => getLabelString(item.label).includes(categoryLabel));

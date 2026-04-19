@@ -1,4 +1,2 @@
-<!-- agent-pmo:5547fd2 -->
-# Agents
-
-See [CLAUDE.md](CLAUDE.md) for all project instructions, coding rules, testing guidelines, and command reference.
+<!-- agent-pmo:424c8f8 -->
+@CLAUDE.md

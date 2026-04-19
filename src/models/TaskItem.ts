@@ -160,6 +160,7 @@ export interface CommandTreeItemProps {
   readonly tooltip?: vscode.MarkdownString;
   readonly description?: string;
   readonly command?: vscode.Command;
+  readonly resourceUri?: vscode.Uri;
 }
 
 /**
@@ -178,6 +179,10 @@ export class CommandTreeItem extends vscode.TreeItem {
     this.children = props.children;
     this.id = props.id;
     this.contextValue = props.contextValue;
+    this.applyOptionalProps(props);
+  }
+
+  private applyOptionalProps(props: CommandTreeItemProps): void {
     if (props.iconPath !== undefined) {
       this.iconPath = props.iconPath;
     }
@@ -189,6 +194,9 @@ export class CommandTreeItem extends vscode.TreeItem {
     }
     if (props.command !== undefined) {
       this.command = props.command;
+    }
+    if (props.resourceUri !== undefined) {
+      this.resourceUri = props.resourceUri;
     }
   }
 }

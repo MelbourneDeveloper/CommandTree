@@ -3,7 +3,7 @@ name: ci-prep
 description: Prepares the current branch for CI by running the exact same steps locally and fixing issues. If CI is already failing, fetches the GH Actions logs first to diagnose. Use before pushing, when CI is red, or when the user says "fix ci".
 argument-hint: "[--failing] [optional job name to focus on]"
 ---
-<!-- agent-pmo:5547fd2 -->
+<!-- agent-pmo:424c8f8 -->
 
 # CI Prep
 
@@ -42,12 +42,12 @@ Read **every line** of `--log-failed` output. For each failure note the exact fi
 
 ## Step 2 — Analyze the CI workflow
 
-1. Find the CI workflow file. Look in `.github/workflows/` for `ci.yml`.
+1. Find the CI workflow file. Look in `.github/workflows/` for `ci.yml` (this repo's CI workflow).
 2. Read the workflow file completely. Parse every job and every step.
-3. Extract the ordered list of commands the CI actually runs (e.g., `make fmt-check`, `make lint`, `make spellcheck`, `make test EXCLUDE_CI=true`, `make build`, `make package`).
-4. Note any environment variables, matrix strategies, or conditional steps that affect execution.
+3. Extract the ordered list of commands the CI actually runs. In this spec-compliant repo that is `make fmt CHECK=1 → make lint → make test → make build → make package` (REPO-STANDARDS-SPEC [MAKE-TARGETS] plus the repo-specific `package` target).
+4. Note any environment variables, matrix strategies, or conditional steps that affect execution. The separate `website` job runs Playwright tests against the 11ty site under `website/`.
 
-**Do NOT assume the steps.** Extract what the CI *actually does*.
+**Do NOT assume the steps.** Extract what the CI *actually does*. If you find extra targets beyond the 7 in [MAKE-TARGETS] that are not already in the `Repo-Specific Targets` section, flag them — they should be consolidated by the agent-pmo skill.
 
 ## Step 3 — Run each CI step locally, in order
 
@@ -60,7 +60,7 @@ Work through failures in this priority order:
 
 For each command extracted from the CI workflow:
 
-1. Run the command exactly as CI would run it.
+1. Run the command exactly as CI would run it (adjusting only for local environment differences like not needing `actions/checkout`).
 2. If the step fails, **stop and fix the issues** before continuing to the next step.
 3. After fixing, re-run the same step to confirm it passes.
 4. Move to the next step only after the current one succeeds.
@@ -68,7 +68,7 @@ For each command extracted from the CI workflow:
 ### Hard constraints
 
 - **NEVER modify test files** — fix the source code, not the tests
-- **NEVER add suppressions** (`// eslint-disable`, `// @ts-ignore`)
+- **NEVER add suppressions** (`// eslint-disable`, `@ts-ignore`, `@ts-nocheck`)
 - **NEVER use `any` in TypeScript** to silence type errors
 - **NEVER delete or ignore failing tests**
 - **NEVER remove assertions**
@@ -97,7 +97,7 @@ Once all CI steps pass locally:
 - Fix issues found in each step before moving to the next
 - Never skip steps or suppress errors
 - If the CI workflow has multiple jobs, run all of them (respecting dependency order)
-- Skip steps that are CI-infrastructure-only (checkout, setup-node, cache steps, artifact uploads) — focus on the actual build/test/lint commands
+- Skip steps that are CI-infrastructure-only (checkout, setup-node actions, cache steps, artifact uploads) — focus on the actual build/test/lint commands
 
 ## Success criteria
 

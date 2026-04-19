@@ -1,3 +1,4 @@
+// agent-pmo:424c8f8
 import { readFileSync, existsSync, readdirSync, writeFileSync } from 'fs';
 
 const METRICS = ['lines', 'functions', 'branches', 'statements'];

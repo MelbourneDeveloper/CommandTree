@@ -11,6 +11,7 @@ import { createVSCodeFileSystem } from "./semantic/vscodeAdapters";
 import { forceSelectModel } from "./semantic/summariser";
 import { syncTagsFromConfig } from "./tags/tagSync";
 import { setupFileWatchers } from "./watchers";
+import { PrivateTaskDecorationProvider } from "./tree/PrivateTaskDecorationProvider";
 
 let treeProvider: CommandTreeProvider;
 let quickTasksProvider: QuickTasksProvider;
@@ -85,7 +86,8 @@ function registerTreeViews(context: vscode.ExtensionContext): void {
       treeDataProvider: quickTasksProvider,
       showCollapseAll: true,
       dragAndDropController: quickTasksProvider,
-    })
+    }),
+    vscode.window.registerFileDecorationProvider(new PrivateTaskDecorationProvider())
   );
 }
 

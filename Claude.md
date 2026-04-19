@@ -1,7 +1,9 @@
-<!-- agent-pmo:5547fd2 -->
+<!-- agent-pmo:424c8f8 -->
 # CommandTree — Agent Instructions
 
 ⚠️ CRITICAL: **Reduce token usage.** Check file size before loading. Write less. Delete fluff and dead code. Alert user when context is loaded with pointless files. ⚠️ 
+
+⚠️ ASKING THE USER IF THEY WANT TO PROCEED, OR TO CLARIFY IS ⛔️ ILLEGAL. JUST DO IT!! ⚠️ 
 
 > Read this entire file before writing any code.
 > These rules are NON-NEGOTIABLE. Violations will be rejected in review.
@@ -133,21 +135,21 @@ A "fake test" is any test that passes without actually verifying behavior:
 
 ## Build Commands (cross-platform via GNU Make)
 
+Seven standard targets — see REPO-STANDARDS-SPEC [MAKE-TARGETS]:
+
 ```bash
-make build          # compile everything
-make test           # run tests with coverage
-make lint           # run all linters
-make fmt            # format all code
-make fmt-check      # check formatting (CI uses this)
-make clean          # remove build artifacts
-make check          # lint + test (pre-commit)
-make ci             # fmt-check + lint + spellcheck + test + build + package
-make coverage       # generate and open coverage report
-make coverage-check # assert coverage thresholds
-make spellcheck     # run cspell spell checker
-make package        # build VSIX package
-make setup          # post-create dev environment setup
+make build   # compile TypeScript
+make test    # FAIL-FAST tests + coverage + threshold enforcement (the only test entry point)
+make lint    # ESLint + cspell (read-only, no formatting)
+make fmt     # Prettier format in-place; `make fmt CHECK=1` for read-only check
+make clean   # remove build artifacts
+make ci      # lint + test + build
+make setup   # post-create dev environment setup
 ```
+
+Repo-specific: `make package` builds the VSIX.
+
+Coverage thresholds live in `coverage-thresholds.json` (`default_threshold`) — the single source of truth per [COVERAGE-THRESHOLDS-JSON]. Never set thresholds via env vars, GitHub repo variables, or CI YAML. Ratchet only — never lower.
 
 ## Critical Docs
 

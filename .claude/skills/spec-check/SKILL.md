@@ -3,7 +3,7 @@ name: spec-check
 description: Audit spec/plan documents against the codebase. Ensures every spec section has implementing code, tests, and matching logic. Use when the user says "check specs", "spec audit", or "verify specs".
 argument-hint: "[optional spec ID or filename filter]"
 ---
-<!-- agent-pmo:5547fd2 -->
+<!-- agent-pmo:424c8f8 -->
 
 # spec-check
 
@@ -69,6 +69,21 @@ Use Glob to find candidate files, then use Grep to confirm they contain spec IDs
 
 Spec IDs are **hierarchical descriptive slugs, NEVER numbered.** The format is `[GROUP-TOPIC]` or `[GROUP-TOPIC-DETAIL]`. The first word is the **group** — all sections sharing the same group MUST appear together in the spec's table of contents. IDs are uppercase, hyphen-separated, unique across the repo, and MUST NOT contain sequential numbers.
 
+The hierarchy depth varies by repo: two words for simple repos (`[AUTH-LOGIN]`), three for most (`[AUTH-TOKEN-VERIFY]`), four for complex domains (`[AUTH-OAUTH-REFRESH-FLOW]`). The hierarchy mirrors the spec document's heading structure.
+
+Examples of valid spec IDs (note how groups cluster):
+- `[AUTH-LOGIN]`, `[AUTH-TOKEN-VERIFY]`, `[AUTH-TOKEN-REFRESH]` — all in the AUTH group
+- `[CI-TIMEOUT]`, `[CI-LINT]`, `[CI-RELEASE]` — all in the CI group
+- `[LINT-ESLINT]`, `[LINT-RUFF]` — all in the LINT group
+- `[FEAT-DARK-MODE]`, `[FEAT-SEARCH-FILTER]` — all in the FEAT group
+
+Examples of INVALID spec IDs:
+- `[SPEC-001]` — numbered, meaningless
+- `[FEAT-AUTH-01]` — trailing number
+- `[REQ-003]` — sequential index, no group hierarchy
+- `[CI-004]` — numbered, tells the reader nothing
+- `[TIMEOUT]` — no group prefix, ungrouped
+
 For each file, extract every spec ID and its associated section title (the heading text after the ID) and the full section content (everything until the next heading of equal or higher level).
 
 ---
@@ -101,6 +116,34 @@ Search the entire codebase for the spec ID string, **excluding** these directori
 
 Use Grep with the literal spec ID (e.g., `[AUTH-TOKEN-VERIFY]`) to find references in code files.
 
+Code files should contain comments referencing the spec ID. The search must catch **all** comment styles across languages:
+
+**C-style `//` comments** (JavaScript, TypeScript, Rust, C#, F#, Java, Kotlin, Go, Swift, Dart):
+- `// Implements [AUTH-TOKEN-VERIFY]`
+- `// [AUTH-TOKEN-VERIFY]`
+- `// Tests [AUTH-TOKEN-VERIFY]` (also counts as a code reference)
+- `/// Implements [AUTH-TOKEN-VERIFY]` (doc comments)
+
+**Hash `#` comments** (Python, Ruby, Shell/Bash, YAML, TOML):
+- `# Implements [AUTH-TOKEN-VERIFY]`
+- `# [AUTH-TOKEN-VERIFY]`
+- `# Tests [AUTH-TOKEN-VERIFY]`
+
+**HTML/XML comments** (HTML, CSS, SVG, XML, XAML, JSX templates):
+- `<!-- Implements [AUTH-TOKEN-VERIFY] -->`
+- `<!-- [AUTH-TOKEN-VERIFY] -->`
+
+**ML-style comments** (F#, OCaml):
+- `(* Implements [AUTH-TOKEN-VERIFY] *)`
+
+**Lua comments:**
+- `-- Implements [AUTH-TOKEN-VERIFY]`
+
+**CSS comments:**
+- `/* Implements [AUTH-TOKEN-VERIFY] */`
+
+**The key rule:** any comment in any language containing the exact spec ID string (e.g., `[AUTH-TOKEN-VERIFY]`) counts as a valid code reference. The Grep search uses the literal spec ID string, so it naturally matches all comment styles. Do NOT restrict the search to specific comment prefixes — just search for the spec ID string itself.
+
 **If NO code files reference the spec ID:**
 
 ```
@@ -118,11 +161,71 @@ this spec section, then re-run spec-check.
 #### Check B: Tests reference the spec ID
 
 Search test files for the spec ID. Test files are found in:
-- `src/test/`
+- `test/`
+- `tests/`
 - `**/*.test.*`
 - `**/*.spec.*`
+- `**/*_test.*`
+- `**/test_*.*`
+- `**/*Tests.*`
+- `**/*Test.*`
 
 Use Grep to search these locations for the literal spec ID string.
+
+Tests should contain the spec ID in comments, test names, or annotations. The search must catch **all** test frameworks across languages:
+
+**JavaScript/TypeScript** (Jest, Mocha, Vitest, Playwright):
+- `// Tests [AUTH-TOKEN-VERIFY]`
+- `describe('[AUTH-TOKEN-VERIFY] Authentication flow', () => ...)`
+- `test('[AUTH-TOKEN-VERIFY] should verify token', () => ...)`
+- `it('[AUTH-TOKEN-VERIFY] verifies token', () => ...)`
+
+**Python** (pytest, unittest):
+- `# Tests [AUTH-TOKEN-VERIFY]`
+- `def test_auth_token_verify_flow():`
+- `class TestAuthTokenVerify:`
+
+**Rust:**
+- `// Tests [AUTH-TOKEN-VERIFY]`
+- `#[test] // Tests [AUTH-TOKEN-VERIFY]`
+
+**C#** (xUnit, NUnit, MSTest):
+- `// Tests [AUTH-TOKEN-VERIFY]`
+- `[Fact] // Tests [AUTH-TOKEN-VERIFY]`
+- `[Test] // Tests [AUTH-TOKEN-VERIFY]`
+- `[TestMethod] // Tests [AUTH-TOKEN-VERIFY]`
+
+**F#** (xUnit, Expecto):
+- `// Tests [AUTH-TOKEN-VERIFY]`
+- `[<Fact>] // Tests [AUTH-TOKEN-VERIFY]`
+- `testCase "[AUTH-TOKEN-VERIFY] description" <| fun () ->`
+
+**Java/Kotlin** (JUnit, TestNG):
+- `// Tests [AUTH-TOKEN-VERIFY]`
+- `@Test // Tests [AUTH-TOKEN-VERIFY]`
+
+**Go:**
+- `// Tests [AUTH-TOKEN-VERIFY]`
+- `func TestAuthTokenVerify(t *testing.T) { // Tests [AUTH-TOKEN-VERIFY]`
+
+**Swift** (XCTest):
+- `// Tests [AUTH-TOKEN-VERIFY]`
+- `func testAuthTokenVerify() { // Tests [AUTH-TOKEN-VERIFY]`
+
+**Dart** (flutter_test):
+- `// Tests [AUTH-TOKEN-VERIFY]`
+- `test('[AUTH-TOKEN-VERIFY] description', () { ... });`
+
+**Ruby** (RSpec, Minitest):
+- `# Tests [AUTH-TOKEN-VERIFY]`
+- `describe '[AUTH-TOKEN-VERIFY] Authentication' do`
+- `it '[AUTH-TOKEN-VERIFY] verifies token' do`
+
+**Shell** (bats, shunit2):
+- `# Tests [AUTH-TOKEN-VERIFY]`
+- `@test "[AUTH-TOKEN-VERIFY] description" {`
+
+**The key rule:** same as Check A — search for the literal spec ID string in test files. Any occurrence of the exact spec ID in a test file counts. Do NOT restrict to specific patterns — just search for the spec ID string itself.
 
 **If NO test files reference the spec ID:**
 
@@ -153,7 +256,26 @@ This is the most critical check. You must:
    - **Missing steps** — If the spec describes 5 steps but code only implements 3, that's a violation.
    - **Wrong defaults** — If the spec says "default to X" but code defaults to Y, that's a violation.
 
-4. **If the code deviates from the spec**, report a detailed error with spec quotes and code references.
+4. **If the code deviates from the spec**, report a detailed error:
+
+```
+SPEC VIOLATION: [AUTH-TOKEN-VERIFY] Code does not match spec.
+
+SPEC SAYS:
+> "The authentication flow must verify the token expiry before checking permissions"
+> (from docs/specs/AUTH-SPEC.md, line 42)
+
+CODE DOES:
+> `if (hasPermission(user)) { verifyToken(token); }` (src/auth.ts:42)
+
+DEVIATION: The code checks permissions BEFORE verifying token expiry.
+The spec explicitly requires token expiry verification FIRST.
+
+ACTION REQUIRED: Reorder the logic in src/auth.ts to verify token expiry
+before checking permissions, as specified in [AUTH-TOKEN-VERIFY].
+```
+
+**STOP HERE. Do not continue to other specs.**
 
 5. **If the code matches the spec**, this check passes. Move to the next spec.
 
@@ -180,6 +302,8 @@ spec-check PASSED. All specs verified.
 | Spec ID        | Title                    | Code References | Test References | Logic Match |
 |----------------|--------------------------|-----------------|-----------------|-------------|
 | [AUTH-TOKEN-VERIFY]     | Authentication flow      | src/auth.ts     | tests/auth.test.ts | PASS     |
+| [RATE-LIMIT-CONFIG]     | Rate limiting            | src/rate.ts     | tests/rate.test.ts | PASS     |
+| ...            | ...                      | ...             | ...             | ...         |
 
 Checked N spec sections across M files. All have implementing code, tests, and matching logic.
 ```
@@ -199,7 +323,7 @@ Checked N spec sections across M files. All have implementing code, tests, and m
 
 - **Fail fast.** Stop on the first violation. One fix at a time.
 - **Be pedantic.** If the spec says it, the code must do it. No "close enough".
-- **Quote everything.** Always quote the spec text and the code in error messages.
+- **Quote everything.** Always quote the spec text and the code in error messages so the developer sees exactly what's wrong.
 - **Be actionable.** Every error must tell the developer what file to change and what to do.
-- **Exclude docs from code search.** Markdown files are documentation, not implementation.
-- **No numbered IDs.** Spec IDs are hierarchical descriptive slugs, NEVER sequential numbers.
+- **Exclude docs from code search.** Markdown files are documentation, not implementation. Only search actual code files for spec references.
+- **No numbered IDs.** Spec IDs are hierarchical descriptive slugs (`[AUTH-TOKEN-VERIFY]`), NEVER sequential numbers (`[SPEC-001]`). The first word is the group — sections sharing a group must be adjacent in the TOC. If you encounter numbered or ungrouped IDs, flag them as a violation.

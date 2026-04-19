@@ -221,7 +221,8 @@ export class CommandTreeProvider implements vscode.TreeDataProvider<CommandTreeI
         this.compareMakeTaskPriority(a, b) ||
         a.label.localeCompare(b.label);
     }
-    return (a, b) => this.comparePrivateTasks(a, b) || this.compareMakeTaskPriority(a, b) || a.label.localeCompare(b.label);
+    return (a, b) =>
+      this.comparePrivateTasks(a, b) || this.compareMakeTaskPriority(a, b) || a.label.localeCompare(b.label);
   }
 
   private applyTagFilter(tasks: CommandItem[]): CommandItem[] {

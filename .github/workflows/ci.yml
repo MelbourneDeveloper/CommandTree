@@ -1,48 +1,68 @@
+# agent-pmo:424c8f8
 name: CI
 
 on:
   pull_request:
     branches: [main]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   ci:
+    name: CI
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
-          cache: npm
+          node-version: '20'
+          cache: 'npm'
 
       - run: npm ci
 
-      - name: Format
-        run: make format
+      - name: Format check
+        run: make fmt CHECK=1
 
       - name: Lint
         run: make lint
 
-      - name: Spell check
-        run: make spellcheck
+      # make test = fail-fast + coverage + threshold enforcement ([TEST-RULES]).
+      # Thresholds live in coverage-thresholds.json ([COVERAGE-THRESHOLDS-JSON]).
+      - name: Test
+        run: make test-exclude-ci
+
+      - name: Upload coverage
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-report
+          path: coverage/
+          retention-days: 7
 
       - name: Build
         run: make build
 
-      - name: Test
-        run: make test EXCLUDE_CI=true
-
       - name: Package
         run: make package
 
+
   website:
+    name: Website tests
     runs-on: ubuntu-latest
+    # TIMEOUT EXCEPTION: Playwright install + browser tests commonly exceed 10 min
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: website/package-lock.json
 
       - name: Install dependencies
         run: npm ci

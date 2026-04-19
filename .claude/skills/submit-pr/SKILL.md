@@ -2,9 +2,8 @@
 name: submit-pr
 description: Creates a pull request with a well-structured description after verifying CI passes. Use when the user asks to submit, create, or open a pull request.
 disable-model-invocation: true
-allowed-tools: Bash(git *), Bash(gh *)
 ---
-<!-- agent-pmo:5547fd2 -->
+<!-- agent-pmo:424c8f8 -->
 
 # Submit PR
 
@@ -12,10 +11,12 @@ Create a pull request for the current branch with a well-structured description.
 
 ## Steps
 
+*NOTE: if you already ran make ci in this session and it passed, you can skip step 1.*
+
 1. Run `make ci` — must pass completely before creating PR
-2. **Generate the diff against main.** Run `git diff main...HEAD > /tmp/pr-diff.txt` to capture the full diff between the current branch and the head of main. This is the ONLY source of truth for what the PR contains. **Warning:** the diff can be very large. If the diff file exceeds context limits, process it in chunks rather than trying to load it all at once.
+2. **Generate the diff against main.** Run `git diff main...HEAD > /tmp/pr-diff.txt` to capture the full diff between the current branch and the head of main. This is the ONLY source of truth for what the PR contains. **Warning:** the diff can be very large. If the diff file exceeds context limits, process it in chunks (e.g., read sections with `head`/`tail` or split by file) rather than trying to load it all at once.
 3. **Derive the PR title and description SOLELY from the diff.** Read the diff output and summarize what changed. Ignore commit messages, branch names, and any other metadata — only the actual code/content diff matters.
-4. Write PR body using the template in `.github/pull_request_template.md`
+4. Write PR body using the template in `.github/PULL_REQUEST_TEMPLATE.md`
 5. Fill in (based on the diff analysis from step 3):
    - TLDR: one sentence
    - What Was Added: new files, features, deps
@@ -30,7 +31,6 @@ Create a pull request for the current branch with a well-structured description.
 - Never create a PR if `make ci` fails
 - PR description must be specific and tight — no vague placeholders
 - Link to the relevant GitHub issue if one exists
-- DO NOT include yourself as a coauthor!
 
 ## Success criteria
 
