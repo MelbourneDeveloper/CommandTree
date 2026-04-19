@@ -164,9 +164,7 @@ function parseDockerComposeServices(content: string): string[] {
       continue;
     }
     const indent = leadingSpaces(line);
-    const result = processLine({ trimmed, indent, inServices, servicesIndent, services });
-    inServices = result.inServices;
-    servicesIndent = result.servicesIndent;
+    ({ inServices, servicesIndent } = processLine({ trimmed, indent, inServices, servicesIndent, services }));
   }
 
   return services;

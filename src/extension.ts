@@ -27,7 +27,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<Extens
   logger.info("Extension activating", { workspaceRoot });
   if (workspaceRoot === undefined || workspaceRoot === "") {
     logger.warn("No workspace root found, extension not activating");
-    return;
+    return undefined;
   }
   await initDatabaseSafe(workspaceRoot);
   treeProvider = new CommandTreeProvider(workspaceRoot);

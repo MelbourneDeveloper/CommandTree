@@ -32,6 +32,10 @@ function formatParam(def: ParamDef, value: string): string {
     case "dashdash-args": {
       return `-- ${value}`;
     }
+    default: {
+      const exhaustive: never = format;
+      return exhaustive;
+    }
   }
 }
 

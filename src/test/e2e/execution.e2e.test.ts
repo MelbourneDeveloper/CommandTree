@@ -30,14 +30,14 @@ function findCurrentRendererLog(): string | undefined {
     path.resolve(process.cwd(), "../../.vscode-test/user-data/logs"),
   ];
   for (const root of searchRoots) {
-    if (!fs.existsSync(root)) continue;
+    if (!fs.existsSync(root)) {continue;}
     const sessions = fs
       .readdirSync(root)
       .filter((n) => /^\d{8}T\d{6}$/.test(n))
       .sort();
     for (let i = sessions.length - 1; i >= 0; i--) {
       const logPath = path.join(root, sessions[i] ?? "", "window1", "renderer.log");
-      if (fs.existsSync(logPath)) return logPath;
+      if (fs.existsSync(logPath)) {return logPath;}
     }
   }
   return undefined;
@@ -55,7 +55,7 @@ function watchRendererLog(): RendererLogWatcher {
       try {
         const currentSize = fs.statSync(logPath).size;
         const length = Math.max(0, currentSize - baselineSize);
-        if (length === 0) return [];
+        if (length === 0) {return [];}
         const buf = Buffer.alloc(length);
         fs.readSync(fd, buf, 0, length, baselineSize);
         const text = buf.toString("utf8");

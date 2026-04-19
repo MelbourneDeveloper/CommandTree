@@ -35,10 +35,9 @@ export default tseslint.config(
       "@typescript-eslint/no-deprecated": "error",
       "@typescript-eslint/consistent-return": "error",
       "@typescript-eslint/prefer-literal-enum-member": "error",
+      "@typescript-eslint/require-array-sort-compare": "error",
       // Object destructuring only — `arr[0]` is idiomatic and noisier than a destructure.
       "@typescript-eslint/prefer-destructuring": ["error", { array: false, object: true }],
-      // VS Code API requires methods like `getTreeItem` that don't use `this`; interface-implementing classes are exempt.
-      "@typescript-eslint/class-methods-use-this": ["error", { ignoreClassesThatImplementAnInterface: "public-fields", ignoreOverrideMethods: true }],
 
       // TypeScript strict rules
       "@typescript-eslint/no-explicit-any": "error",

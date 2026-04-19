@@ -265,6 +265,10 @@ export class TaskRunner {
       case "dashdash-args": {
         return `-- ${value}`;
       }
+      default: {
+        const exhaustive: never = format;
+        return exhaustive;
+      }
     }
   }
 }
