@@ -721,14 +721,14 @@ suite("Command Execution E2E Tests", () => {
       assert.strictEqual(finalCount, 1, "Should create exactly one terminal when none existed");
       assert.ok(vscode.window.activeTerminal !== undefined, "Created terminal should be active");
       assert.ok(
-        vscode.window.activeTerminal?.name.startsWith("CommandTree:"),
-        `Active terminal should be the CommandTree one, got: ${vscode.window.activeTerminal?.name ?? "(none)"}`
+        vscode.window.activeTerminal.name.startsWith("CommandTree:"),
+        `Active terminal should be the CommandTree one, got: ${vscode.window.activeTerminal.name}`
       );
       assert.ok(
-        vscode.window.activeTerminal?.name.includes("Create Terminal Test"),
-        `Active terminal name should include task label, got: ${vscode.window.activeTerminal?.name ?? "(none)"}`
+        vscode.window.activeTerminal.name.includes("Create Terminal Test"),
+        `Active terminal name should include task label, got: ${vscode.window.activeTerminal.name}`
       );
-      assert.strictEqual(vscode.window.activeTerminal?.exitStatus, undefined, "Terminal should still be running");
+      assert.strictEqual(vscode.window.activeTerminal.exitStatus, undefined, "Terminal should still be running");
 
       const rendererErrors = rendererLog.capture();
       assert.deepStrictEqual(
@@ -792,7 +792,7 @@ suite("Command Execution E2E Tests", () => {
         "An active terminal should exist after reuse"
       );
       assert.strictEqual(
-        vscode.window.activeTerminal?.name,
+        vscode.window.activeTerminal.name,
         "Existing Test Terminal",
         "Reused terminal must be the pre-existing one (its name is preserved — no new CommandTree terminal created)"
       );
