@@ -33,10 +33,6 @@ export async function discoverMakeTargets(workspaceRoot: string, excludePatterns
     const category = simplifyPath(file.fsPath, workspaceRoot);
 
     for (const { name, line } of targets) {
-      if (name.startsWith(".")) {
-        continue;
-      }
-
       commands.push({
         id: generateCommandId("make", file.fsPath, name),
         label: name,
@@ -71,8 +67,8 @@ function parseMakeTargets(content: string): MakeTarget[] {
 
   let match;
   while ((match = targetRegex.exec(content)) !== null) {
-    const name = match[1];
-    if (name === undefined || name === "" || seen.has(name)) {
+    const name = match[1] ?? "";
+    if (seen.has(name)) {
       continue;
     }
     seen.add(name);

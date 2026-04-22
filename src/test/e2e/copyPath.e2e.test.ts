@@ -103,5 +103,26 @@ suite("Copy Path E2E Tests", () => {
     await vscode.env.clipboard.writeText(SENTINEL_CLIPBOARD);
     await vscode.commands.executeCommand(COPY_RELATIVE_COMMAND, undefined);
     await assertClipboardValue(SENTINEL_CLIPBOARD, "Undefined items should not change the clipboard");
+
+    await vscode.env.clipboard.writeText(SENTINEL_CLIPBOARD);
+    await vscode.commands.executeCommand(COPY_FULL_COMMAND, undefined);
+    await assertClipboardValue(
+      SENTINEL_CLIPBOARD,
+      "Copy Full Path must be a no-op when invoked with no tree item"
+    );
+
+    await vscode.env.clipboard.writeText(SENTINEL_CLIPBOARD);
+    await vscode.commands.executeCommand(COPY_FULL_COMMAND, { data: { nodeType: "category", commandType: "make" } });
+    await assertClipboardValue(
+      SENTINEL_CLIPBOARD,
+      "Copy Full Path must be a no-op when invoked on a non-command tree node"
+    );
+
+    await vscode.env.clipboard.writeText(SENTINEL_CLIPBOARD);
+    await vscode.commands.executeCommand(COPY_RELATIVE_COMMAND, { data: { nodeType: "folder" } });
+    await assertClipboardValue(
+      SENTINEL_CLIPBOARD,
+      "Copy Relative Path must be a no-op when invoked on a folder tree node"
+    );
   });
 });

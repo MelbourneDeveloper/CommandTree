@@ -8,24 +8,14 @@ export interface ParamValue {
 export function formatParam(def: ParamDef, value: string): string {
   const format = def.format ?? "positional";
   switch (format) {
-    case "positional": {
+    case "positional":
       return `"${value}"`;
-    }
-    case "flag": {
-      const flagName = def.flag ?? `--${def.name}`;
-      return `${flagName} "${value}"`;
-    }
-    case "flag-equals": {
-      const flagName = def.flag ?? `--${def.name}`;
-      return `${flagName}=${value}`;
-    }
-    case "dashdash-args": {
+    case "flag":
+      return `${def.flag ?? `--${def.name}`} "${value}"`;
+    case "flag-equals":
+      return `${def.flag ?? `--${def.name}`}=${value}`;
+    case "dashdash-args":
       return `-- ${value}`;
-    }
-    default: {
-      const exhaustive: never = format;
-      return exhaustive;
-    }
   }
 }
 

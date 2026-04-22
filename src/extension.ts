@@ -244,7 +244,7 @@ function extractTask(item: CommandTreeItem | CommandItem | undefined): CommandIt
   if (item === undefined) {
     return undefined;
   }
-  if (item instanceof CommandTreeItem) {
+  if ("data" in item) {
     return isCommandItem(item.data) ? item.data : undefined;
   }
   return item;
