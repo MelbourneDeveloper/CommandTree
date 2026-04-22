@@ -15,7 +15,7 @@ const userDataDir = resolve(__dirname, '.vscode-test/user-data');
 
 export default defineConfig({
     tests: [{
-        files: ['out/test/e2e/**/*.test.js', 'out/test/providers/**/*.test.js'],
+        files: ['out/test/e2e/**/*.test.js', 'out/test/providers/**/*.test.js', 'out/test/unit/**/*.test.js'],
         version: 'stable',
         workspaceFolder: testWorkspace,
         extensionDevelopmentPath: './',
@@ -41,6 +41,7 @@ export default defineConfig({
             '**/out/semantic/summariser.js',       // requires Copilot auth, not available in CI
             '**/out/semantic/summaryPipeline.js',   // requires Copilot auth, not available in CI
             '**/out/semantic/vscodeAdapters.js',    // requires Copilot auth, not available in CI
+            '**/out/semantic/adapters.js',          // type-only interfaces, no runtime behavior
         ],
         reporter: ['text', 'lcov', 'html', 'json-summary'],
         output: './coverage'

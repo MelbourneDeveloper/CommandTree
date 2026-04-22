@@ -117,6 +117,16 @@
         "icon": "$(open-preview)"
       },
       {
+        "command": "commandtree.copyRelativePath",
+        "title": "Copy Relative Path",
+        "icon": "$(copy)"
+      },
+      {
+        "command": "commandtree.copyFullPath",
+        "title": "Copy Full Path",
+        "icon": "$(copy)"
+      },
+      {
         "command": "commandtree.generateSummaries",
         "title": "Generate AI Summaries",
         "icon": "$(sparkle)"
@@ -207,6 +217,16 @@
           "group": "3_tagging@2"
         },
         {
+          "command": "commandtree.copyRelativePath",
+          "when": "view == commandtree && viewItem =~ /task.*/",
+          "group": "4_copy@1"
+        },
+        {
+          "command": "commandtree.copyFullPath",
+          "when": "view == commandtree && viewItem =~ /task.*/",
+          "group": "4_copy@2"
+        },
+        {
           "command": "commandtree.run",
           "when": "view == commandtree && viewItem == task-quick",
           "group": "inline@1"
@@ -275,6 +295,16 @@
           "command": "commandtree.removeFromQuick",
           "when": "view == commandtree-quick && viewItem == task",
           "group": "2_tags@1"
+        },
+        {
+          "command": "commandtree.copyRelativePath",
+          "when": "view == commandtree-quick && viewItem =~ /task.*/",
+          "group": "4_copy@1"
+        },
+        {
+          "command": "commandtree.copyFullPath",
+          "when": "view == commandtree-quick && viewItem =~ /task.*/",
+          "group": "4_copy@2"
         },
         {
           "command": "commandtree.run",

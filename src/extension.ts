@@ -1,4 +1,5 @@
 import * as vscode from "vscode";
+import * as path from "path";
 import { CommandTreeProvider } from "./CommandTreeProvider";
 import { CommandTreeItem, isCommandItem } from "./models/TaskItem";
 import type { CommandItem } from "./models/TaskItem";
@@ -93,6 +94,7 @@ function registerTreeViews(context: vscode.ExtensionContext): void {
 
 function registerCommands(context: vscode.ExtensionContext): void {
   registerCoreCommands(context);
+  registerClipboardCommands(context);
   registerFilterCommands(context);
   registerTagCommands(context);
   registerQuickCommands(context);
@@ -120,6 +122,13 @@ function registerCoreCommands(context: vscode.ExtensionContext): void {
         await vscode.commands.executeCommand("markdown.showPreview", vscode.Uri.file(item.data.filePath));
       }
     })
+  );
+}
+
+function registerClipboardCommands(context: vscode.ExtensionContext): void {
+  context.subscriptions.push(
+    vscode.commands.registerCommand("commandtree.copyRelativePath", handleCopyRelativePath),
+    vscode.commands.registerCommand("commandtree.copyFullPath", handleCopyFullPath)
   );
 }
 
@@ -215,6 +224,23 @@ function extractTask(item: CommandTreeItem | CommandItem | undefined): CommandIt
     return isCommandItem(item.data) ? item.data : undefined;
   }
   return item;
+}
+
+async function handleCopyRelativePath(item: CommandTreeItem | CommandItem | undefined): Promise<void> {
+  const task = extractTask(item);
+  const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+  if (task === undefined || workspaceRoot === undefined) {
+    return;
+  }
+  await vscode.env.clipboard.writeText(path.relative(workspaceRoot, task.filePath));
+}
+
+async function handleCopyFullPath(item: CommandTreeItem | CommandItem | undefined): Promise<void> {
+  const task = extractTask(item);
+  if (task === undefined) {
+    return;
+  }
+  await vscode.env.clipboard.writeText(task.filePath);
 }
 
 async function handleAddTag(item: CommandTreeItem | CommandItem | undefined, tagNameArg?: string): Promise<void> {
