@@ -27,6 +27,7 @@ export class CommandTreeProvider implements vscode.TreeDataProvider<CommandTreeI
   private summaries: ReadonlyMap<string, CommandRow> = new Map();
   private readonly tagConfig: TagConfig;
   private readonly workspaceRoot: string;
+  private refreshPromise: Promise<void> | null = null;
 
   public constructor(workspaceRoot: string) {
     this.workspaceRoot = workspaceRoot;
@@ -34,6 +35,20 @@ export class CommandTreeProvider implements vscode.TreeDataProvider<CommandTreeI
   }
 
   public async refresh(): Promise<void> {
+    if (this.refreshPromise !== null) {
+      logger.info("CommandTreeProvider.refresh() sharing in-flight refresh");
+      await this.refreshPromise;
+      return;
+    }
+    this.refreshPromise = this.runRefresh();
+    try {
+      await this.refreshPromise;
+    } finally {
+      this.refreshPromise = null;
+    }
+  }
+
+  private async runRefresh(): Promise<void> {
     logger.info("CommandTreeProvider.refresh() starting");
     this.tagConfig.load();
     logger.info("Tag config loaded, getting exclude patterns");
