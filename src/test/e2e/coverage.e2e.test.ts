@@ -212,7 +212,7 @@ suite("Coverage E2E Tests", () => {
   test("C# and F# script discovery covers described and executable script rows", async function () {
     this.timeout(15000);
     writeFile(CSHARP_PATH, ["// C# script description", 'Console.WriteLine("hello");'].join("\n"));
-    writeFile(FSHARP_PATH, ["// F# script description", 'printfn "hello"'].join("\n"));
+    writeFile(FSHARP_PATH, ["// F# script description", 'let message = "hello"'].join("\n"));
 
     const csharp = await discoverCsharpScripts(workspaceRoot, []);
     const fsharp = await discoverFsharpScripts(workspaceRoot, []);

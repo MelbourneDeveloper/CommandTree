@@ -82,6 +82,7 @@ function registerTreeViews(context: vscode.ExtensionContext): void {
     vscode.window.createTreeView("commandtree", {
       treeDataProvider: treeProvider,
       showCollapseAll: true,
+      dragAndDropController: treeProvider,
     }),
     vscode.window.createTreeView("commandtree-quick", {
       treeDataProvider: quickTasksProvider,
