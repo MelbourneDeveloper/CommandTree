@@ -44,10 +44,21 @@ export async function activate(context: vscode.ExtensionContext): Promise<Extens
   registerTreeViews(context);
   registerCommands(context);
   setupWatchers(context, workspaceRoot);
-  await initialDiscovery(workspaceRoot);
-  initAiSummaries(workspaceRoot);
+  runBackgroundStartup(workspaceRoot);
   logger.info("Extension activation complete");
   return { commandTreeProvider: treeProvider, quickTasksProvider };
+}
+
+function runBackgroundStartup(workspaceRoot: string): void {
+  initialDiscovery(workspaceRoot)
+    .then(() => {
+      initAiSummaries(workspaceRoot);
+    })
+    .catch((e: unknown) => {
+      logger.error("Initial discovery failed", {
+        error: e instanceof Error ? e.message : String(e),
+      });
+    });
 }
 
 async function initDatabaseSafe(workspaceRoot: string): Promise<void> {
