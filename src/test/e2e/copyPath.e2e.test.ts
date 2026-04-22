@@ -7,12 +7,7 @@ import * as assert from "assert";
 import * as fs from "fs";
 import * as path from "path";
 import * as vscode from "vscode";
-import {
-  activateExtension,
-  collectLeafItems,
-  getCommandTreeProvider,
-  getExtensionPath,
-} from "../helpers/helpers";
+import { activateExtension, collectLeafItems, getCommandTreeProvider, getExtensionPath } from "../helpers/helpers";
 import { parsePackageJson } from "../helpers/test-types";
 import type { PackageJsonMenuItem } from "../helpers/test-types";
 import { isCommandItem } from "../../models/TaskItem";

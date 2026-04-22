@@ -27,7 +27,10 @@ export async function discoverDockerComposeServices(
   excludePatterns: string[]
 ): Promise<CommandItem[]> {
   const exclude = `{${excludePatterns.join(",")}}`;
-  const [composeFiles, dockerFiles] = await Promise.all([findFiles(COMPOSE_FILE_GLOBS, exclude), findFiles(DOCKERFILE_GLOBS, exclude)]);
+  const [composeFiles, dockerFiles] = await Promise.all([
+    findFiles(COMPOSE_FILE_GLOBS, exclude),
+    findFiles(DOCKERFILE_GLOBS, exclude),
+  ]);
   const composeCommands = await discoverComposeCommands({ files: composeFiles, workspaceRoot });
   const dockerfileCommands = dockerFiles.map((file) => buildDockerfileTask(file, workspaceRoot));
   return [...composeCommands, ...dockerfileCommands];
@@ -57,7 +60,9 @@ async function discoverComposeCommands(params: {
   readonly files: readonly vscode.Uri[];
   readonly workspaceRoot: string;
 }): Promise<CommandItem[]> {
-  const groups = await Promise.all(params.files.map(async (file) => await buildComposeTasks(file, params.workspaceRoot)));
+  const groups = await Promise.all(
+    params.files.map(async (file) => await buildComposeTasks(file, params.workspaceRoot))
+  );
   return groups.flat();
 }
 
@@ -83,12 +88,19 @@ interface DockerTaskParams {
 }
 
 function buildGeneralComposeTasks(params: DockerTaskParams): CommandItem[] {
-  return GENERAL_COMPOSE_COMMANDS.map((def) => buildComposeTask({ ...params, name: def.name, args: def.args, description: def.description }));
+  return GENERAL_COMPOSE_COMMANDS.map((def) =>
+    buildComposeTask({ ...params, name: def.name, args: def.args, description: def.description })
+  );
 }
 
 function buildServiceComposeTasks(params: DockerTaskParams & { readonly services: readonly string[] }): CommandItem[] {
   return params.services.map((service) =>
-    buildComposeTask({ ...params, name: `up ${service}`, args: `up ${service}`, description: `Start ${service} service` })
+    buildComposeTask({
+      ...params,
+      name: `up ${service}`,
+      args: `up ${service}`,
+      description: `Start ${service} service`,
+    })
   );
 }
 

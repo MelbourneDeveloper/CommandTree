@@ -69,7 +69,11 @@ function assertCommandChildrenSorted(items: readonly CommandTreeItem[]): void {
   const commands = items.filter((item) => isCommandItem(item.data));
   const actual = labelsOf(commands);
   const expected = labelsOf([...commands].sort(compareCommandLabels));
-  assert.deepStrictEqual(actual, expected, `Command siblings should be sorted by configured order: ${actual.join(", ")}`);
+  assert.deepStrictEqual(
+    actual,
+    expected,
+    `Command siblings should be sorted by configured order: ${actual.join(", ")}`
+  );
 }
 
 async function assertSortedAndCleanSubtree(item: CommandTreeItem): Promise<void> {
@@ -255,7 +259,11 @@ suite("Sort Order E2E Tests", () => {
     );
     assert.deepStrictEqual(npmLabels, ["alpha", "Beta", "middle", "zeta"], "NPM scripts must use name sort");
     assert.deepStrictEqual(shellLabels, ["alpha.sh", "zeta.sh"], "Shell scripts must use name sort");
-    assert.strictEqual(commandItemWithLabel(npmItems, "Beta").data.command, "npm run Beta", "NPM command should survive sorting");
+    assert.strictEqual(
+      commandItemWithLabel(npmItems, "Beta").data.command,
+      "npm run Beta",
+      "NPM command should survive sorting"
+    );
     assert.strictEqual(
       commandItemWithLabel(shellItems, "alpha.sh").data.filePath.endsWith(ALPHA_SHELL_PATH),
       true,
@@ -275,9 +283,18 @@ suite("Sort Order E2E Tests", () => {
 
     const roots = await getCommandTreeProvider().getChildren();
     const rootLabels = labelsOf(roots);
-    assert.ok(rootLabels.some((label) => label.startsWith("Make Targets")), "Make category should be visible");
-    assert.ok(rootLabels.some((label) => label.startsWith("NPM Scripts")), "NPM category should be visible");
-    assert.ok(rootLabels.some((label) => label.startsWith("Shell Scripts")), "Shell category should be visible");
+    assert.ok(
+      rootLabels.some((label) => label.startsWith("Make Targets")),
+      "Make category should be visible"
+    );
+    assert.ok(
+      rootLabels.some((label) => label.startsWith("NPM Scripts")),
+      "NPM category should be visible"
+    );
+    assert.ok(
+      rootLabels.some((label) => label.startsWith("Shell Scripts")),
+      "Shell category should be visible"
+    );
     await assertWholeTreeHasNoStrayRowsAndSortedCommands();
     assert.deepStrictEqual(
       labelsOf(await getFolderChildren("Make Targets", SORT_ORDER_FOLDER)),

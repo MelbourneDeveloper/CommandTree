@@ -165,7 +165,7 @@ suite("Coverage E2E Tests", () => {
 
   test("filesystem helpers, logger, and private decorations cover success and error paths", async function () {
     this.timeout(15000);
-    writeFile(JSONC_PATH, ['{', '  // removed', '  "name": "coverage",', '  "enabled": true', '}'].join("\n"));
+    writeFile(JSONC_PATH, ["{", "  // removed", '  "name": "coverage",', '  "enabled": true', "}"].join("\n"));
     writeFile(BAD_JSON_PATH, '{ "name": ');
     const validUri = vscode.Uri.file(getFixturePath(JSONC_PATH));
     const badUri = vscode.Uri.file(getFixturePath(BAD_JSON_PATH));
@@ -206,7 +206,11 @@ suite("Coverage E2E Tests", () => {
     assert.ok(privateDecoration !== undefined, "Private task URI should produce a decoration");
     assert.strictEqual(privateDecoration.color?.id, "descriptionForeground", "Private decoration should be muted");
     assert.strictEqual(privateDecoration.tooltip, "Private task", "Private decoration should identify private tasks");
-    assert.strictEqual(decorations.provideFileDecoration(validUri), undefined, "Normal file URI should not be decorated");
+    assert.strictEqual(
+      decorations.provideFileDecoration(validUri),
+      undefined,
+      "Normal file URI should not be decorated"
+    );
   });
 
   test("C# and F# script discovery covers described and executable script rows", async function () {

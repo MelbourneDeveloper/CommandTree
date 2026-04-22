@@ -72,6 +72,9 @@ suite("Docker Execution E2E Tests", () => {
       `docker compose -f "${composePath}" up web`,
       "Service up should use -f and the service name"
     );
-    assert.ok(vscode.Uri.file(dockerfileTask.filePath).scheme === "file", "Dockerfile task path should become file URI");
+    assert.ok(
+      vscode.Uri.file(dockerfileTask.filePath).scheme === "file",
+      "Dockerfile task path should become file URI"
+    );
   });
 });

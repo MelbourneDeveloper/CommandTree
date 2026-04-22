@@ -40,7 +40,11 @@ export class CommandTreeProvider
   private readonly _onDidChangeTreeData = new vscode.EventEmitter<CommandTreeItem | undefined>();
   public readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
   public readonly dropMimeTypes: readonly string[] = [];
-  public readonly dragMimeTypes: readonly string[] = [SCRIPT_URI_LIST_MIME, SCRIPT_PLAIN_TEXT_MIME, SCRIPT_COMMAND_MIME];
+  public readonly dragMimeTypes: readonly string[] = [
+    SCRIPT_URI_LIST_MIME,
+    SCRIPT_PLAIN_TEXT_MIME,
+    SCRIPT_COMMAND_MIME,
+  ];
 
   private commands: CommandItem[] = [];
   private discoveryResult: DiscoveryResult | null = null;

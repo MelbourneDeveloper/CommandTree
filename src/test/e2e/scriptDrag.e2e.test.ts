@@ -6,12 +6,7 @@
 import * as assert from "assert";
 import * as fs from "fs";
 import * as vscode from "vscode";
-import {
-  activateExtension,
-  collectLeafItems,
-  executeCommand,
-  getCommandTreeProvider,
-} from "../helpers/helpers";
+import { activateExtension, collectLeafItems, executeCommand, getCommandTreeProvider } from "../helpers/helpers";
 import { isCommandItem } from "../../models/TaskItem";
 import type { CommandTreeItem } from "../../models/TaskItem";
 
@@ -83,7 +78,11 @@ suite("Script Drag E2E Tests", () => {
     const uriPayload = await transferText(dataTransfer, URI_LIST_MIME);
     const plainPayload = await transferText(dataTransfer, PLAIN_TEXT_MIME);
     const commandTreePayload = await transferText(dataTransfer, COMMANDTREE_MIME);
-    assert.strictEqual(uriPayload, vscode.Uri.file(scriptItem.data.filePath).toString(), "URI payload should be file URI");
+    assert.strictEqual(
+      uriPayload,
+      vscode.Uri.file(scriptItem.data.filePath).toString(),
+      "URI payload should be file URI"
+    );
     assert.strictEqual(plainPayload, scriptItem.data.filePath, "Plain payload should be the script path");
     assert.strictEqual(commandTreePayload, scriptItem.data.id, "CommandTree payload should carry command id");
   });
