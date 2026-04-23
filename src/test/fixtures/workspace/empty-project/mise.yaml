@@ -1,0 +1,4 @@
+tasks:
+  hello:
+    description: "Says hello"
+  world:

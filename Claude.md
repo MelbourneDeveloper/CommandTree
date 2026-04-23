@@ -64,12 +64,11 @@ CommandTree is a VS Code extension that discovers and organizes runnable tasks (
 ## Too Many Cooks (Multi-Agent Coordination)
 
 If the TMC server is available:
-1. Register immediately: descriptive name, intent, files you will touch
-2. Before editing any file: lock it via TMC
-3. Broadcast your plan before starting work
-4. Check messages every few minutes
-5. Release locks immediately when done
-6. Never edit a locked file — wait or find another approach
+- Register immediately: descriptive name, intent, files you will touch
+- Before editing any file: lock it via TMC; release locks immediately when done
+- Broadcast your plan before starting work
+- Check messages every few minutes, and respond
+- Never edit a locked file — wait or find another approach
 
 ### CSS
 
@@ -114,14 +113,6 @@ Only test the UI **THROUGH the UI**. Do not run commands etc. to coerce the stat
 - Add missing feature or fix bug
 - Run tests to verify test passes
 - Repeat and fix until test passes WITHOUT changing the test
-
-### Fake Tests Are Illegal
-
-A "fake test" is any test that passes without actually verifying behavior:
-- `assert.ok(true, 'Should work')` — asserts true unconditionally
-- `try { await doSomething(); } catch { } assert.ok(true)` — no assertion on actual behavior
-- Only checking config file, not actual UI/view behavior
-- Empty catch with success assertion
 
 ## Website
 
@@ -196,24 +187,6 @@ CommandTree/
 ├── Makefile                 # Build targets
 └── .vscode-test.mjs         # Test runner config
 ```
-
-## Commands
-
-| Command ID | Description |
-|------------|-------------|
-| `commandtree.refresh` | Reload all tasks |
-| `commandtree.run` | Run task in new terminal |
-| `commandtree.runInCurrentTerminal` | Run in active terminal |
-| `commandtree.filterByTag` | Tag filter picker |
-| `commandtree.clearFilter` | Clear all filters |
-| `commandtree.addTag` | Add tag to command |
-| `commandtree.removeTag` | Remove tag from command |
-| `commandtree.addToQuick` | Add to quick launch |
-| `commandtree.removeFromQuick` | Remove from quick launch |
-| `commandtree.refreshQuick` | Refresh quick launch view |
-| `commandtree.generateSummaries` | Generate AI summaries |
-| `commandtree.selectModel` | Select AI model |
-| `commandtree.openPreview` | Open markdown preview |
 
 ## Adding New Task Types
 
