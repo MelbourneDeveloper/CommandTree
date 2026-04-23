@@ -137,15 +137,13 @@ async function resolveModelRef(mode: ModelSelectionMode | undefined): Promise<Re
   return mode === "automatic" ? await resolveModelAutomatically(deps) : await resolveModel(deps);
 }
 
-async function fetchResolvedModel(selectedId: string): Promise<Result<vscode.LanguageModelChat, string>> {
-  const allModels = await fetchModels({ vendor: "copilot" });
-  if (allModels.length === 0) {
-    return err("No Copilot models available");
-  }
-
+function findResolvedModel(
+  allModels: readonly vscode.LanguageModelChat[],
+  selectedId: string
+): Result<vscode.LanguageModelChat, string> {
   const model = pickConcreteModel({
     models: allModels.map((m) => ({ id: m.id, name: m.name })),
-    preferredId: result.value.id,
+    preferredId: selectedId,
   });
   if (!model) {
     return err("Selected model no longer available");
@@ -155,12 +153,24 @@ async function fetchResolvedModel(selectedId: string): Promise<Result<vscode.Lan
   if (!resolved) {
     return err("Selected model no longer available");
   }
+  return ok(resolved);
+}
 
+async function fetchResolvedModel(selectedId: string): Promise<Result<vscode.LanguageModelChat, string>> {
+  const allModels = await fetchModels({ vendor: "copilot" });
+  if (allModels.length === 0) {
+    return err("No Copilot models available");
+  }
+
+  const result = findResolvedModel(allModels, selectedId);
+  if (!result.ok) {
+    return result;
+  }
   logger.info("Resolved model for requests", {
     selected: selectedId,
-    resolved: resolved.id,
+    resolved: result.value.id,
   });
-  return ok(resolved);
+  return result;
 }
 
 export async function selectCopilotModel(

@@ -197,7 +197,7 @@ async function processPendingBatch(params: {
   readonly pending: readonly PendingItem[];
   readonly model: vscode.LanguageModelChat;
   readonly handle: DbHandle;
-  readonly onProgress?: (done: number, total: number, label: string) => void;
+  readonly onProgress?: ((done: number, total: number, label: string) => void) | undefined;
 }): Promise<BatchState> {
   const state: BatchState = { succeeded: 0, failed: 0, aborted: false };
   for (const item of params.pending) {
@@ -216,6 +216,27 @@ function batchStateToResult(state: BatchState): Result<number, string> {
     return err(`All ${state.failed} tasks failed to summarise`);
   }
   return ok(state.succeeded);
+}
+
+async function runPendingSummaries(params: {
+  readonly tasks: readonly CommandItem[];
+  readonly fs: FileSystemAdapter;
+  readonly handle: DbHandle;
+  readonly model: vscode.LanguageModelChat;
+  readonly onProgress?: ((done: number, total: number, label: string) => void) | undefined;
+}): Promise<Result<number, string>> {
+  const pending = await findPendingSummaries({ handle: params.handle, tasks: params.tasks, fs: params.fs });
+  if (pending.length === 0) {
+    logger.info("[SUMMARY] All summaries up to date");
+    return ok(0);
+  }
+  const state = await processPendingBatch({
+    pending,
+    model: params.model,
+    handle: params.handle,
+    onProgress: params.onProgress,
+  });
+  return batchStateToResult(state);
 }
 
 /**
@@ -238,20 +259,11 @@ export async function summariseAllTasks(params: {
   if (!modelResult.ok) {
     return modelResult;
   }
-  const pending = await findPendingSummaries({
-    handle: handleResult.value,
+  return await runPendingSummaries({
     tasks: params.tasks,
     fs: params.fs,
-  });
-  if (pending.length === 0) {
-    logger.info("[SUMMARY] All summaries up to date");
-    return ok(0);
-  }
-  const state = await processPendingBatch({
-    pending,
-    model: modelResult.value,
     handle: handleResult.value,
+    model: modelResult.value,
     onProgress: params.onProgress,
   });
-  return batchStateToResult(state);
 }
