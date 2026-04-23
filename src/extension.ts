@@ -63,6 +63,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<Extens
   appState.quickTasksProvider = new QuickTasksProvider();
   appState.taskRunner = new TaskRunner();
   appState.activated = true;
+  context.subscriptions.push({ dispose: deactivate });
   registerTreeViews(context);
   registerCommands(context);
   setupWatchers(context, workspaceRoot);
@@ -466,4 +467,5 @@ function updateFilterContext(): void {
 
 export function deactivate(): void {
   disposeDb();
+  appState.reset();
 }

@@ -1051,7 +1051,7 @@ li::marker { color: var(--color-primary); }
   h1, h2, h3, h4, h5, h6 {
     max-width: 100% !important;
     overflow-wrap: break-word !important;
-    word-break: break-word !important;
+    word-break: normal !important;
     hyphens: auto !important;
   }
 
@@ -1077,11 +1077,15 @@ li::marker { color: var(--color-primary); }
   .mobile-menu-toggle {
     display: flex;
     flex-direction: column;
+    align-items: center;
+    justify-content: center;
     gap: 4px;
     background: none;
     border: none;
     cursor: pointer;
-    padding: 0.5rem;
+    width: 48px;
+    height: 48px;
+    padding: 0;
     color: var(--color-text);
   }
 
@@ -1179,8 +1183,8 @@ li::marker { color: var(--color-primary); }
   .docs-content ul,
   .docs-content ol,
   .docs-content li {
-    word-wrap: break-word !important;
     overflow-wrap: break-word !important;
+    word-break: normal !important;
     max-width: 100% !important;
   }
 
@@ -1189,7 +1193,8 @@ li::marker { color: var(--color-primary); }
     max-width: 100% !important;
     overflow-x: auto !important;
     white-space: pre-wrap !important;
-    word-break: break-all !important;
+    overflow-wrap: anywhere !important;
+    word-break: normal !important;
   }
 
   /* Fix any containers with set widths */
@@ -1212,8 +1217,8 @@ li::marker { color: var(--color-primary); }
 
   /* CRITICAL: Force text wrapping for all text elements */
   p, span, a, li, td, th, label, button {
-    word-break: break-word !important;
     overflow-wrap: break-word !important;
+    word-break: normal !important;
     hyphens: auto !important;
     max-width: 100% !important;
   }
