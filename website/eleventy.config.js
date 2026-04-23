@@ -36,19 +36,20 @@ export default function(eleventyConfig) {
     {% endif %}
   </article>`;
 
-  const blogIndexOverride = `---
+const blogIndexOverride = `---
 layout: layouts/base.njk
-title: Blog
+title: CommandTree Blog - VS Code Command Runner Guide Updates
+description: CommandTree release notes and practical VS Code task runner guides for command discovery, AI summaries, mise tasks, monorepo workflows, and workspace automation.
 permalink: /blog/
 ---
 <div class="blog-container">
   <header class="blog-header">
     <h1>Blog</h1>
-    <p class="blog-subtitle">Latest posts and updates</p>
+    <p class="blog-subtitle">Release notes and practical guides for VS Code task discovery.</p>
   </header>
   <nav class="blog-nav">
     <a href="/blog/tags/" class="blog-nav-link">Tags</a>
-    <a href="/blog/categories/" class="blog-nav-link">Categories</a>
+    {% if collections.categoryList | length > 0 %}<a href="/blog/categories/" class="blog-nav-link">Categories</a>{% endif %}
   </nav>
   <div class="post-list">
   {% for post in collections.posts | sortByDateDesc %}
@@ -62,19 +63,20 @@ permalink: /blog/
   </div>
 </div>`;
 
-  const tagsIndexOverride = `---
+const tagsIndexOverride = `---
 layout: layouts/base.njk
-title: Tags
+title: CommandTree Blog Tags - VS Code Task Runner Topics
+description: Browse CommandTree blog tags for VS Code command runner topics including AI summaries, task discovery, mise tasks, monorepos, and workspace automation.
 permalink: /blog/tags/
 ---
 <div class="blog-container">
   <header class="blog-header">
     <h1>Tags</h1>
-    <p class="blog-subtitle">Browse blog posts by tag</p>
+    <p class="blog-subtitle">Browse CommandTree posts by VS Code task runner topic.</p>
   </header>
   <nav class="blog-nav">
     <a href="/blog/" class="blog-nav-link">All posts</a>
-    <a href="/blog/categories/" class="blog-nav-link">Categories</a>
+    {% if collections.categoryList | length > 0 %}<a href="/blog/categories/" class="blog-nav-link">Categories</a>{% endif %}
   </nav>
   <ul class="taxonomy-grid">
   {% for tag in collections.tagList %}
@@ -87,15 +89,16 @@ permalink: /blog/tags/
   </ul>
 </div>`;
 
-  const categoriesIndexOverride = `---
+const categoriesIndexOverride = `---
 layout: layouts/base.njk
-title: Categories
+title: CommandTree Blog Categories - VS Code Task Runner Guides
+description: Browse CommandTree blog categories for VS Code command runner guides covering task discovery, AI summaries, mise tasks, and workspace automation.
 permalink: /blog/categories/
 ---
 <div class="blog-container">
   <header class="blog-header">
     <h1>Categories</h1>
-    <p class="blog-subtitle">Browse blog posts by category</p>
+    <p class="blog-subtitle">Browse CommandTree posts by guide category.</p>
   </header>
   <nav class="blog-nav">
     <a href="/blog/" class="blog-nav-link">All posts</a>
@@ -123,8 +126,8 @@ pagination:
 permalink: /blog/tags/{{ tag | slugify }}/
 layout: layouts/base.njk
 eleventyComputed:
-  title: "Posts tagged '{{ tag | capitalize }}'"
-  description: "All blog posts tagged with {{ tag | capitalize }}."
+  title: "{{ tag | capitalize }} Articles - CommandTree VS Code Task Runner Blog"
+  description: "CommandTree articles tagged with {{ tag | capitalize }} for VS Code developers who need task discovery, command running, AI summaries, and workspace automation tips."
 ---
 <div class="blog-container">
   <header class="blog-header">
@@ -151,8 +154,8 @@ pagination:
 permalink: /blog/categories/{{ category | slugify }}/
 layout: layouts/base.njk
 eleventyComputed:
-  title: "{{ category | capitalize }}"
-  description: "All blog posts in the {{ category }} category."
+  title: "{{ category | capitalize }} Guides - CommandTree VS Code Task Runner Blog"
+  description: "CommandTree posts in the {{ category }} category for VS Code developers covering command runners, task discovery, AI summaries, and workspace automation."
 ---
 <div class="blog-container">
   <header class="blog-header">
@@ -171,12 +174,46 @@ eleventyComputed:
   </div>
 </div>`;
 
+  const sitemapOverride = `---json
+{
+  "permalink": "sitemap.xml",
+  "eleventyExcludeFromCollections": true
+}
+---
+<?xml version="1.0" encoding="utf-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  {%- for page in collections.all %}
+  {%- set isTagPage = page.url.startsWith('/blog/tags/') %}
+  {%- set isCategoryPage = page.url.startsWith('/blog/categories/') %}
+  {%- if not page.data.eleventyExcludeFromCollections and not isTagPage and not isCategoryPage %}
+  <url>
+    <loc>{{ site.url }}{{ page.url }}</loc>
+    <lastmod>{{ page.date | isoDate }}</lastmod>
+    {%- if page.url == "/" or page.url == "/index.html" %}
+    <priority>1.0</priority>
+    <changefreq>weekly</changefreq>
+    {%- elif "/docs/" in page.url %}
+    <priority>0.8</priority>
+    <changefreq>monthly</changefreq>
+    {%- elif "/blog/" in page.url %}
+    <priority>0.7</priority>
+    <changefreq>monthly</changefreq>
+    {%- else %}
+    <priority>0.5</priority>
+    <changefreq>monthly</changefreq>
+    {%- endif %}
+  </url>
+  {%- endif %}
+  {%- endfor %}
+</urlset>`;
+
   const blogOverrides = {
     "blog/index.njk": blogIndexOverride,
     "blog/tags.njk": tagsIndexOverride,
     "blog/categories.njk": categoriesIndexOverride,
     "blog/tags-pages.njk": tagsPagesOverride,
     "blog/categories-pages.njk": categoriesPagesOverride,
+    "sitemap.njk": sitemapOverride,
   };
   // Register as an inline plugin so it runs AFTER the techdoc plugin
   // (plugins are processed in addPlugin order, after the user config callback).
@@ -296,6 +333,50 @@ eleventyComputed:
     return false;
   };
 
+  const isTaxonomyUrl = (url) => {
+    if (!url) { return false; }
+    return url.startsWith("/blog/tags/") || url.startsWith("/blog/categories/");
+  };
+
+  const findJsonLdBlock = (content) => {
+    const open = '<script type="application/ld+json">';
+    const close = "</script>";
+    const openStart = content.indexOf(open);
+    if (openStart < 0) { return null; }
+    const jsonStart = openStart + open.length;
+    const closeStart = content.indexOf(close, jsonStart);
+    if (closeStart < 0) { return null; }
+    return { jsonStart, closeStart };
+  };
+
+  const asCollectionPage = (item) => {
+    if (item["@type"] !== "BlogPosting") { return item; }
+    const collectionPage = { ...item, "@type": "CollectionPage" };
+    delete collectionPage.author;
+    delete collectionPage.datePublished;
+    return collectionPage;
+  };
+
+  const renderJsonLd = (data) => JSON.stringify(data, null, 2).split("\n").join("\n  ");
+
+  const rewriteTaxonomyJsonLd = (content) => {
+    const block = findJsonLdBlock(content);
+    if (!block) { return content; }
+    try {
+      const data = JSON.parse(content.slice(block.jsonStart, block.closeStart).trim());
+      if (Array.isArray(data["@graph"])) {
+        data["@graph"] = data["@graph"].map(asCollectionPage);
+      }
+      return content.slice(0, block.jsonStart) + "\n  " + renderJsonLd(data) + "\n  " + content.slice(block.closeStart);
+    } catch {
+      return content;
+    }
+  };
+
+  const updateTaxonomySeo = (content) => rewriteTaxonomyJsonLd(content
+    .replace('<meta name="robots" content="index, follow">', '<meta name="robots" content="noindex, follow">')
+    .replace('<meta property="og:type" content="article">', '<meta property="og:type" content="website">'));
+
   eleventyConfig.addTransform("blogHero", function(content) {
     if (!this.page.outputPath?.endsWith(".html")) {
       return content;
@@ -313,6 +394,13 @@ eleventyComputed:
       '<div class="blog-post-content">',
       '<div class="blog-post-content">\n' + makeBanner(this.page.url)
     );
+  });
+
+  eleventyConfig.addTransform("taxonomySeo", function(content) {
+    if (!this.page.outputPath?.endsWith(".html") || !isTaxonomyUrl(this.page.url)) {
+      return content;
+    }
+    return updateTaxonomySeo(content);
   });
 
   eleventyConfig.addTransform("llmsTxt", function(content) {

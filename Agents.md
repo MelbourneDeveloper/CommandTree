@@ -1,2 +1,2 @@
-<!-- agent-pmo:424c8f8 -->
-@CLAUDE.md
+<!-- agent-pmo:f481f8d -->
+Read and follow all instructions in CLAUDE.md before writing any code.

@@ -4,8 +4,9 @@
   "main": "index.js",
   "scripts": {
     "test": "npx playwright test",
-    "dev": "npx @11ty/eleventy --serve",
-    "build": "npx @11ty/eleventy"
+    "clean": "node -e \"require('node:fs').rmSync('_site',{recursive:true,force:true})\"",
+    "dev": "npm run clean && npx @11ty/eleventy --serve",
+    "build": "npm run clean && npx @11ty/eleventy"
   },
   "keywords": [],
   "author": "",

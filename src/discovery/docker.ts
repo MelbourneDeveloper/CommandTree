@@ -1,8 +1,14 @@
 import * as vscode from "vscode";
 import * as path from "path";
-import type { CommandItem, MutableCommandItem, IconDef, CategoryDef } from "../models/TaskItem";
+import type { CommandItem, IconDef, CategoryDef } from "../models/TaskItem";
 import { generateCommandId, simplifyPath } from "../models/TaskItem";
 import { readFileContent } from "../utils/fileUtils";
+
+const DOCKERFILE_BUILD_LABEL = "build Dockerfile";
+const DOCKERFILE_BUILD_DESCRIPTION = "Build Docker image";
+const COMPOSE_FILE_GLOBS = ["**/docker-compose.yml", "**/docker-compose.yaml", "**/compose.yml", "**/compose.yaml"];
+const DOCKERFILE_GLOBS = ["**/Dockerfile", "**/Dockerfile.*"];
+const QUOTE_CHAR = '"';
 
 export const ICON_DEF: IconDef = {
   icon: "server-environment",
@@ -14,94 +20,121 @@ export const CATEGORY_DEF: CategoryDef = {
 };
 
 /**
- * Discovers Docker Compose services from docker-compose.yml files.
+ * Discovers executable Docker Compose and Dockerfile commands.
  */
 export async function discoverDockerComposeServices(
   workspaceRoot: string,
   excludePatterns: string[]
 ): Promise<CommandItem[]> {
   const exclude = `{${excludePatterns.join(",")}}`;
-  const [yml, yaml, composeYml, composeYaml] = await Promise.all([
-    vscode.workspace.findFiles("**/docker-compose.yml", exclude),
-    vscode.workspace.findFiles("**/docker-compose.yaml", exclude),
-    vscode.workspace.findFiles("**/compose.yml", exclude),
-    vscode.workspace.findFiles("**/compose.yaml", exclude),
+  const [composeFiles, dockerFiles] = await Promise.all([
+    findFiles(COMPOSE_FILE_GLOBS, exclude),
+    findFiles(DOCKERFILE_GLOBS, exclude),
   ]);
-  const allFiles = [...yml, ...yaml, ...composeYml, ...composeYaml];
-  const commands: CommandItem[] = [];
+  const composeCommands = await discoverComposeCommands({ files: composeFiles, workspaceRoot });
+  const dockerfileCommands = dockerFiles.map((file) => buildDockerfileTask(file, workspaceRoot));
+  return [...composeCommands, ...dockerfileCommands];
+}
 
-  for (const file of allFiles) {
-    const content = await readFileContent(file);
-    const dockerDir = path.dirname(file.fsPath);
-    const category = simplifyPath(file.fsPath, workspaceRoot);
-    const services = parseDockerComposeServices(content);
+interface ComposeCommandDef {
+  readonly name: string;
+  readonly args: string;
+  readonly description: string;
+}
 
-    // Add general compose commands
-    const generalCommands = [
-      {
-        name: "up",
-        command: "docker compose up",
-        description: "Start all services",
-      },
-      {
-        name: "up -d",
-        command: "docker compose up -d",
-        description: "Start in background",
-      },
-      {
-        name: "down",
-        command: "docker compose down",
-        description: "Stop all services",
-      },
-      {
-        name: "build",
-        command: "docker compose build",
-        description: "Build all services",
-      },
-      {
-        name: "logs",
-        command: "docker compose logs -f",
-        description: "View logs",
-      },
-      {
-        name: "ps",
-        command: "docker compose ps",
-        description: "List containers",
-      },
-    ];
+const GENERAL_COMPOSE_COMMANDS: readonly ComposeCommandDef[] = [
+  { name: "up", args: "up", description: "Start all services" },
+  { name: "up -d", args: "up -d", description: "Start in background" },
+  { name: "down", args: "down", description: "Stop all services" },
+  { name: "build", args: "build", description: "Build all services" },
+  { name: "logs", args: "logs -f", description: "View logs" },
+  { name: "ps", args: "ps", description: "List containers" },
+];
 
-    for (const cmd of generalCommands) {
-      commands.push({
-        id: generateCommandId("docker", file.fsPath, cmd.name),
-        label: cmd.name,
-        type: "docker",
-        category,
-        command: cmd.command,
-        cwd: dockerDir,
-        filePath: file.fsPath,
-        tags: [],
-        description: cmd.description,
-      });
-    }
+async function findFiles(globs: readonly string[], exclude: string): Promise<vscode.Uri[]> {
+  const groups = await Promise.all(globs.map(async (glob) => await vscode.workspace.findFiles(glob, exclude)));
+  return groups.flat();
+}
 
-    // Add per-service commands
-    for (const service of services) {
-      const task: MutableCommandItem = {
-        id: generateCommandId("docker", file.fsPath, `up-${service}`),
-        label: `up ${service}`,
-        type: "docker",
-        category,
-        command: `docker compose up ${service}`,
-        cwd: dockerDir,
-        filePath: file.fsPath,
-        tags: [],
-        description: `Start ${service} service`,
-      };
-      commands.push(task);
-    }
-  }
+async function discoverComposeCommands(params: {
+  readonly files: readonly vscode.Uri[];
+  readonly workspaceRoot: string;
+}): Promise<CommandItem[]> {
+  const groups = await Promise.all(
+    params.files.map(async (file) => await buildComposeTasks(file, params.workspaceRoot))
+  );
+  return groups.flat();
+}
 
-  return commands;
+async function buildComposeTasks(file: vscode.Uri, workspaceRoot: string): Promise<CommandItem[]> {
+  const content = await readFileContent(file);
+  const services = parseDockerComposeServices(content);
+  const params = createDockerTaskParams(file, workspaceRoot);
+  return [...buildGeneralComposeTasks(params), ...buildServiceComposeTasks({ ...params, services })];
+}
+
+function createDockerTaskParams(file: vscode.Uri, workspaceRoot: string): DockerTaskParams {
+  return {
+    filePath: file.fsPath,
+    dockerDir: path.dirname(file.fsPath),
+    category: simplifyPath(file.fsPath, workspaceRoot),
+  };
+}
+
+interface DockerTaskParams {
+  readonly filePath: string;
+  readonly dockerDir: string;
+  readonly category: string;
+}
+
+function buildGeneralComposeTasks(params: DockerTaskParams): CommandItem[] {
+  return GENERAL_COMPOSE_COMMANDS.map((def) =>
+    buildComposeTask({ ...params, name: def.name, args: def.args, description: def.description })
+  );
+}
+
+function buildServiceComposeTasks(params: DockerTaskParams & { readonly services: readonly string[] }): CommandItem[] {
+  return params.services.map((service) =>
+    buildComposeTask({
+      ...params,
+      name: `up ${service}`,
+      args: `up ${service}`,
+      description: `Start ${service} service`,
+    })
+  );
+}
+
+function buildComposeTask(params: DockerTaskParams & ComposeCommandDef): CommandItem {
+  return {
+    id: generateCommandId("docker", params.filePath, params.name),
+    label: params.name,
+    type: "docker",
+    category: params.category,
+    command: `docker compose -f ${quotePath(params.filePath)} ${params.args}`,
+    cwd: params.dockerDir,
+    filePath: params.filePath,
+    tags: [],
+    description: params.description,
+  };
+}
+
+function buildDockerfileTask(file: vscode.Uri, workspaceRoot: string): CommandItem {
+  const params = createDockerTaskParams(file, workspaceRoot);
+  return {
+    id: generateCommandId("docker", params.filePath, DOCKERFILE_BUILD_LABEL),
+    label: DOCKERFILE_BUILD_LABEL,
+    type: "docker",
+    category: params.category,
+    command: `docker build -f ${quotePath(params.filePath)} .`,
+    cwd: params.dockerDir,
+    filePath: params.filePath,
+    tags: [],
+    description: DOCKERFILE_BUILD_DESCRIPTION,
+  };
+}
+
+function quotePath(filePath: string): string {
+  return `${QUOTE_CHAR}${filePath.replaceAll(QUOTE_CHAR, `\\${QUOTE_CHAR}`)}${QUOTE_CHAR}`;
 }
 
 /** Counts leading spaces in a line. */

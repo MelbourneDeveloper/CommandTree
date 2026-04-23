@@ -1,5 +1,7 @@
 import * as vscode from "vscode";
 import type { CommandItem, ParamDef } from "../models/TaskItem";
+import { buildCommand } from "./paramFormatting";
+import type { ParamValue } from "./paramFormatting";
 
 /**
  * SPEC: command-execution, parameterized-commands
@@ -67,8 +69,8 @@ export class TaskRunner {
   /**
    * Collects parameter values from user with their definitions.
    */
-  private async collectParams(params?: readonly ParamDef[]): Promise<Array<{ def: ParamDef; value: string }> | null> {
-    const collected: Array<{ def: ParamDef; value: string }> = [];
+  private async collectParams(params?: readonly ParamDef[]): Promise<ParamValue[] | null> {
+    const collected: ParamValue[] = [];
     if (params === undefined || params.length === 0) {
       return collected;
     }
@@ -142,8 +144,8 @@ export class TaskRunner {
   /**
    * Runs a command in a new terminal.
    */
-  private runInNewTerminal(task: CommandItem, params: Array<{ def: ParamDef; value: string }>): void {
-    const command = this.buildCommand(task, params);
+  private runInNewTerminal(task: CommandItem, params: readonly ParamValue[]): void {
+    const command = buildCommand(task.command, params);
     const terminalOptions: vscode.TerminalOptions = {
       name: `CommandTree: ${task.label}`,
     };
@@ -158,8 +160,8 @@ export class TaskRunner {
   /**
    * Runs a command in the current (active) terminal.
    */
-  private runInCurrentTerminal(task: CommandItem, params: Array<{ def: ParamDef; value: string }>): void {
-    const command = this.buildCommand(task, params);
+  private runInCurrentTerminal(task: CommandItem, params: readonly ParamValue[]): void {
+    const command = buildCommand(task.command, params);
     let terminal = vscode.window.activeTerminal;
 
     if (terminal === undefined) {
@@ -237,57 +239,6 @@ export class TaskRunner {
       }
     } catch {
       showError(`Failed to send command to terminal: ${command}`);
-    }
-  }
-
-  /**
-   * Builds the full command string with formatted parameters.
-   */
-  private buildCommand(task: CommandItem, params: Array<{ def: ParamDef; value: string }>): string {
-    let { command } = task;
-    const parts: string[] = [];
-
-    for (const { def, value } of params) {
-      if (value === "") {
-        continue;
-      }
-      const formatted = this.formatParam(def, value);
-      if (formatted !== "") {
-        parts.push(formatted);
-      }
-    }
-
-    if (parts.length > 0) {
-      command = `${command} ${parts.join(" ")}`;
-    }
-    return command;
-  }
-
-  /**
-   * Formats a parameter value according to its format type.
-   */
-  private formatParam(def: ParamDef, value: string): string {
-    const format = def.format ?? "positional";
-
-    switch (format) {
-      case "positional": {
-        return `"${value}"`;
-      }
-      case "flag": {
-        const flagName = def.flag ?? `--${def.name}`;
-        return `${flagName} "${value}"`;
-      }
-      case "flag-equals": {
-        const flagName = def.flag ?? `--${def.name}`;
-        return `${flagName}=${value}`;
-      }
-      case "dashdash-args": {
-        return `-- ${value}`;
-      }
-      default: {
-        const exhaustive: never = format;
-        return exhaustive;
-      }
     }
   }
 }

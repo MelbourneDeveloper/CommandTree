@@ -27,7 +27,7 @@ export async function discoverNpmScripts(workspaceRoot: string, excludePatterns:
   for (const file of files) {
     const content = await readFileContent(file);
     const pkg = JSON.parse(content) as PackageJson;
-    if (pkg.scripts === undefined || typeof pkg.scripts !== "object") {
+    if (pkg.scripts === undefined) {
       continue;
     }
 
@@ -35,10 +35,6 @@ export async function discoverNpmScripts(workspaceRoot: string, excludePatterns:
     const category = simplifyPath(file.fsPath, workspaceRoot);
 
     for (const [name, command] of Object.entries(pkg.scripts)) {
-      if (typeof command !== "string") {
-        continue;
-      }
-
       commands.push({
         id: generateCommandId("npm", file.fsPath, name),
         label: name,

@@ -4,6 +4,11 @@ import type { DirNode } from "./dirTree";
 import { groupByFullDir, buildDirTree, needsFolderWrapper, getFolderLabel } from "./dirTree";
 import { createFolderNode, createTaskNodes } from "./nodeFactory";
 
+interface RootItemBuckets {
+  readonly folders: CommandTreeItem[];
+  readonly tasks: CommandItem[];
+}
+
 /**
  * Renders a DirNode as a folder CommandTreeItem.
  */
@@ -36,6 +41,48 @@ function renderFolder({
   });
 }
 
+function renderRootSubdirs({
+  node,
+  categoryId,
+  sortTasks,
+}: {
+  node: DirNode<CommandItem>;
+  categoryId: string;
+  sortTasks: (tasks: CommandItem[]) => CommandItem[];
+}): CommandTreeItem[] {
+  return node.subdirs.map((sub) =>
+    renderFolder({
+      node: sub,
+      parentDir: "",
+      parentTreeId: categoryId,
+      sortTasks,
+    })
+  );
+}
+
+function collectRootNodeItems({
+  node,
+  totalRootNodes,
+  categoryId,
+  sortTasks,
+  buckets,
+}: {
+  node: DirNode<CommandItem>;
+  totalRootNodes: number;
+  categoryId: string;
+  sortTasks: (tasks: CommandItem[]) => CommandItem[];
+  buckets: RootItemBuckets;
+}): void {
+  if (node.dir === "") {
+    buckets.folders.push(...renderRootSubdirs({ node, categoryId, sortTasks }));
+    buckets.tasks.push(...node.tasks);
+  } else if (needsFolderWrapper(node, totalRootNodes)) {
+    buckets.folders.push(renderFolder({ node, parentDir: "", parentTreeId: categoryId, sortTasks }));
+  } else {
+    buckets.tasks.push(...node.tasks);
+  }
+}
+
 /**
  * Builds nested folder tree items from a flat list of tasks.
  */
@@ -52,34 +99,11 @@ export function buildNestedFolderItems({
 }): CommandTreeItem[] {
   const groups = groupByFullDir(tasks, workspaceRoot);
   const rootNodes = buildDirTree(groups);
-  const result: CommandTreeItem[] = [];
+  const buckets: RootItemBuckets = { folders: [], tasks: [] };
 
   for (const node of rootNodes) {
-    if (node.dir === "") {
-      for (const sub of node.subdirs) {
-        result.push(
-          renderFolder({
-            node: sub,
-            parentDir: "",
-            parentTreeId: categoryId,
-            sortTasks,
-          })
-        );
-      }
-      result.push(...createTaskNodes(sortTasks(node.tasks)));
-    } else if (needsFolderWrapper(node, rootNodes.length)) {
-      result.push(
-        renderFolder({
-          node,
-          parentDir: "",
-          parentTreeId: categoryId,
-          sortTasks,
-        })
-      );
-    } else {
-      result.push(...createTaskNodes(sortTasks(node.tasks)));
-    }
+    collectRootNodeItems({ node, totalRootNodes: rootNodes.length, categoryId, sortTasks, buckets });
   }
 
-  return result;
+  return [...buckets.folders, ...createTaskNodes(sortTasks(buckets.tasks))];
 }

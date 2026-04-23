@@ -36,7 +36,7 @@ Copilot also flags dangerous operations. If a script runs `rm -rf`, force-pushes
 
 ## Stored Locally, Updated Automatically
 
-Summaries are cached in a local SQLite database at `.commandtree/commandtree.sqlite3` in your workspace. They persist across sessions and only regenerate when the underlying script content changes, so there is no repeated API overhead.
+Summaries are cached in a local SQLite database at `.commandtree/commandtree.sqlite3` in your workspace. They persist across sessions and only regenerate when the underlying script content changes, reducing repeated summary generation.
 
 ## Works Without Copilot
 

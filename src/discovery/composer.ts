@@ -72,7 +72,7 @@ function buildCommandItem(params: BuildCommandItemParams): CommandItem {
 async function extractScriptsFromFile(file: vscode.Uri, workspaceRoot: string): Promise<CommandItem[]> {
   const content = await readFileContent(file);
   const composer = JSON.parse(content) as ComposerJson;
-  if (composer.scripts === undefined || typeof composer.scripts !== "object") {
+  if (composer.scripts === undefined) {
     return [];
   }
 

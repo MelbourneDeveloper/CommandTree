@@ -252,7 +252,6 @@ suite("TreeView E2E Tests", () => {
   suite("Private Make And Mise Tasks", () => {
     const makeRelativePath = "private-targets/Makefile";
     const miseRelativePath = "private-targets/mise.toml";
-    const privateDivider = "─────────────────────────";
     const publicLabels = ["alpha_public", "zeta_public"];
     const privateLabels = ["_beta_private", "_omega_private"];
 
@@ -309,6 +308,7 @@ suite("TreeView E2E Tests", () => {
         miseRelativePath,
         [
           "[tasks.alpha_public]",
+          'description = "Public alpha task"',
           'run = "echo alpha"',
           "",
           "[tasks.zeta_public]",
@@ -342,8 +342,8 @@ suite("TreeView E2E Tests", () => {
 
       assert.deepStrictEqual(
         folderLabels,
-        [...publicLabels, privateDivider, ...privateLabels],
-        "Make targets should insert a divider between public and _-prefixed private targets"
+        [...publicLabels, ...privateLabels],
+        "Make targets should keep public targets first without rendering a divider row"
       );
 
       assert.deepStrictEqual(
@@ -384,8 +384,8 @@ suite("TreeView E2E Tests", () => {
 
       assert.deepStrictEqual(
         folderLabels,
-        [...publicLabels, privateDivider, ...privateLabels],
-        "Mise tasks should insert a divider between public and _-prefixed private tasks"
+        [...publicLabels, ...privateLabels],
+        "Mise tasks should keep public tasks first without rendering a divider row"
       );
 
       assert.deepStrictEqual(
@@ -419,7 +419,6 @@ suite("TreeView E2E Tests", () => {
 
   suite("Make Target Conventions", () => {
     const makeRelativePath = "make-conventions/Makefile";
-    const privateDivider = "─────────────────────────";
 
     async function getFolderChildrenForCategory(
       categoryLabel: string,
@@ -482,7 +481,7 @@ suite("TreeView E2E Tests", () => {
       await refreshTasks();
     });
 
-    test("make help is pinned to the top, phony targets sort before non-phony ones, and special targets stay hidden", async function () {
+    test("make targets sort alphabetically, private targets sort last, and special targets stay hidden", async function () {
       this.timeout(15000);
 
       const folderChildren = await getFolderChildrenForCategory("Make Targets", "make-conventions");
@@ -492,13 +491,13 @@ suite("TreeView E2E Tests", () => {
 
       assert.deepStrictEqual(
         folderLabels,
-        ["help", "build", "aaa_file", privateDivider, "_private"],
-        "Make targets should pin help first, prefer phony public targets over non-phony ones, and separate private targets"
+        ["aaa_file", "build", "help", "_private"],
+        "Make targets should sort alphabetically, keep private targets last, and avoid divider rows"
       );
 
       assert.deepStrictEqual(
         labels,
-        ["help", "build", "aaa_file", "_private"],
+        ["aaa_file", "build", "help", "_private"],
         "Only invokable make targets should remain after hiding special and pattern rules"
       );
 

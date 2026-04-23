@@ -1,7 +1,7 @@
 ---
 layout: layouts/blog.njk
 title: Run Mise Tasks From the VS Code Sidebar - CommandTree 0.9.0
-description: CommandTree 0.9.0 auto-discovers every mise task in your workspace - mise.toml, .mise.toml, mise.yaml - and runs them from the VS Code sidebar alongside npm, Make, Just, and 18 other command types.
+description: CommandTree 0.9.0 discovers mise tasks from mise.toml, .mise.toml, and mise.yaml, then runs them from the VS Code sidebar beside npm, Make, and Just.
 date: 2026-04-06
 author: Christian Findlay
 tags:
@@ -36,17 +36,17 @@ Both TOML tasks (`[tasks.build]` sections) and YAML task maps work. Descriptions
 
 ## One Click to Run
 
-Click any mise task and CommandTree opens a new terminal in the same directory as the `mise.toml` file and runs `mise run <task>`. Tool versions, environment variables, and dependencies all resolve normally — *it is exactly the same command you would type yourself*. Tasks with parameters get prompted for input before they run.
+Click any mise task and CommandTree opens a new terminal in the same directory as the `mise.toml` file and runs `mise run <task>`, matching the command format in the [mise task runner documentation](https://mise.jdx.dev/tasks/). Tasks with parameters get prompted for input before they run.
 
 ## Mise *And* Everything Else
 
-This is the part the mise-only extensions can't do. Most real projects are not pure mise. There is a `Makefile` from before the migration, an `npm run lint` script in `package.json`, a couple of shell scripts in `scripts/`, maybe a `Justfile` for the deploy step.
+Projects often keep more than one task system around: a `Makefile` from before the migration, an `npm run lint` script in `package.json`, shell scripts in `scripts/`, or a `Justfile` for the deploy step.
 
 CommandTree discovers **22 command types** and shows them in one tree:
 
 mise tasks, npm scripts, Makefile targets, Just recipes, Taskfile, shell scripts, Python scripts, PowerShell, Cargo, Gradle, Maven, Ant, Deno, Rake, Composer, Docker Compose services, .NET projects, C# scripts, F# scripts, VS Code tasks, launch configs, and Markdown files.
 
-**One extension instead of three.** Filter by tag, pin favourites, search by text — it all works across every command type at once.
+Filter by tag, pin favourites, and search by text across every command type at once.
 
 ## Hover to See What a Task Does
 

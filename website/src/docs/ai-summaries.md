@@ -41,7 +41,7 @@ Each summary is a one-to-two sentence plain-language description of what the com
 
 ### Are summaries stored locally?
 
-Yes. All summaries are stored in a SQLite database at `.commandtree/commandtree.sqlite3` in your workspace root. No data is sent to external servers beyond the GitHub Copilot API that runs locally in VS Code.
+Yes. Summaries are stored in a SQLite database at `.commandtree/commandtree.sqlite3` in your workspace root. When AI summaries are enabled, CommandTree uses the installed [GitHub Copilot](https://marketplace.visualstudio.com/items?itemName=GitHub.copilot) extension to generate the text.
 
 ### How are security warnings triggered?
 

@@ -80,7 +80,7 @@ function parseGradleTasks(content: string): string[] {
   let match;
   while ((match = taskDefRegex.exec(content)) !== null) {
     const task = match[1];
-    if (task !== undefined && task !== "" && !tasks.includes(task)) {
+    if (task !== undefined && !tasks.includes(task)) {
       tasks.push(task);
     }
   }
@@ -89,7 +89,7 @@ function parseGradleTasks(content: string): string[] {
   const kotlinTaskRegex = /tasks\.(register|create)\s*\(\s*["'](\w+)["']/g;
   while ((match = kotlinTaskRegex.exec(content)) !== null) {
     const task = match[2];
-    if (task !== undefined && task !== "" && !tasks.includes(task)) {
+    if (task !== undefined && !tasks.includes(task)) {
       tasks.push(task);
     }
   }

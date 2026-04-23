@@ -55,10 +55,6 @@ export async function discoverMiseTasks(workspaceRoot: string, excludePatterns: 
         tags: [],
       };
 
-      if (task.params.length > 0) {
-        taskCommand.params = task.params;
-      }
-
       if (task.description !== undefined) {
         taskCommand.description = task.description;
       }

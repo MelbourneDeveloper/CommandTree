@@ -41,7 +41,6 @@ export default tseslint.config(
 
       // TypeScript strict rules
       "@typescript-eslint/no-explicit-any": "error",
-      "@typescript-eslint/explicit-function-return-type": "error",
       "@typescript-eslint/explicit-module-boundary-types": "error",
       "@typescript-eslint/no-unused-vars": ["error", { argsIgnorePattern: "^_" }],
       "@typescript-eslint/no-non-null-assertion": "error",
@@ -62,7 +61,6 @@ export default tseslint.config(
       "@typescript-eslint/return-await": ["error", "always"],
       "@typescript-eslint/promise-function-async": "error",
       "@typescript-eslint/no-redundant-type-constituents": "error",
-      "@typescript-eslint/no-confusing-void-expression": "error",
       "@typescript-eslint/no-meaningless-void-operator": "error",
       "@typescript-eslint/prefer-readonly": "error",
       "@typescript-eslint/prefer-readonly-parameter-types": "off", // too aggressive for vscode api
@@ -181,6 +179,10 @@ export default tseslint.config(
       "max-depth": ["error", 3],
       "max-params": ["error", 3],
       "complexity": ["error", 10],
+
+      //These are actually harmful
+      "@typescript-eslint/explicit-function-return-type": "off",
+      "@typescript-eslint/no-confusing-void-expression": "off"
     },
   },
 );

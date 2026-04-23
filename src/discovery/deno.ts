@@ -42,7 +42,7 @@ export async function discoverDenoTasks(workspaceRoot: string, excludePatterns: 
     const content = await readFileContent(file);
     const cleanJson = removeJsonComments(content);
     const deno = JSON.parse(cleanJson) as DenoJson;
-    if (deno.tasks === undefined || typeof deno.tasks !== "object") {
+    if (deno.tasks === undefined) {
       continue;
     }
 
@@ -50,10 +50,6 @@ export async function discoverDenoTasks(workspaceRoot: string, excludePatterns: 
     const category = simplifyPath(file.fsPath, workspaceRoot);
 
     for (const [name, command] of Object.entries(deno.tasks)) {
-      if (typeof command !== "string") {
-        continue;
-      }
-
       const task: MutableCommandItem = {
         id: generateCommandId("deno", file.fsPath, name),
         label: name,

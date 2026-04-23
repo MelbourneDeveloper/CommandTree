@@ -81,6 +81,3 @@ build/
 .venv/
 website/_site/
 test-results/
-
-
-.claude/skills/website-audit/SKILL.md

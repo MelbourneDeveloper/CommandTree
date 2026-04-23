@@ -12,6 +12,7 @@ import { logger } from "../utils/logger";
 import { computeContentHash } from "../db/db";
 import type { FileSystemAdapter } from "./adapters";
 import type { SummaryResult } from "./summariser";
+import type { ModelSelectionMode } from "./summariser";
 import { selectCopilotModel, summariseScript } from "./summariser";
 import { initDb, getDb } from "../db/lifecycle";
 import { upsertSummary, getRow, registerCommand } from "../db/db";
@@ -168,6 +169,76 @@ async function processPendingItem(params: {
   }
 }
 
+async function getSummaryDbHandle(params: {
+  readonly tasks: readonly CommandItem[];
+  readonly workspaceRoot: string;
+  readonly fs: FileSystemAdapter;
+}): Promise<Result<DbHandle, string>> {
+  const regResult = await registerAllCommands(params);
+  if (!regResult.ok) {
+    logger.error("[SUMMARY] registerAllCommands failed", { error: regResult.error });
+    return err(regResult.error);
+  }
+  const dbResult = getDb();
+  return dbResult.ok ? ok(dbResult.value) : err(dbResult.error);
+}
+
+async function selectSummaryModel(
+  mode: ModelSelectionMode | undefined
+): Promise<Result<vscode.LanguageModelChat, string>> {
+  const modelResult = await selectCopilotModel({ mode });
+  if (!modelResult.ok) {
+    logger.error("[SUMMARY] Copilot model selection failed", { error: modelResult.error });
+  }
+  return modelResult;
+}
+
+async function processPendingBatch(params: {
+  readonly pending: readonly PendingItem[];
+  readonly model: vscode.LanguageModelChat;
+  readonly handle: DbHandle;
+  readonly onProgress?: ((done: number, total: number, label: string) => void) | undefined;
+}): Promise<BatchState> {
+  const state: BatchState = { succeeded: 0, failed: 0, aborted: false };
+  for (const item of params.pending) {
+    await processPendingItem({ item, model: params.model, handle: params.handle, state });
+    params.onProgress?.(state.succeeded + state.failed, params.pending.length, item.task.label);
+    if (state.aborted) {
+      break;
+    }
+  }
+  return state;
+}
+
+function batchStateToResult(state: BatchState): Result<number, string> {
+  logger.info("[SUMMARY] complete", { succeeded: state.succeeded, failed: state.failed });
+  if (state.succeeded === 0 && state.failed > 0) {
+    return err(`All ${state.failed} tasks failed to summarise`);
+  }
+  return ok(state.succeeded);
+}
+
+async function runPendingSummaries(params: {
+  readonly tasks: readonly CommandItem[];
+  readonly fs: FileSystemAdapter;
+  readonly handle: DbHandle;
+  readonly model: vscode.LanguageModelChat;
+  readonly onProgress?: ((done: number, total: number, label: string) => void) | undefined;
+}): Promise<Result<number, string>> {
+  const pending = await findPendingSummaries({ handle: params.handle, tasks: params.tasks, fs: params.fs });
+  if (pending.length === 0) {
+    logger.info("[SUMMARY] All summaries up to date");
+    return ok(0);
+  }
+  const state = await processPendingBatch({
+    pending,
+    model: params.model,
+    handle: params.handle,
+    onProgress: params.onProgress,
+  });
+  return batchStateToResult(state);
+}
+
 /**
  * Summarises all tasks that are new or have changed content.
  * Stores summaries in SQLite.
@@ -177,50 +248,22 @@ export async function summariseAllTasks(params: {
   readonly tasks: readonly CommandItem[];
   readonly workspaceRoot: string;
   readonly fs: FileSystemAdapter;
+  readonly modelSelectionMode?: ModelSelectionMode | undefined;
   readonly onProgress?: (done: number, total: number, label: string) => void;
 }): Promise<Result<number, string>> {
-  // Step 1: Always register commands in DB (independent of Copilot)
-  const regResult = await registerAllCommands(params);
-  if (!regResult.ok) {
-    logger.error("[SUMMARY] registerAllCommands failed", { error: regResult.error });
-    return err(regResult.error);
+  const handleResult = await getSummaryDbHandle(params);
+  if (!handleResult.ok) {
+    return handleResult;
   }
-
-  // Step 2: Try Copilot — if unavailable, commands are still in DB
-  const modelResult = await selectCopilotModel();
+  const modelResult = await selectSummaryModel(params.modelSelectionMode);
   if (!modelResult.ok) {
-    logger.error("[SUMMARY] Copilot model selection failed", { error: modelResult.error });
-    return err(modelResult.error);
+    return modelResult;
   }
-
-  const dbResult = getDb();
-  if (!dbResult.ok) {
-    return err(dbResult.error);
-  }
-  const handle = dbResult.value;
-
-  const pending = await findPendingSummaries({
-    handle,
+  return await runPendingSummaries({
     tasks: params.tasks,
     fs: params.fs,
+    handle: handleResult.value,
+    model: modelResult.value,
+    onProgress: params.onProgress,
   });
-  if (pending.length === 0) {
-    logger.info("[SUMMARY] All summaries up to date");
-    return ok(0);
-  }
-
-  const state: BatchState = { succeeded: 0, failed: 0, aborted: false };
-  for (const item of pending) {
-    await processPendingItem({ item, model: modelResult.value, handle, state });
-    params.onProgress?.(state.succeeded + state.failed, pending.length, item.task.label);
-    if (state.aborted) {
-      break;
-    }
-  }
-
-  logger.info("[SUMMARY] complete", { succeeded: state.succeeded, failed: state.failed });
-  if (state.succeeded === 0 && state.failed > 0) {
-    return err(`All ${state.failed} tasks failed to summarise`);
-  }
-  return ok(state.succeeded);
 }

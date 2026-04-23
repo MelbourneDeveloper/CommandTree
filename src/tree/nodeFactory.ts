@@ -7,7 +7,6 @@ import { buildPrivateTaskUri } from "./PrivateTaskDecorationProvider";
 
 const DEFAULT_FOLDER_ICON = new vscode.ThemeIcon("folder");
 const PRIVATE_TASK_COLOR = new vscode.ThemeColor("descriptionForeground");
-const PRIVATE_TASK_DIVIDER = "─────────────────────────";
 
 function toThemeIcon(def: IconDef): vscode.ThemeIcon {
   return new vscode.ThemeIcon(def.icon, new vscode.ThemeColor(def.color));
@@ -89,14 +88,7 @@ export function createCommandNode(task: CommandItem): CommandTreeItem {
 }
 
 export function createTaskNodes(tasks: CommandItem[]): CommandTreeItem[] {
-  const firstPrivateIndex = tasks.findIndex((task) => isPrivateTask(task));
-  if (firstPrivateIndex <= 0 || firstPrivateIndex === tasks.length) {
-    return tasks.map((task) => createCommandNode(task));
-  }
-
-  const publicNodes = tasks.slice(0, firstPrivateIndex).map((task) => createCommandNode(task));
-  const privateNodes = tasks.slice(firstPrivateIndex).map((task) => createCommandNode(task));
-  return [...publicNodes, createDividerNode(PRIVATE_TASK_DIVIDER), ...privateNodes];
+  return tasks.map((task) => createCommandNode(task));
 }
 
 export function createCategoryNode({
@@ -144,15 +136,5 @@ export function createPlaceholderNode(message: string): CommandTreeItem {
     children: [],
     id: message,
     contextValue: "placeholder",
-  });
-}
-
-export function createDividerNode(label: string): CommandTreeItem {
-  return new CommandTreeItem({
-    label,
-    data: { nodeType: "folder" },
-    children: [],
-    id: `divider:${label}`,
-    contextValue: "divider",
   });
 }

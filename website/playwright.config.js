@@ -11,7 +11,7 @@ export default defineConfig({
     trace: "on-first-retry",
   },
   webServer: {
-    command: "npx @11ty/eleventy --serve --port=8080",
+    command: "npm run dev -- --port=8080",
     port: 8080,
     reuseExistingServer: !process.env.CI,
     timeout: 30000,

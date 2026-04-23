@@ -1,10 +1,16 @@
 import * as assert from "assert";
-import { pickConcreteModel, resolveModel, AUTO_MODEL_ID } from "../../semantic/modelSelection";
+import {
+  pickConcreteModel,
+  resolveModel,
+  resolveModelAutomatically,
+  AUTO_MODEL_ID,
+} from "../../semantic/modelSelection";
 import type { ModelRef, ModelSelectionDeps } from "../../semantic/modelSelection";
 
 /**
  * PURE UNIT TESTS for model selection logic.
  * Tests pickConcreteModel and resolveModel — no VS Code dependency.
+ * SPEC: SPEC-AI-030
  */
 suite("Model Selection Unit Tests", () => {
   const GPT4: ModelRef = { id: "gpt-4o", name: "GPT-4o" };
@@ -150,6 +156,26 @@ suite("Model Selection Unit Tests", () => {
       const result = await resolveModel(deps);
       assert.ok(!result.ok);
       assert.strictEqual(result.error, "No Copilot model available after retries");
+    });
+
+    test("automatic selection picks a concrete model without prompting", async () => {
+      let prompted = false;
+      let savedId = "";
+      const deps = createDeps({
+        promptUser: async (): Promise<ModelRef | undefined> => {
+          prompted = true;
+          return await Promise.resolve(CLAUDE);
+        },
+        saveId: async (id: string): Promise<void> => {
+          savedId = id;
+          await Promise.resolve();
+        },
+      });
+      const result = await resolveModelAutomatically(deps);
+      assert.ok(result.ok);
+      assert.strictEqual(result.value.id, "gpt-4o");
+      assert.strictEqual(prompted, false, "Automatic background selection must not open the picker");
+      assert.strictEqual(savedId, "", "Automatic background selection must not persist an implicit choice");
     });
   });
 });

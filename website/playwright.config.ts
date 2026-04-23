@@ -18,7 +18,7 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: 'npx @11ty/eleventy --serve --port=8080',
+    command: 'npm run dev -- --port=8080',
     url: 'http://localhost:8080',
     reuseExistingServer: !process.env['CI'],
     timeout: 30000,

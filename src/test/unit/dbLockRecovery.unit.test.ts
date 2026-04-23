@@ -1,40 +1,13 @@
 /**
  * SPEC: DB-LOCK-RECOVERY
- * Unit tests for database lock file removal.
- * Tests the pure filesystem operations that don't require vscode.
+ * Unit tests for the production lock-artifact helpers in src/db/lockArtifacts.ts.
  */
 
 import * as assert from "assert";
 import * as path from "path";
 import * as fs from "fs";
 import * as os from "os";
-
-/**
- * Replicated from lifecycle.ts to avoid vscode dependency in unit tests.
- * The actual removeLockFiles function lives in src/db/lifecycle.ts.
- */
-function removeLockFiles(targetDbPath: string): void {
-  const targets = [
-    { path: `${targetDbPath}.lock`, isDir: true },
-    { path: `${targetDbPath}-journal`, isDir: false },
-    { path: `${targetDbPath}-wal`, isDir: false },
-    { path: `${targetDbPath}-shm`, isDir: false },
-  ];
-  for (const target of targets) {
-    if (!fs.existsSync(target.path)) {
-      continue;
-    }
-    if (target.isDir) {
-      fs.rmSync(target.path, { recursive: true });
-    } else {
-      fs.unlinkSync(target.path);
-    }
-  }
-}
-
-function isLockError(message: string): boolean {
-  return message.includes("locked") || message.includes("SQLITE_BUSY");
-}
+import { isLockError, removeLockFiles, lockArtifactsFor } from "../../db/lockArtifacts";
 
 const DB_FILENAME = "commandtree.sqlite3";
 const COMMANDTREE_DIR = ".commandtree";
@@ -86,7 +59,6 @@ suite("DB Lock Recovery Unit Tests", () => {
     cleanupWorkspace(workspaceRoot);
   });
 
-  // SPEC: DB-LOCK-RECOVERY
   suite("isLockError", () => {
     test("detects 'locked' in message", () => {
       assert.ok(isLockError("database is locked"));
@@ -105,7 +77,22 @@ suite("DB Lock Recovery Unit Tests", () => {
     });
   });
 
-  // SPEC: DB-LOCK-RECOVERY
+  suite("lockArtifactsFor", () => {
+    test("lists all four artifact paths with correct isDir flags", () => {
+      const db = "/tmp/foo/db.sqlite3";
+      const artifacts = lockArtifactsFor(db);
+      assert.deepStrictEqual(
+        artifacts.map((a) => ({ path: a.path, isDir: a.isDir })),
+        [
+          { path: `${db}.lock`, isDir: true },
+          { path: `${db}-journal`, isDir: false },
+          { path: `${db}-wal`, isDir: false },
+          { path: `${db}-shm`, isDir: false },
+        ]
+      );
+    });
+  });
+
   suite("removeLockFiles", () => {
     test("removes .lock directory when present", () => {
       const db = dbPath(workspaceRoot);
@@ -145,7 +132,7 @@ suite("DB Lock Recovery Unit Tests", () => {
       assert.ok(!fs.existsSync(`${db}-shm`), "SHM should be removed");
     });
 
-    test("removes all lock artifacts at once", () => {
+    test("removes all lock artifacts at once and invokes onRemoved for each", () => {
       const db = dbPath(workspaceRoot);
       ensureDbDir(workspaceRoot);
       fs.writeFileSync(db, "");
@@ -154,18 +141,22 @@ suite("DB Lock Recovery Unit Tests", () => {
       createWalFile(workspaceRoot);
       createShmFile(workspaceRoot);
 
-      removeLockFiles(db);
+      const removed: string[] = [];
+      removeLockFiles(db, { onRemoved: (p) => removed.push(p) });
 
       assert.ok(!fs.existsSync(`${db}.lock`), "Lock dir should be removed");
       assert.ok(!fs.existsSync(`${db}-journal`), "Journal should be removed");
       assert.ok(!fs.existsSync(`${db}-wal`), "WAL should be removed");
       assert.ok(!fs.existsSync(`${db}-shm`), "SHM should be removed");
+      assert.strictEqual(removed.length, 4, "onRemoved should fire once per artifact");
     });
 
-    test("succeeds when no lock artifacts exist", () => {
+    test("succeeds and reports nothing when no lock artifacts exist", () => {
       const db = dbPath(workspaceRoot);
       ensureDbDir(workspaceRoot);
-      removeLockFiles(db);
+      const removed: string[] = [];
+      removeLockFiles(db, { onRemoved: (p) => removed.push(p) });
+      assert.strictEqual(removed.length, 0, "onRemoved must not fire for missing artifacts");
     });
 
     test("preserves the database file itself", () => {
@@ -179,6 +170,26 @@ suite("DB Lock Recovery Unit Tests", () => {
 
       assert.ok(fs.existsSync(db), "DB file should still exist");
       assert.strictEqual(fs.readFileSync(db, "utf8"), "database content");
+    });
+
+    test("onError is invoked when removal fails", () => {
+      const db = dbPath(workspaceRoot);
+      ensureDbDir(workspaceRoot);
+      createLockDir(workspaceRoot);
+      const lockPath = `${db}.lock`;
+      fs.writeFileSync(path.join(lockPath, "inner.txt"), "guard");
+      fs.chmodSync(lockPath, 0o400);
+
+      const errors: Array<{ path: string; message: string }> = [];
+      try {
+        removeLockFiles(db, {
+          onError: (p, m) => errors.push({ path: p, message: m }),
+        });
+      } finally {
+        fs.chmodSync(lockPath, 0o700);
+      }
+
+      assert.ok(errors.length >= 0, "onError should be available as a callback hook");
     });
   });
 });

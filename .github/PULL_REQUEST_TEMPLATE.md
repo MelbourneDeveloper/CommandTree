@@ -1,8 +1,10 @@
-# TLDR;
+<!-- agent-pmo:f481f8d -->
+## TLDR
+<!-- One sentence: what does this PR do? -->
 
+## Details
+<!-- New functionality, new files, new dependencies. What changed? -->
 
-# Details
-
-
-# How do the tests prove the change works
-
+## How Do The Automated Tests Prove It Works?
+<!-- Name specific tests or describe what the test output demonstrates. -->
+<!-- "Tests pass" is not acceptable. Be specific. -->

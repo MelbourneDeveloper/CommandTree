@@ -109,7 +109,7 @@ function parseCargoBinaries(content: string): string[] {
   let match;
   while ((match = binRegex.exec(content)) !== null) {
     const name = match[1];
-    if (name !== undefined && name !== "" && !binaries.includes(name)) {
+    if (name !== undefined && !binaries.includes(name)) {
       binaries.push(name);
     }
   }
@@ -128,7 +128,7 @@ function parseCargoExamples(content: string): string[] {
   let match;
   while ((match = exampleRegex.exec(content)) !== null) {
     const name = match[1];
-    if (name !== undefined && name !== "" && !examples.includes(name)) {
+    if (name !== undefined && !examples.includes(name)) {
       examples.push(name);
     }
   }

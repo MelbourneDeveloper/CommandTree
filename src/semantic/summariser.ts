@@ -8,7 +8,7 @@ import * as vscode from "vscode";
 import type { Result } from "../models/Result";
 import { ok, err } from "../models/Result";
 import { logger } from "../utils/logger";
-import { resolveModel, pickConcreteModel } from "./modelSelection";
+import { resolveModel, resolveModelAutomatically, pickConcreteModel } from "./modelSelection";
 import type { ModelSelectionDeps, ModelRef } from "./modelSelection";
 export type { ModelRef, ModelSelectionDeps } from "./modelSelection";
 export { resolveModel, AUTO_MODEL_ID, pickConcreteModel } from "./modelSelection";
@@ -23,6 +23,8 @@ export interface SummaryResult {
   readonly summary: string;
   readonly securityWarning: string;
 }
+
+export type ModelSelectionMode = "interactive" | "automatic";
 
 const ANALYSIS_TOOL: vscode.LanguageModelChatTool = {
   name: TOOL_NAME,
@@ -130,20 +132,18 @@ function buildVSCodeDeps(): ModelSelectionDeps {
  * Selects the configured model by ID, or prompts the user to pick one.
  * When "auto" is selected, uses the Copilot auto model directly.
  */
-export async function selectCopilotModel(): Promise<Result<vscode.LanguageModelChat, string>> {
-  const result = await resolveModel(buildVSCodeDeps());
-  if (!result.ok) {
-    return result;
-  }
+async function resolveModelRef(mode: ModelSelectionMode | undefined): Promise<Result<ModelRef, string>> {
+  const deps = buildVSCodeDeps();
+  return mode === "automatic" ? await resolveModelAutomatically(deps) : await resolveModel(deps);
+}
 
-  const allModels = await fetchModels({ vendor: "copilot" });
-  if (allModels.length === 0) {
-    return err("No Copilot models available");
-  }
-
+function findResolvedModel(
+  allModels: readonly vscode.LanguageModelChat[],
+  selectedId: string
+): Result<vscode.LanguageModelChat, string> {
   const model = pickConcreteModel({
     models: allModels.map((m) => ({ id: m.id, name: m.name })),
-    preferredId: result.value.id,
+    preferredId: selectedId,
   });
   if (!model) {
     return err("Selected model no longer available");
@@ -153,12 +153,33 @@ export async function selectCopilotModel(): Promise<Result<vscode.LanguageModelC
   if (!resolved) {
     return err("Selected model no longer available");
   }
-
-  logger.info("Resolved model for requests", {
-    selected: result.value.id,
-    resolved: resolved.id,
-  });
   return ok(resolved);
+}
+
+async function fetchResolvedModel(selectedId: string): Promise<Result<vscode.LanguageModelChat, string>> {
+  const allModels = await fetchModels({ vendor: "copilot" });
+  if (allModels.length === 0) {
+    return err("No Copilot models available");
+  }
+
+  const result = findResolvedModel(allModels, selectedId);
+  if (!result.ok) {
+    return result;
+  }
+  logger.info("Resolved model for requests", {
+    selected: selectedId,
+    resolved: result.value.id,
+  });
+  return result;
+}
+
+export async function selectCopilotModel(
+  params: {
+    readonly mode?: ModelSelectionMode | undefined;
+  } = {}
+): Promise<Result<vscode.LanguageModelChat, string>> {
+  const result = await resolveModelRef(params.mode);
+  return result.ok ? await fetchResolvedModel(result.value.id) : result;
 }
 
 /**
