@@ -1,6 +1,6 @@
 /**
  * SPEC: database-schema, DB-LOCK-RECOVERY
- * Singleton lifecycle management for the database.
+ * Lifecycle management for the database. State lives in appState.
  */
 
 import * as fs from "fs";
@@ -11,23 +11,22 @@ import { openDatabase, initSchema, closeDatabase } from "./db";
 import type { Result } from "../models/Result";
 import { ok, err } from "../models/Result";
 import { isLockError, removeLockFiles as removeLockFilesPure } from "./lockArtifacts";
+import { appState } from "../state";
 
 const COMMANDTREE_DIR = ".commandtree";
 const DB_FILENAME = "commandtree.sqlite3";
 const LOCK_RETRY_INTERVAL_MS = 1000;
 const LOCK_RETRY_MAX_MS = 10000;
 
-let dbHandle: DbHandle | null = null;
-
 /**
  * SPEC: DB-LOCK-RECOVERY
- * Initialises the SQLite database singleton.
+ * Initialises the SQLite database.
  * If the database is locked, retries for 10 seconds then
  * forcefully removes lock/journal files and retries.
  */
 export async function initDb(workspaceRoot: string): Promise<Result<DbHandle, string>> {
-  if (dbHandle !== null && fs.existsSync(dbHandle.path)) {
-    return ok(dbHandle);
+  if (appState.dbHandle !== null && fs.existsSync(appState.dbHandle.path)) {
+    return ok(appState.dbHandle);
   }
   resetStaleHandle();
 
@@ -60,8 +59,8 @@ export async function initDb(workspaceRoot: string): Promise<Result<DbHandle, st
  * Returns error if the database has not been initialised.
  */
 export function getDb(): Result<DbHandle, string> {
-  if (dbHandle !== null && fs.existsSync(dbHandle.path)) {
-    return ok(dbHandle);
+  if (appState.dbHandle !== null && fs.existsSync(appState.dbHandle.path)) {
+    return ok(appState.dbHandle);
   }
   resetStaleHandle();
   return err("Database not initialised. Call initDb first.");
@@ -80,9 +79,9 @@ export function getDbOrThrow(): DbHandle {
 }
 
 function resetStaleHandle(): void {
-  if (dbHandle !== null) {
-    closeDatabase(dbHandle);
-    dbHandle = null;
+  if (appState.dbHandle !== null) {
+    closeDatabase(appState.dbHandle);
+    appState.dbHandle = null;
   }
 }
 
@@ -90,8 +89,8 @@ function resetStaleHandle(): void {
  * Disposes the database connection.
  */
 export function disposeDb(): void {
-  const currentDb = dbHandle;
-  dbHandle = null;
+  const currentDb = appState.dbHandle;
+  appState.dbHandle = null;
   if (currentDb !== null) {
     closeDatabase(currentDb);
   }
@@ -110,7 +109,7 @@ function tryOpenAndInit(dbPath: string): Result<DbHandle, string> {
     const msg = e instanceof Error ? e.message : String(e);
     return err(msg);
   }
-  dbHandle = openResult.value;
+  appState.dbHandle = openResult.value;
   logger.info("SQLite database initialised", { path: dbPath });
   return ok(openResult.value);
 }
@@ -154,5 +153,5 @@ async function sleep(ms: number): Promise<void> {
 
 // Test-only: reset internal state
 export function resetForTesting(): void {
-  dbHandle = null;
+  appState.dbHandle = null;
 }

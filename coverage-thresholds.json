@@ -1,8 +1,8 @@
 {
   "_agent_pmo": "f481f8d",
   "_doc": "Single source of truth for code coverage thresholds. See REPO-STANDARDS-SPEC [COVERAGE-THRESHOLDS-JSON]. Enforced by tools/check-coverage.mjs via `make test`. Ratchet UP only. Extended format (per-metric) overrides the spec's single default_threshold to enforce both line AND branch coverage per [COVERAGE-THRESHOLDS] (VS Code extension: 80% line / 70% branch — measured values here are well above).",
-  "lines": 91.19,
-  "functions": 93.08,
-  "branches": 86.76,
-  "statements": 91.19
+  "lines": 91.29,
+  "functions": 93.16,
+  "branches": 86.59,
+  "statements": 91.29
 }
